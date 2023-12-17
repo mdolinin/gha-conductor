@@ -1,0 +1,698 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "title": "The root schema",
+    "description": "The root schema comprises the entire JSON document.",
+    "default": {},
+    "examples": [
+        {
+            "moduleName": "example-a",
+            "teamNamespace": "domain-a",
+            "sharedParams": {
+                "ROOT_DIR": "namespaces/domain-a"
+            },
+            "defaultFileChangeTrigger": [
+                "namespaces/domain-a/projects/examples/example-a/api/**",
+                "namespaces/domain-a/projects/examples/example-a/server/**",
+                "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+            ],
+            "onPullRequest": [
+                {
+                    "name": "build-and-test",
+                    "pipelineRef": {
+                        "name": "pipeline-gradle-task"
+                    },
+                    "pipelineRunValues": {
+                        "params": {
+                            "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                        }
+                    },
+                    "triggerConditions": {
+                        "fileChangesMatchAny": [
+                            "namespaces/domain-a/projects/examples/example-a/api/**",
+                            "namespaces/domain-a/projects/examples/example-a/server/**",
+                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                        ]
+                    }
+                },
+                {
+                    "name": "test-container",
+                    "pipelineRef": {
+                        "name": "pipeline-gradle-task"
+                    },
+                    "pipelineRunValues": {
+                        "params": {
+                            "COMMAND": ":projects:examples:example-a:server:testImage"
+                        }
+                    },
+                    "triggerConditions": {
+                        "fileChangesMatchAny": [
+                            "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                        ]
+                    }
+                }
+            ],
+            "onBranchMerge": [
+                {
+                    "name": "run-sonar",
+                    "pipelineRef": {
+                        "name": "pipeline-gradle-task"
+                    },
+                    "pipelineRunValues": {
+                        "params": {
+                            "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                        }
+                    },
+                    "triggerConditions": {
+                        "destinationBranchMatchesAny": [
+                            "master"
+                        ],
+                        "fileChangesMatchAny": [
+                            "namespaces/domain-a/projects/examples/example-a/api/**",
+                            "namespaces/domain-a/projects/examples/example-a/server/**",
+                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                        ]
+                    }
+                },
+                {
+                    "name": "publish-container",
+                    "pipelineRef": {
+                        "name": "pipeline-gradle-task"
+                    },
+                    "pipelineRunValues": {
+                        "params": {
+                            "COMMAND": ":projects:examples:example-a:server:jib :projects:examples:example-a:api:artifactoryPublish"
+                        }
+                    },
+                    "triggerConditions": {
+                        "destinationBranchMatchesAny": [
+                            "master"
+                        ],
+                        "fileChangesMatchAny": [
+                            "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "required": [
+        "moduleName",
+        "teamNamespace",
+        "sharedParams",
+        "defaultFileChangeTrigger",
+        "onPullRequest",
+        "onBranchMerge"
+    ],
+    "properties": {
+        "moduleName": {
+            "$id": "#/properties/moduleName",
+            "type": "string",
+            "title": "The moduleName schema",
+            "description": "moduleName must be unique across the whole mono repo",
+            "default": "",
+            "examples": [
+                "example-a"
+            ]
+        },
+        "teamNamespace": {
+            "$id": "#/properties/teamNamespace",
+            "type": "string",
+            "title": "The teamNamespace schema",
+            "description": "teamNamespace must be unique across the whole mono repo",
+            "default": "",
+            "examples": [
+                "domain-a"
+            ]
+        },
+        "sharedParams": {
+            "$id": "#/properties/sharedParams",
+            "type": "object",
+            "title": "The sharedParams schema",
+            "description": "Params shared across all the projects with in the namespace",
+            "default": {},
+            "examples": [
+                {
+                    "ROOT_DIR": "namespaces/domain-a"
+                }
+            ],
+            "required": [
+                "ROOT_DIR"
+            ],
+            "properties": {
+                "ROOT_DIR": {
+                    "$id": "#/properties/sharedParams/properties/ROOT_DIR",
+                    "type": "string",
+                    "title": "The ROOT_DIR schema",
+                    "description": "Root directory of the namespace.",
+                    "default": "",
+                    "examples": [
+                        "namespaces/domain-a"
+                    ]
+                }
+            },
+            "additionalProperties": true
+        },
+        "defaultFileChangeTrigger": {
+            "$id": "#/properties/defaultFileChangeTrigger",
+            "type": "array",
+            "title": "The defaultFileChangeTrigger schema",
+            "description": "List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.",
+            "default": [],
+            "examples": [
+                [
+                    "namespaces/domain-a/projects/examples/example-a/api/**",
+                    "namespaces/domain-a/projects/examples/example-a/server/**"
+                ]
+            ],
+            "additionalItems": true,
+            "items": {
+                "$id": "#/properties/defaultFileChangeTrigger/items",
+                "anyOf": [
+                    {
+                        "$id": "#/properties/defaultFileChangeTrigger/items/anyOf/0",
+                        "type": "string",
+                        "title": "The first anyOf schema",
+                        "description": "List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.",
+                        "default": "",
+                        "examples": [
+                            "namespaces/domain-a/projects/examples/example-a/api/**",
+                            "namespaces/domain-a/projects/examples/example-a/server/**"
+                        ]
+                    }
+                ]
+            }
+        },
+        "onPullRequest": {
+            "$id": "#/properties/onPullRequest",
+            "type": "array",
+            "title": "The onPullRequest schema",
+            "description": "Gradle tasks to run on Github pull request",
+            "default": [],
+            "examples": [
+                [
+                    {
+                        "name": "build-and-test",
+                        "pipelineRef": {
+                            "name": "pipeline-gradle-task"
+                        },
+                        "pipelineRunValues": {
+                            "params": {
+                                "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                            }
+                        },
+                        "triggerConditions": {
+                            "fileChangesMatchAny": [
+                                "namespaces/domain-a/projects/examples/example-a/api/**",
+                                "namespaces/domain-a/projects/examples/example-a/server/**",
+                                "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                                "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "test-container",
+                        "pipelineRef": {
+                            "name": "pipeline-gradle-task"
+                        },
+                        "pipelineRunValues": {
+                            "params": {
+                                "COMMAND": ":projects:examples:example-a:server:testImage"
+                            }
+                        },
+                        "triggerConditions": {
+                            "fileChangesMatchAny": [
+                                "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                            ]
+                        }
+                    }
+                ]
+            ],
+            "additionalItems": true,
+            "items": {
+                "$id": "#/properties/onPullRequest/items",
+                "anyOf": [
+                    {
+                        "$id": "#/properties/onPullRequest/items/anyOf/0",
+                        "type": "object",
+                        "title": "The first anyOf schema",
+                        "description": "Gradle tasks to run on Github pull request",
+                        "default": {},
+                        "examples": [
+                            {
+                                "name": "build-and-test",
+                                "pipelineRef": {
+                                    "name": "pipeline-gradle-task"
+                                },
+                                "pipelineRunValues": {
+                                    "params": {
+                                        "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                    }
+                                },
+                                "triggerConditions": {
+                                    "fileChangesMatchAny": [
+                                        "namespaces/domain-a/projects/examples/example-a/api/**",
+                                        "namespaces/domain-a/projects/examples/example-a/server/**",
+                                        "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                                        "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                        "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                    ]
+                                }
+                            }
+                        ],
+                        "required": [
+                            "name",
+                            "pipelineRef",
+                            "pipelineRunValues",
+                            "triggerConditions"
+                        ],
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/onPullRequest/items/anyOf/0/properties/name",
+                                "type": "string",
+                                "title": "The build-and-test schema",
+                                "description": "Build and test task.",
+                                "default": "",
+                                "examples": [
+                                    "build-and-test"
+                                ]
+                            },
+                            "pipelineRef": {
+                                "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRef",
+                                "type": "object",
+                                "title": "The pipelineRef schema",
+                                "description": "pipeline for executing gradle task.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "name": "pipeline-gradle-task"
+                                    }
+                                ],
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRef/properties/name",
+                                        "type": "string",
+                                        "title": "The name schema",
+                                        "description": "helm name for pipeline for executing gradle task",
+                                        "default": "",
+                                        "examples": [
+                                            "pipeline-gradle-task"
+                                        ]
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "pipelineRunValues": {
+                                "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRunValues",
+                                "type": "object",
+                                "title": "The pipelineRunValues schema",
+                                "description": "Gradle tasks to run for build and test",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "params": {
+                                            "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                        }
+                                    }
+                                ],
+                                "required": [
+                                    "params"
+                                ],
+                                "properties": {
+                                    "params": {
+                                        "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRunValues/properties/params",
+                                        "type": "object",
+                                        "title": "The params schema",
+                                        "description": "check and jacocoTestCoverageVerification gradle tasks to run.",
+                                        "default": {},
+                                        "examples": [
+                                            {
+                                                "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                            }
+                                        ],
+                                        "required": [
+                                            "COMMAND"
+                                        ],
+                                        "properties": {
+                                            "COMMAND": {
+                                                "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRunValues/properties/params/properties/COMMAND",
+                                                "type": "string",
+                                                "title": "The COMMAND schema",
+                                                "description": "check and jacocoTestCoverageVerification gradle tasks to run.",
+                                                "default": "",
+                                                "examples": [
+                                                    ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                                ]
+                                            }
+                                        },
+                                        "additionalProperties": true
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "triggerConditions": {
+                                "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions",
+                                "type": "object",
+                                "title": "The triggerConditions schema",
+                                "description": "Condition for trigger for file changes.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "fileChangesMatchAny": [
+                                            "namespaces/domain-a/projects/examples/example-a/api/**",
+                                            "namespaces/domain-a/projects/examples/example-a/server/**",
+                                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                        ]
+                                    }
+                                ],
+                                "required": [
+                                    "fileChangesMatchAny"
+                                ],
+                                "properties": {
+                                    "fileChangesMatchAny": {
+                                        "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
+                                        "type": "array",
+                                        "title": "The fileChangesMatchAny schema",
+                                        "description": "Condition for trigger for file changes.",
+                                        "default": [],
+                                        "examples": [
+                                            [
+                                                "namespaces/domain-a/projects/examples/example-a/api/**",
+                                                "namespaces/domain-a/projects/examples/example-a/server/**"
+                                            ]
+                                        ],
+                                        "additionalItems": true,
+                                        "items": {
+                                            "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
+                                            "anyOf": [
+                                                {
+                                                    "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
+                                                    "type": "string",
+                                                    "title": "The first anyOf schema",
+                                                    "description": "Condition for trigger for file changes.",
+                                                    "default": "",
+                                                    "examples": [
+                                                        "namespaces/domain-a/projects/examples/example-a/api/**",
+                                                        "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                ]
+            }
+        },
+        "onBranchMerge": {
+            "$id": "#/properties/onBranchMerge",
+            "type": "array",
+            "title": "The onBranchMerge schema",
+            "description": "on branch merge github event, triggers gradle taks to publish image to artifactory",
+            "default": [],
+            "examples": [
+                [
+                    {
+                        "name": "run-sonar",
+                        "pipelineRef": {
+                            "name": "pipeline-gradle-task"
+                        },
+                        "pipelineRunValues": {
+                            "params": {
+                                "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                            }
+                        },
+                        "triggerConditions": {
+                            "destinationBranchMatchesAny": [
+                                "master"
+                            ],
+                            "fileChangesMatchAny": [
+                                "namespaces/domain-a/projects/examples/example-a/api/**",
+                                "namespaces/domain-a/projects/examples/example-a/server/**",
+                                "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                                "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "publish-container",
+                        "pipelineRef": {
+                            "name": "pipeline-gradle-task"
+                        },
+                        "pipelineRunValues": {
+                            "params": {
+                                "COMMAND": ":projects:examples:example-a:server:jib :projects:examples:example-a:api:artifactoryPublish"
+                            }
+                        },
+                        "triggerConditions": {
+                            "destinationBranchMatchesAny": [
+                                "master"
+                            ],
+                            "fileChangesMatchAny": [
+                                "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                            ]
+                        }
+                    }
+                ]
+            ],
+            "additionalItems": true,
+            "items": {
+                "$id": "#/properties/onBranchMerge/items",
+                "anyOf": [
+                    {
+                        "$id": "#/properties/onBranchMerge/items/anyOf/0",
+                        "type": "object",
+                        "title": "The first anyOf schema",
+                        "description": "Runs jacocoTestReport task and sonarqube task for the project “examples:example-a“ via  pipeline-gradle-task pipeline developed for executing a generic gradle task when ever there is a change in the files that are tracked under defaultFileChangeTrigger variable..",
+                        "default": {},
+                        "examples": [
+                            {
+                                "name": "run-sonar",
+                                "pipelineRef": {
+                                    "name": "pipeline-gradle-task"
+                                },
+                                "pipelineRunValues": {
+                                    "params": {
+                                        "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                    }
+                                },
+                                "triggerConditions": {
+                                    "destinationBranchMatchesAny": [
+                                        "master"
+                                    ],
+                                    "fileChangesMatchAny": [
+                                        "namespaces/domain-a/projects/examples/example-a/api/**",
+                                        "namespaces/domain-a/projects/examples/example-a/server/**",
+                                        "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                                        "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                        "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                    ]
+                                }
+                            }
+                        ],
+                        "required": [
+                            "name",
+                            "pipelineRef",
+                            "pipelineRunValues",
+                            "triggerConditions"
+                        ],
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/name",
+                                "type": "string",
+                                "title": "The name schema",
+                                "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
+                                "default": "",
+                                "examples": [
+                                    "run-sonar"
+                                ]
+                            },
+                            "pipelineRef": {
+                                "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRef",
+                                "type": "object",
+                                "title": "The pipelineRef schema",
+                                "description": "Generic pipeline name to run gradle tasks.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "name": "pipeline-gradle-task"
+                                    }
+                                ],
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRef/properties/name",
+                                        "type": "string",
+                                        "title": "The name schema",
+                                        "description": "Generic pipeline name to run gradle tasks.",
+                                        "default": "",
+                                        "examples": [
+                                            "pipeline-gradle-task"
+                                        ]
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "pipelineRunValues": {
+                                "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRunValues",
+                                "type": "object",
+                                "title": "The pipelineRunValues schema",
+                                "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "params": {
+                                            "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                        }
+                                    }
+                                ],
+                                "required": [
+                                    "params"
+                                ],
+                                "properties": {
+                                    "params": {
+                                        "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRunValues/properties/params",
+                                        "type": "object",
+                                        "title": "The params schema",
+                                        "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
+                                        "default": {},
+                                        "examples": [
+                                            {
+                                                "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                            }
+                                        ],
+                                        "required": [
+                                            "COMMAND"
+                                        ],
+                                        "properties": {
+                                            "COMMAND": {
+                                                "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRunValues/properties/params/properties/COMMAND",
+                                                "type": "string",
+                                                "title": "The COMMAND schema",
+                                                "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
+                                                "default": "",
+                                                "examples": [
+                                                    ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                                ]
+                                            }
+                                        },
+                                        "additionalProperties": true
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "triggerConditions": {
+                                "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions",
+                                "type": "object",
+                                "title": "The triggerConditions schema",
+                                "description": "Trigger condition on file changes.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "destinationBranchMatchesAny": [
+                                            "master"
+                                        ],
+                                        "fileChangesMatchAny": [
+                                            "namespaces/domain-a/projects/examples/example-a/api/**",
+                                            "namespaces/domain-a/projects/examples/example-a/server/**",
+                                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
+                                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                        ]
+                                    }
+                                ],
+                                "required": [
+                                    "destinationBranchMatchesAny",
+                                    "fileChangesMatchAny"
+                                ],
+                                "properties": {
+                                    "destinationBranchMatchesAny": {
+                                        "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/destinationBranchMatchesAny",
+                                        "type": "array",
+                                        "title": "The destinationBranchMatchesAny schema",
+                                        "description": "Branch name for which changes happened.",
+                                        "default": [],
+                                        "examples": [
+                                            [
+                                                "master"
+                                            ]
+                                        ],
+                                        "additionalItems": true,
+                                        "items": {
+                                            "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/destinationBranchMatchesAny/items",
+                                            "anyOf": [
+                                                {
+                                                    "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/destinationBranchMatchesAny/items/anyOf/0",
+                                                    "type": "string",
+                                                    "title": "The first anyOf schema",
+                                                    "description": "Branch name for which changes happened.",
+                                                    "default": "",
+                                                    "examples": [
+                                                        "master"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "fileChangesMatchAny": {
+                                        "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
+                                        "type": "array",
+                                        "title": "The fileChangesMatchAny schema",
+                                        "description": "list of files that has updates.",
+                                        "default": [],
+                                        "examples": [
+                                            [
+                                                "namespaces/domain-a/projects/examples/example-a/api/**",
+                                                "namespaces/domain-a/projects/examples/example-a/server/**"
+                                            ]
+                                        ],
+                                        "additionalItems": true,
+                                        "items": {
+                                            "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
+                                            "anyOf": [
+                                                {
+                                                    "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
+                                                    "type": "string",
+                                                    "title": "The first anyOf schema",
+                                                    "description": "list of files that has updates.",
+                                                    "default": "",
+                                                    "examples": [
+                                                        "namespaces/domain-a/projects/examples/example-a/api/**",
+                                                        "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                ]
+            }
+        }
+    },
+    "additionalProperties": true
+}

@@ -69,6 +69,7 @@
     "pretty": false,
     "skipLibCheck": true
   },
-  "include": ["src/"],
+  "hooks": [ "copy-files" ],
+  "include": ["src/**/*"],
   "compileOnSave": false
 }

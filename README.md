@@ -1,15 +1,20 @@
 # gha-conductor
 
-> A GitHub App built with [Probot](https://github.com/probot/probot) that Github Actions for monorepo setup
+> A GitHub App built with [Probot](https://github.com/probot/probot) that GitHub Actions for monorepo setup
 
 ## Setup
 
 ```sh
 # Install dependencies
-npm install
-
+yarn
+# Generate schemas
+yarn generate
+# Apply db migrations
+yarn db:migrate
+# Generate db schema
+yarn db:generate
 # Run the bot
-npm start
+yarn start
 ```
 
 ## Docker
