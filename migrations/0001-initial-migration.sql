@@ -11,5 +11,6 @@ CREATE TABLE IF NOT EXISTS gha_hooks
     pipeline_unique_prefix     TEXT      NOT NULL,
     pipeline_name              TEXT      NOT NULL,
     pipeline_ref               TEXT      NULL,
-    pipeline_params            JSONB     NOT NULL
+    pipeline_params            JSONB     NOT NULL,
+    shared_params              JSONB     NULL
 );

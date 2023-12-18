@@ -93,7 +93,7 @@
         "name": "hook",
         "isNullable": false,
         "hasDefault": false,
-        "typeId": 40978,
+        "typeId": 41035,
         "typeName": "HOOK_TYPE"
       },
       {
@@ -144,6 +144,13 @@
         "hasDefault": false,
         "typeId": 25,
         "typeName": "TEXT"
+      },
+      {
+        "name": "shared_params",
+        "isNullable": true,
+        "hasDefault": false,
+        "typeId": 3802,
+        "typeName": "JSONB"
       }
     ]
   }

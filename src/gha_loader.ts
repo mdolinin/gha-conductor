@@ -65,6 +65,7 @@ export class GhaLoader {
                     pipeline_name: onPR.pipelineRef.name,
                     pipeline_ref: null,
                     pipeline_params: onPR.pipelineRunValues.params,
+                    shared_params: ghaFileYaml.sharedParams
                 }
                 await gha_hooks(db).insert(hook);
             }
@@ -83,6 +84,7 @@ export class GhaLoader {
                         pipeline_name: onBranchMerge.pipelineRef.name,
                         pipeline_ref: null,
                         pipeline_params: onBranchMerge.pipelineRunValues.params,
+                        shared_params: ghaFileYaml.sharedParams
                     }
                     await gha_hooks(db).insert(hook);
                 }
