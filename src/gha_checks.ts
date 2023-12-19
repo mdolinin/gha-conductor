@@ -108,7 +108,7 @@ export class GhaChecks {
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.check_run_id,
+                check_run_id: workflowRun.check_run_id?.toString(),
                 status: "in_progress",
                 output: {
                     title: "Pipelines in progress",
@@ -136,7 +136,7 @@ export class GhaChecks {
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.check_run_id,
+                check_run_id: workflowRun.check_run_id?.toString(),
                 status: "completed",
                 conclusion: payload.workflow_job.conclusion,
                 completed_at: new Date().toISOString(),
@@ -166,7 +166,7 @@ export class GhaChecks {
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.pr_status_check_id,
+                check_run_id: workflowRun.pr_status_check_id?.toString(),
                 status: "in_progress",
                 output: {
                     title: "Pipelines in progress",
@@ -198,7 +198,7 @@ export class GhaChecks {
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
-                    check_run_id: workflowRuns[0].pr_status_check_id,
+                    check_run_id: workflowRuns[0].pr_status_check_id?.toString(),
                     status: "completed",
                     conclusion: conclusion,
                     completed_at: new Date().toISOString(),
