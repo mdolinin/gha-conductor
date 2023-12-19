@@ -1,11 +1,16 @@
 import { Probot } from "probot";
 import { GhaLoader } from "./gha_loader";
 import {Hooks} from "./hooks";
+import {GhaChecks} from "./gha_checks";
+import {GhaWorkflowRuns} from "./gha_workflow_runs";
+import {WorkflowJobCompletedEvent, WorkflowJobInProgressEvent, WorkflowJobQueuedEvent} from "@octokit/webhooks-types";
 
 export = (app: Probot) => {
 
   const ghaLoader = new GhaLoader();
   const hooks = new Hooks();
+  const runs = new GhaWorkflowRuns();
+  const checks = new GhaChecks();
 
   app.on("issues.opened", async (context) => {
     const issueComment = context.issue({
@@ -45,8 +50,40 @@ export = (app: Probot) => {
         app.log.info(`Triggered hooks are ${JSON.stringify(triggeredHooks)}`);
         const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType);
         app.log.info("Triggered pipelines are " + triggeredPipelineNames);
+        for (const pipelineName of triggeredPipelineNames) {
+            await runs.createNewRun(pipelineName, context.payload.pull_request);
+        }
     }
+    await checks.createPRCheck(context.octokit, context.payload.pull_request);
   });
+
+  app.on("workflow_job", async (context) => {
+        app.log.info(`workflow_job event received for ${context.payload.workflow_job.name}`);
+        const workflowJob = context.payload.workflow_job;
+        if (workflowJob.run_id) {
+            const workflowRun = await context.octokit.actions.getWorkflowRun({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                run_id: workflowJob.run_id
+            });
+            if (workflowRun) {
+                if (context.payload.action === "queued") {
+                    const payload = context.payload as WorkflowJobQueuedEvent;
+                    await checks.updateWorkflowRunCheckQueued(context.octokit, payload, workflowRun.data.id);
+                } else if (context.payload.action === "in_progress") {
+                    const payload = context.payload as WorkflowJobInProgressEvent;
+                    await checks.updateWorkflowRunCheckInProgress(context.octokit, payload);
+                    await checks.updatePRStatusCheckInProgress(context.octokit, payload);
+                } else {
+                    const payload = context.payload as WorkflowJobCompletedEvent;
+                    await checks.updateWorkflowRunCheckCompleted(context.octokit, payload);
+                    await checks.updatePRStatusCheckCompleted(context.octokit, payload);
+                }
+            } else {
+                app.log.error("Failed to get workflow run for " + workflowJob.run_id);
+            }
+        }
+    });
   // For more information on building apps:
   // https://probot.github.io/docs/
 

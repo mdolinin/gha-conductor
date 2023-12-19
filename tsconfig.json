@@ -70,6 +70,6 @@
     "skipLibCheck": true
   },
   "hooks": [ "copy-files" ],
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/__generated__/schema.json"],
   "compileOnSave": false
 }

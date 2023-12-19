@@ -12,7 +12,7 @@ const db = createConnectionPool({
 export default db;
 
 // You can list whatever tables you actually have here:
-const {gha_hooks} = tables<DatabaseSchema>({
+const {gha_hooks, gha_workflow_runs} = tables<DatabaseSchema>({
     databaseSchema: require('./../__generated__/schema.json'),
 });
-export {gha_hooks};
+export {gha_hooks, gha_workflow_runs};

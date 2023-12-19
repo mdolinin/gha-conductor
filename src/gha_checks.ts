@@ -1,0 +1,247 @@
+import {
+    PullRequest,
+    WorkflowJobCompletedEvent,
+    WorkflowJobInProgressEvent,
+    WorkflowJobQueuedEvent
+} from "@octokit/webhooks-types";
+import {ProbotOctokit} from "probot";
+import {
+    RestEndpointMethodTypes
+} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
+import db, {gha_workflow_runs} from "./db/database";
+import {GhaWorkflowRuns} from "./__generated__";
+
+export class GhaChecks {
+
+    async createPRCheck(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
+        state: "closed";
+        closed_at: string;
+        merged: boolean
+    }) | PullRequest | (PullRequest & {
+        closed_at: null;
+        merged_at: null;
+        draft: true;
+        merged: false;
+        merged_by: null
+    }) | (PullRequest & {
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        merge_commit_sha: null;
+        active_lock_reason: null;
+        merged_by: null
+    }) | (PullRequest & {
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        draft: false;
+        merged: boolean;
+        merged_by: null
+    }) | (PullRequest & { state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null })) {
+        if (!pull_request.merged && pull_request.state !== "closed") {
+            console.log(`Creating pr-status check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+            const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+                owner: pull_request.base.repo.owner.login,
+                repo: pull_request.base.repo.name,
+                name: "pr-status",
+                head_sha: pull_request.head.sha,
+                status: "queued",
+                started_at: new Date().toISOString()
+            };
+            const resp = await octokit.checks.create(params);
+            const checkRunId = resp.data.id;
+            console.log(`Updating pr-status check with id ${checkRunId} for PR #${pull_request.number}` + " in progress");
+            if (resp.status === 201) {
+                await gha_workflow_runs(db).update({pr_number: pull_request.number}, {
+                    pr_status_check_id: checkRunId
+                });
+            }
+        }
+    }
+
+    private parseHeadShaFromJobName(jobName: string) {
+        // parse head sha from job name %s-%s-%s last part is sha
+        const headSha = jobName.split("-").pop();
+        // get check name from job name %s-%s-%s all parts except last one
+        const checkName = jobName.split("-").slice(0, -1).join("-");
+        return {headSha, checkName};
+    }
+
+    async updateWorkflowRunCheckQueued(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobQueuedEvent, workflow_run_id: number) {
+        // check if workflow run is exist in db
+        const workflowJob = payload.workflow_job;
+        const knownWorkflowRuns = await gha_workflow_runs(db).count({pipeline_run_name: workflowJob.name});
+        if (knownWorkflowRuns === 0) {
+            console.log(`Workflow run ${workflowJob.name} is not exist in db`);
+        } else {
+            const {headSha, checkName} = this.parseHeadShaFromJobName(workflowJob.name);
+            let params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+                owner: payload.repository.owner.login,
+                repo: payload.repository.name,
+                name: checkName,
+                head_sha: headSha,
+                details_url: `https://github.com/${payload.repository.full_name}/actions/runs/${workflowJob.run_id}`,
+                status: "queued",
+                started_at: new Date().toISOString(),
+            };
+            const resp = await octokit.checks.create(params);
+            if (resp.status === 201) {
+                const check = resp.data;
+                // update workflow run in db
+                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name}, {
+                    workflow_run_id: workflow_run_id,
+                    workflow_job_id: workflowJob.id,
+                    status: check.status,
+                    conclusion: check.conclusion,
+                    check_run_id: check.id
+                });
+            }
+        }
+    }
+
+    async updateWorkflowRunCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
+        const workflowJob = payload.workflow_job;
+        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name});
+        if (!workflowRun) {
+            console.log(`Workflow run ${workflowJob.name} is not exist in db`);
+        } else {
+            const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
+                owner: payload.repository.owner.login,
+                repo: payload.repository.name,
+                check_run_id: workflowRun.check_run_id,
+                status: "in_progress",
+                output: {
+                    title: "Pipelines in progress",
+                    summary: "Pipelines are running"
+                }
+            };
+            const resp = await octokit.checks.update(params);
+            if (resp.status === 200) {
+                const check = resp.data;
+                // update workflow run in db
+                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, check_run_id: check.id}, {
+                    status: check.status,
+                    conclusion: check.conclusion,
+                });
+            }
+        }
+    }
+
+    async updateWorkflowRunCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
+        const workflowJob = payload.workflow_job;
+        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name});
+        if (!workflowRun) {
+            console.log(`Workflow run ${workflowJob.name} is not exist in db`);
+        } else {
+            const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
+                owner: payload.repository.owner.login,
+                repo: payload.repository.name,
+                check_run_id: workflowRun.check_run_id,
+                status: "completed",
+                conclusion: payload.workflow_job.conclusion,
+                completed_at: new Date().toISOString(),
+                output: {
+                    title: "Pipelines completed",
+                    summary: "Pipelines completed"
+                }
+            };
+            const resp = await octokit.checks.update(params);
+            if (resp.status === 200) {
+                const check = resp.data;
+                // update workflow run in db
+                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, check_run_id: check.id}, {
+                    status: check.status,
+                    conclusion: check.conclusion,
+                });
+            }
+        }
+    }
+
+    async updatePRStatusCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
+        // find pr_status check run id in db
+        const workflowJob = payload.workflow_job;
+        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name});
+        // update pr_status check run
+        if (workflowRun) {
+            const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
+                owner: payload.repository.owner.login,
+                repo: payload.repository.name,
+                check_run_id: workflowRun.pr_status_check_id,
+                status: "in_progress",
+                output: {
+                    title: "Pipelines in progress",
+                    summary: "Pipelines are running"
+                }
+            };
+            const resp = await octokit.checks.update(params);
+            if (resp.status === 200) {
+                console.log(`Updating pr-status check with id ${workflowRun.pr_status_check_id} for PR #${workflowRun.pr_number}` + " in progress");
+            } else {
+                console.log("Failed to update pr-status check with id " + workflowRun.pr_status_check_id + " for PR #" + workflowRun.pr_number + " in progress");
+            }
+        } else {
+            console.log(`Workflow run ${workflowJob.name} is not exist in db`);
+        }
+    }
+
+    async updatePRStatusCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
+        // find all workflow runs for this with same workflow_job_id
+        const workflowJob = payload.workflow_job;
+        const workflowRuns = await gha_workflow_runs(db).find({pipeline_run_name: workflowJob.name}).all();
+        if (workflowRuns.length === 0) {
+            console.log(`Workflow run ${workflowJob.name} is not exist in db`);
+        } else {
+            const finished = workflowRuns.every((run) => run.status === "completed");
+            if (finished) {
+                console.log("All jobs finished " + finished + " for pr #" + workflowRuns[0].pr_number);
+                const conclusion = this.getConclusion(workflowRuns);
+                const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
+                    owner: payload.repository.owner.login,
+                    repo: payload.repository.name,
+                    check_run_id: workflowRuns[0].pr_status_check_id,
+                    status: "completed",
+                    conclusion: conclusion,
+                    completed_at: new Date().toISOString(),
+                    output: {
+                        title: "All pipelines completed",
+                        summary: "All pipelines completed"
+                    }
+                };
+                const resp = await octokit.checks.update(params);
+                if (resp.status === 200) {
+                    console.log(`Updating pr-status check with id ${workflowRuns[0].pr_status_check_id} for PR #${workflowRuns[0].pr_number}` + " completed");
+                } else {
+                    console.log("Failed to update pr-status check with id " + workflowRuns[0].pr_status_check_id + " for PR #" + workflowRuns[0].pr_number + " completed");
+                }
+            } else {
+                console.log("All jobs not finished for pr #" + workflowRuns[0].pr_number);
+            }
+        }
+    }
+
+    private getConclusion(workflowRuns: GhaWorkflowRuns[]) {
+        // get conclusion from workflow runs
+        // conclusion values | "success" | "failure" | "cancelled"  | "skipped" | "action_required" | "neutral" | "stale" | "timed_out";
+        // if all the jobs are success, then the conclusion is success
+        if (workflowRuns.every((r) => r.conclusion === "success")) {
+            return "success";
+        } else if (workflowRuns.some((r) => r.conclusion === "failure")) {
+            // if any of the jobs failed, then the conclusion is failure
+            return "failure";
+        } else if (workflowRuns.some((r) => r.conclusion === "cancelled")) {
+            return "cancelled";
+        } else if (workflowRuns.some((r) => r.conclusion === "skipped")) {
+            return "skipped";
+        } else if (workflowRuns.some((r) => r.conclusion === "action_required")) {
+            return "action_required";
+        } else if (workflowRuns.some((r) => r.conclusion === "neutral")) {
+            return "neutral";
+        } else if (workflowRuns.some((r) => r.conclusion === "stale")) {
+            return "stale";
+        } else if (workflowRuns.some((r) => r.conclusion === "timed_out")) {
+            return "timed_out";
+        } else {
+            return "failure";
+        }
+    }
+}
