@@ -13,6 +13,44 @@ import {GhaWorkflowRuns} from "./__generated__";
 
 export class GhaChecks {
 
+    async createNewRun(pipelineName: any, pull_request: (PullRequest & {
+        state: "closed";
+        closed_at: string;
+        merged: boolean
+    }) | PullRequest | (PullRequest & {
+        closed_at: null;
+        merged_at: null;
+        draft: true;
+        merged: false;
+        merged_by: null
+    }) | (PullRequest & {
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        merge_commit_sha: null;
+        active_lock_reason: null;
+        merged_by: null
+    }) | (PullRequest & {
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        draft: false;
+        merged: boolean;
+        merged_by: null
+    }) | (PullRequest & { state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null })) {
+        const {headSha, checkName} = this.parseHeadShaFromJobName(pipelineName);
+        if (headSha) {
+            await gha_workflow_runs(db).insert({
+                name: checkName,
+                head_sha: headSha,
+                pipeline_run_name: pipelineName,
+                pr_number: pull_request.number,
+            });
+        } else {
+            console.log("Failed to parse head sha from pipeline name " + pipelineName);
+        }
+    }
+
     async createPRCheck(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
         state: "closed";
         closed_at: string;
@@ -50,16 +88,16 @@ export class GhaChecks {
             };
             const resp = await octokit.checks.create(params);
             const checkRunId = resp.data.id;
-            console.log(`Updating pr-status check with id ${checkRunId} for PR #${pull_request.number}` + " in progress");
+            console.log(`Updating pr-status check with id ${checkRunId} for PR #${pull_request.number} in progress`);
             if (resp.status === 201) {
-                await gha_workflow_runs(db).update({pr_number: pull_request.number}, {
+                await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_status_check_id: null}, {
                     pr_status_check_id: checkRunId
                 });
             }
         }
     }
 
-    private parseHeadShaFromJobName(jobName: string) {
+    private parseHeadShaFromJobName(jobName: string): { headSha: string | undefined, checkName: string } {
         // parse head sha from job name %s-%s-%s last part is sha
         const headSha = jobName.split("-").pop();
         // get check name from job name %s-%s-%s all parts except last one
@@ -88,11 +126,10 @@ export class GhaChecks {
             if (resp.status === 201) {
                 const check = resp.data;
                 // update workflow run in db
-                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name}, {
+                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, workflow_job_id: null}, {
                     workflow_run_id: workflow_run_id,
                     workflow_job_id: workflowJob.id,
                     status: check.status,
-                    conclusion: check.conclusion,
                     check_run_id: check.id
                 });
             }
@@ -101,7 +138,7 @@ export class GhaChecks {
 
     async updateWorkflowRunCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
         const workflowJob = payload.workflow_job;
-        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name});
+        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name, conclusion: null});
         if (!workflowRun) {
             console.log(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
@@ -121,7 +158,6 @@ export class GhaChecks {
                 // update workflow run in db
                 await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, check_run_id: check.id}, {
                     status: check.status,
-                    conclusion: check.conclusion,
                 });
             }
         }
@@ -129,7 +165,7 @@ export class GhaChecks {
 
     async updateWorkflowRunCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         const workflowJob = payload.workflow_job;
-        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name});
+        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name, conclusion: null});
         if (!workflowRun) {
             console.log(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
@@ -160,7 +196,7 @@ export class GhaChecks {
     async updatePRStatusCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
         // find pr_status check run id in db
         const workflowJob = payload.workflow_job;
-        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name});
+        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name, conclusion: null});
         // update pr_status check run
         if (workflowRun) {
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
@@ -187,7 +223,7 @@ export class GhaChecks {
     async updatePRStatusCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         // find all workflow runs for this with same workflow_job_id
         const workflowJob = payload.workflow_job;
-        const workflowRuns = await gha_workflow_runs(db).find({pipeline_run_name: workflowJob.name}).all();
+        const workflowRuns = await gha_workflow_runs(db).find({pipeline_run_name: workflowJob.name, pr_status_conclusion: null}).all();
         if (workflowRuns.length === 0) {
             console.log(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
@@ -210,6 +246,9 @@ export class GhaChecks {
                 const resp = await octokit.checks.update(params);
                 if (resp.status === 200) {
                     console.log(`Updating pr-status check with id ${workflowRuns[0].pr_status_check_id} for PR #${workflowRuns[0].pr_number}` + " completed");
+                    await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, pr_status_check_id: workflowRuns[0].pr_status_check_id}, {
+                        pr_status_conclusion: conclusion,
+                    });
                 } else {
                     console.log("Failed to update pr-status check with id " + workflowRuns[0].pr_status_check_id + " for PR #" + workflowRuns[0].pr_number + " completed");
                 }

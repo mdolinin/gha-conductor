@@ -2,14 +2,12 @@ import { Probot } from "probot";
 import { GhaLoader } from "./gha_loader";
 import {Hooks} from "./hooks";
 import {GhaChecks} from "./gha_checks";
-import {GhaWorkflowRuns} from "./gha_workflow_runs";
 import {WorkflowJobCompletedEvent, WorkflowJobInProgressEvent, WorkflowJobQueuedEvent} from "@octokit/webhooks-types";
 
 export = (app: Probot) => {
 
   const ghaLoader = new GhaLoader();
   const hooks = new Hooks();
-  const runs = new GhaWorkflowRuns();
   const checks = new GhaChecks();
 
   app.on("issues.opened", async (context) => {
@@ -51,7 +49,7 @@ export = (app: Probot) => {
         const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType);
         app.log.info("Triggered pipelines are " + triggeredPipelineNames);
         for (const pipelineName of triggeredPipelineNames) {
-            await runs.createNewRun(pipelineName, context.payload.pull_request);
+            await checks.createNewRun(pipelineName, context.payload.pull_request);
         }
     }
     await checks.createPRCheck(context.octokit, context.payload.pull_request);
