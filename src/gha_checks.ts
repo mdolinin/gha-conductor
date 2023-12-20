@@ -198,7 +198,9 @@ export class GhaChecks {
         const workflowJob = payload.workflow_job;
         const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name, conclusion: null});
         // update pr_status check run
-        if (workflowRun) {
+        if (!workflowRun) {
+            console.log(`Workflow run ${workflowJob.name} is not exist in db`);
+        } else {
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
@@ -215,26 +217,34 @@ export class GhaChecks {
             } else {
                 console.log("Failed to update pr-status check with id " + workflowRun.pr_status_check_id + " for PR #" + workflowRun.pr_number + " in progress");
             }
-        } else {
-            console.log(`Workflow run ${workflowJob.name} is not exist in db`);
         }
     }
 
     async updatePRStatusCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         // find all workflow runs for this with same workflow_job_id
         const workflowJob = payload.workflow_job;
-        const workflowRuns = await gha_workflow_runs(db).find({pipeline_run_name: workflowJob.name, pr_status_conclusion: null}).all();
-        if (workflowRuns.length === 0) {
+        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name, pr_status_conclusion: null});
+        if (!workflowRun) {
             console.log(`Workflow run ${workflowJob.name} is not exist in db`);
+            return;
+        }
+        const prNumber = workflowRun.pr_number;
+        if (prNumber === null) {
+            console.log(`Workflow run ${workflowJob.name} does not have pr_number`);
+            return;
+        }
+        const allPRWorkflowRuns = await gha_workflow_runs(db).find({pr_number: prNumber, pr_status_conclusion: null}).all();
+        if (allPRWorkflowRuns.length === 0) {
+            console.log(`No workflow runs for pr #${prNumber} found with pr_status_conclusion is null in db`);
         } else {
-            const finished = workflowRuns.every((run) => run.status === "completed");
+            const finished = allPRWorkflowRuns.every((run) => run.status === "completed");
             if (finished) {
-                console.log("All jobs finished " + finished + " for pr #" + workflowRuns[0].pr_number);
-                const conclusion = this.getConclusion(workflowRuns);
+                console.log("All jobs finished for pr #" + allPRWorkflowRuns[0].pr_number);
+                const conclusion = this.getConclusion(allPRWorkflowRuns);
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
-                    check_run_id: workflowRuns[0].pr_status_check_id?.toString(),
+                    check_run_id: allPRWorkflowRuns[0].pr_status_check_id?.toString(),
                     status: "completed",
                     conclusion: conclusion,
                     completed_at: new Date().toISOString(),
@@ -245,15 +255,15 @@ export class GhaChecks {
                 };
                 const resp = await octokit.checks.update(params);
                 if (resp.status === 200) {
-                    console.log(`Updating pr-status check with id ${workflowRuns[0].pr_status_check_id} for PR #${workflowRuns[0].pr_number}` + " completed");
-                    await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, pr_status_check_id: workflowRuns[0].pr_status_check_id}, {
+                    console.log(`Updating pr-status check with id ${allPRWorkflowRuns[0].pr_status_check_id} for PR #${allPRWorkflowRuns[0].pr_number}` + " completed");
+                    await gha_workflow_runs(db).update({pr_status_check_id: allPRWorkflowRuns[0].pr_status_check_id}, {
                         pr_status_conclusion: conclusion,
                     });
                 } else {
-                    console.log("Failed to update pr-status check with id " + workflowRuns[0].pr_status_check_id + " for PR #" + workflowRuns[0].pr_number + " completed");
+                    console.log("Failed to update pr-status check with id " + allPRWorkflowRuns[0].pr_status_check_id + " for PR #" + allPRWorkflowRuns[0].pr_number + " completed");
                 }
             } else {
-                console.log("All jobs not finished for pr #" + workflowRuns[0].pr_number);
+                console.log("Some jobs not finished for pr #" + allPRWorkflowRuns[0].pr_number);
             }
         }
     }

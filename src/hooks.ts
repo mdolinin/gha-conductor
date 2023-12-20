@@ -128,7 +128,9 @@ export class Hooks {
             };
             const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
             console.log("Trigger pipeline " + pipeline_run_name + " for PR#" + pull_request.number);
-            console.log(resp);
+            if (resp.status === 204) {
+                console.log("Pipeline " + pipeline_run_name + " triggered successfully");
+            }
             triggeredPipelineNames.push(pipeline_name);
         }
         return triggeredPipelineNames;
