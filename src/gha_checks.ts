@@ -11,7 +11,7 @@ import {
 import db, {gha_workflow_runs} from "./db/database";
 import {GhaWorkflowRuns} from "./__generated__";
 import pino from "pino";
-import { getTransformStream } from "@probot/pino";
+import {getTransformStream} from "@probot/pino";
 
 const transform = getTransformStream();
 transform.pipe(pino.destination(1));
@@ -62,16 +62,10 @@ export class GhaChecks {
         }
     }
 
-    async createPRCheck(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
-        state: "closed";
-        closed_at: string;
-        merged: boolean
+    async createPRCheckNoPipelinesTriggered(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
+        state: "closed"; closed_at: string; merged: boolean
     }) | PullRequest | (PullRequest & {
-        closed_at: null;
-        merged_at: null;
-        draft: true;
-        merged: false;
-        merged_by: null
+        closed_at: null; merged_at: null; draft: true; merged: false; merged_by: null
     }) | (PullRequest & {
         state: "open";
         closed_at: null;
@@ -80,12 +74,48 @@ export class GhaChecks {
         active_lock_reason: null;
         merged_by: null
     }) | (PullRequest & {
+        state: "open"; closed_at: null; merged_at: null; draft: false; merged: boolean; merged_by: null
+    }) | (PullRequest & {
+        state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null
+    })) {
+        if (!pull_request.merged && pull_request.state !== "closed") {
+            log.info(`Creating pr-status check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+            const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+                owner: pull_request.base.repo.owner.login,
+                repo: pull_request.base.repo.name,
+                name: "pr-status",
+                head_sha: pull_request.head.sha,
+                status: "completed",
+                conclusion: "success",
+                completed_at: new Date().toISOString(),
+                output: {
+                    title: "No pipelines to run",
+                    summary: "No pipelines to run"
+                }
+            };
+            const resp = await octokit.checks.create(params);
+            const checkRunId = resp.data.id;
+            if (resp.status === 201) {
+                log.info(`Pr-status check with id ${checkRunId} for PR #${pull_request.number} created`);
+            } else {
+                log.error("Failed to create pr-status check for PR #" + pull_request.number);
+            }
+        }
+    }
+
+    async createPRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
+        state: "closed"; closed_at: string; merged: boolean
+    }) | PullRequest | (PullRequest & {
+        closed_at: null; merged_at: null; draft: true; merged: false; merged_by: null
+    }) | (PullRequest & {
         state: "open";
         closed_at: null;
         merged_at: null;
-        draft: false;
-        merged: boolean;
+        merge_commit_sha: null;
+        active_lock_reason: null;
         merged_by: null
+    }) | (PullRequest & {
+        state: "open"; closed_at: null; merged_at: null; draft: false; merged: boolean; merged_by: null
     }) | (PullRequest & { state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null })) {
         if (!pull_request.merged && pull_request.state !== "closed") {
             log.info(`Creating pr-status check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);

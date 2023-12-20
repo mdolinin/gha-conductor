@@ -87,12 +87,18 @@ export = (app: Probot) => {
         const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch);
         app.log.info(`Triggered hooks are ${JSON.stringify(triggeredHooks)}`);
         const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType, merge_commit_sha);
-        app.log.info("Triggered pipelines are " + triggeredPipelineNames);
         for (const pipelineName of triggeredPipelineNames) {
+            app.log.info(`Triggered pipeline ${pipelineName}`);
             await checks.createNewRun(pipelineName, context.payload.pull_request);
         }
+        if (triggeredPipelineNames.length === 0) {
+            await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request);
+        } else {
+            await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request);
+        }
+    } else {
+        app.log.info("No files changed in PR. No hooks will be triggered");
     }
-    await checks.createPRCheck(context.octokit, context.payload.pull_request);
   });
 
   app.on("workflow_job", async (context) => {
