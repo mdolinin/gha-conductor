@@ -43,40 +43,39 @@ export class Hooks {
     }
 
     async runPipelines(octokit: InstanceType<typeof ProbotOctokit>,
-                       pull_request:
-                           (PullRequest & { state: "closed"; closed_at: string; merged: boolean }) | PullRequest |
-                           (PullRequest & {
-                               closed_at: null;
-                               merged_at: null;
-                               draft: true;
-                               merged: false;
-                               merged_by: null
-                           }) |
-                           (PullRequest & {
-                               state: "open";
-                               closed_at: null;
-                               merged_at: null;
-                               merge_commit_sha: null;
-                               active_lock_reason: null;
-                               merged_by: null
-                           }) |
-                           (PullRequest & {
-                               state: "open";
-                               closed_at: null;
-                               merged_at: null;
-                               draft: false;
-                               merged: boolean;
-                               merged_by: null
-                           }) |
-                           (PullRequest & {
-                               state: "open";
-                               closed_at: null;
-                               merged_at: null;
-                               merged: boolean;
-                               merged_by: null
-                           }),
+                       pull_request: (PullRequest & {
+                           state: "closed";
+                           closed_at: string;
+                           merged: boolean
+                       }) | PullRequest | (PullRequest & {
+                           closed_at: null;
+                           merged_at: null;
+                           draft: true;
+                           merged: false;
+                           merged_by: null
+                       }) | (PullRequest & {
+                           state: "open";
+                           closed_at: null;
+                           merged_at: null;
+                           merge_commit_sha: null;
+                           active_lock_reason: null;
+                           merged_by: null
+                       }) | (PullRequest & {
+                           state: "open";
+                           closed_at: null;
+                           merged_at: null;
+                           draft: false;
+                           merged: boolean;
+                           merged_by: null
+                       }) | (PullRequest & {
+                           state: "open";
+                           closed_at: null;
+                           merged_at: null;
+                           merged: boolean;
+                           merged_by: null
+                       }),
                        action: string,
-                       triggeredHooks: string[], hookType: HookType) {
+                       triggeredHooks: string[], hookType: HookType, merge_commit_sha: string | null) {
         let pr_action = action;
         if (pull_request.merged) {
             pr_action = "merged";
@@ -90,7 +89,7 @@ export class Hooks {
             'PR_HEAD_SHA': pull_request.head.sha,
             'PR_BASE_REF': pull_request.base.ref,
             'PR_BASE_SHA': pull_request.base.sha,
-            'PR_MERGE_SHA': pull_request.merge_commit_sha,
+            'PR_MERGE_SHA': merge_commit_sha,
             'PR_NUMBER': pull_request.number,
             'PR_ACTION': pr_action,
         }

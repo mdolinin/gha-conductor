@@ -29,6 +29,38 @@ export = (app: Probot) => {
 
   app.on(["pull_request.opened", "pull_request.reopened", "pull_request.synchronize", "pull_request.closed"], async (context) => {
     app.log.info("PR handler called for " + context.payload.pull_request.number);
+    // check if PR is mergeable
+    const pr = context.payload.pull_request;
+    let mergeable = pr.mergeable;
+    let merge_commit_sha = pr.merge_commit_sha;
+    if (mergeable === null) {
+        // wait for mergeability to be calculated
+        app.log.info("PR mergeability is null");
+        // check mergeability each five seconds in a loop max 10 times
+        let i = 0;
+        while (i < 5 && mergeable === null) {
+            await new Promise(r => setTimeout(r, 5000));
+            const resp = await context.octokit.pulls.get(
+                {
+                    owner: context.payload.repository.owner.login,
+                    repo: context.payload.repository.name,
+                    pull_number: context.payload.pull_request.number
+                }
+            );
+            app.log.info("PR mergeability is " + resp.data.mergeable);
+            i++;
+            mergeable = resp.data.mergeable;
+            merge_commit_sha = resp.data.merge_commit_sha;
+        }
+        if (mergeable === null || merge_commit_sha === null) {
+            app.log.info(`PR mergeability is still not determined after ${i} attempts or merge_commit_sha is null`);
+            return;
+        }
+    }
+    if (!mergeable) {
+      app.log.info(`PR is not mergeable. All checks are skipped`);
+      return;
+    }
     const baseBranch = context.payload.pull_request.base.ref;
     app.log.info("PR base branch is " + baseBranch);
     const numOfChangedFiles = context.payload.pull_request.changed_files;
@@ -46,7 +78,7 @@ export = (app: Probot) => {
         const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
         const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch);
         app.log.info(`Triggered hooks are ${JSON.stringify(triggeredHooks)}`);
-        const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType);
+        const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType, merge_commit_sha);
         app.log.info("Triggered pipelines are " + triggeredPipelineNames);
         for (const pipelineName of triggeredPipelineNames) {
             await checks.createNewRun(pipelineName, context.payload.pull_request);
