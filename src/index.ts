@@ -17,6 +17,14 @@ export = (app: Probot) => {
     await context.octokit.issues.createComment(issueComment);
   });
 
+  app.on("push", async (context) => {
+    if (context.payload.ref === "refs/heads/master" || context.payload.ref === "refs/heads/main") {
+      app.log.info("Reload gha yaml's in repo");
+      await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.log);
+      app.log.info("Reload gha yaml's in repo done");
+    }
+  });
+
   app.on("pull_request.labeled", async (context) => {
     app.log.info("context.payload is " + context.payload);
     app.log.info("Label is " + context.payload.label.name);
