@@ -6,13 +6,24 @@ import {
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import {HookType} from "./__generated__/_enums";
 import db, {gha_hooks} from "./db/database";
+import pino from "pino";
+import { getTransformStream } from "@probot/pino";
+
+const transform = getTransformStream();
+transform.pipe(pino.destination(1));
+const log = pino(
+    {
+        name: "gha-hooks",
+    },
+    transform
+);
 
 type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["createWorkflowDispatch"]["parameters"];
 
 export class Hooks {
     async filterTriggeredHooks(repo_full_name: string, hookType: HookType,
                                files_changed: string[], baseBranch: string): Promise<Set<string>> {
-        console.log(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
+        log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
         const triggeredHookNames = new Set<string>();
         let all_matchers;
         if (hookType === "onBranchMerge") {
@@ -34,7 +45,7 @@ export class Hooks {
                     continue
                 }
                 if (minimatch(file, matcher.file_changes_matcher)) {
-                    console.log("File " + file + " matches " + matcher.file_changes_matcher);
+                    log.info("File " + file + " matches " + matcher.file_changes_matcher);
                     triggeredHookNames.add(matcher.pipeline_unique_prefix);
                 }
             }
@@ -93,7 +104,7 @@ export class Hooks {
             'PR_NUMBER': pull_request.number,
             'PR_ACTION': pr_action,
         }
-        console.log("Searching for pipelines to run for PR " + pull_request.number + " with action " + action);
+        log.info("Searching for pipelines to run for PR " + pull_request.number + " with action " + action);
         const triggeredPipelineNames = [];
         for (const pipeline_run_name of triggeredHooks) {
             let pipelines: any;
@@ -127,9 +138,9 @@ export class Hooks {
                 }
             };
             const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-            console.log("Trigger pipeline " + pipeline_run_name + " for PR#" + pull_request.number);
+            log.info("Trigger pipeline " + pipeline_run_name + " for PR#" + pull_request.number);
             if (resp.status === 204) {
-                console.log("Pipeline " + pipeline_run_name + " triggered successfully");
+                log.info("Pipeline " + pipeline_run_name + " triggered successfully");
             }
             triggeredPipelineNames.push(pipeline_name);
         }
