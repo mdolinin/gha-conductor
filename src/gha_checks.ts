@@ -22,6 +22,12 @@ const log = pino(
     transform
 );
 
+enum PRCheckName {
+    PRStatus = "pr-status",
+    PRMerge = "pr-merge",
+    PRClose = "pr-close"
+}
+
 export class GhaChecks {
 
     async createNewRun(pipelineName: any, pull_request: (PullRequest & {
@@ -48,7 +54,13 @@ export class GhaChecks {
         draft: false;
         merged: boolean;
         merged_by: null
-    }) | (PullRequest & { state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null })) {
+    }) | (PullRequest & {
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        merged: boolean;
+        merged_by: null
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
         const {headSha, checkName} = this.parseHeadShaFromJobName(pipelineName);
         if (headSha) {
             await gha_workflow_runs(db).insert({
@@ -56,6 +68,7 @@ export class GhaChecks {
                 head_sha: headSha,
                 pipeline_run_name: pipelineName,
                 pr_number: pull_request.number,
+                hook: hookType,
             });
         } else {
             log.error("Failed to parse head sha from pipeline name " + pipelineName);
@@ -78,28 +91,32 @@ export class GhaChecks {
     }) | (PullRequest & {
         state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null
     })) {
-        if (!pull_request.merged && pull_request.state !== "closed") {
-            log.info(`Creating pr-status check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
-            const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
-                owner: pull_request.base.repo.owner.login,
-                repo: pull_request.base.repo.name,
-                name: "pr-status",
-                head_sha: pull_request.head.sha,
-                status: "completed",
-                conclusion: "success",
-                completed_at: new Date().toISOString(),
-                output: {
-                    title: "No pipelines to run",
-                    summary: "No pipelines to run"
-                }
-            };
-            const resp = await octokit.checks.create(params);
-            const checkRunId = resp.data.id;
-            if (resp.status === 201) {
-                log.info(`Pr-status check with id ${checkRunId} for PR #${pull_request.number} created`);
-            } else {
-                log.error("Failed to create pr-status check for PR #" + pull_request.number);
+        let checkName = PRCheckName.PRStatus;
+        if (pull_request.merged) {
+            checkName = PRCheckName.PRMerge;
+        } else if (pull_request.state === "closed") {
+            checkName = PRCheckName.PRClose;
+        }
+        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+            owner: pull_request.base.repo.owner.login,
+            repo: pull_request.base.repo.name,
+            name: checkName,
+            head_sha: pull_request.head.sha,
+            status: "completed",
+            conclusion: "success",
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "No pipelines to run",
+                summary: "No pipelines to run"
             }
+        };
+        const resp = await octokit.checks.create(params);
+        const checkRunId = resp.data.id;
+        if (resp.status === 201) {
+            log.info(`Pr-status check with id ${checkRunId} for PR #${pull_request.number} created`);
+        } else {
+            log.error("Failed to create pr-status check for PR #" + pull_request.number);
         }
     }
 
@@ -131,8 +148,8 @@ export class GhaChecks {
             const checkRunId = resp.data.id;
             log.info(`Updating pr-status check with id ${checkRunId} for PR #${pull_request.number} in progress`);
             if (resp.status === 201) {
-                await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_status_check_id: null}, {
-                    pr_status_check_id: checkRunId
+                await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null}, {
+                    pr_check_id: checkRunId
                 });
             }
         }
@@ -254,7 +271,7 @@ export class GhaChecks {
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.pr_status_check_id?.toString(),
+                check_run_id: workflowRun.pr_check_id?.toString(),
                 status: "in_progress",
                 output: {
                     title: "Pipelines in progress",
@@ -263,9 +280,9 @@ export class GhaChecks {
             };
             const resp = await octokit.checks.update(params);
             if (resp.status === 200) {
-                log.info(`Updating pr-status check with id ${workflowRun.pr_status_check_id} for PR #${workflowRun.pr_number}` + " in progress");
+                log.info(`Updating pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number}` + " in progress");
             } else {
-                log.error("Failed to update pr-status check with id " + workflowRun.pr_status_check_id + " for PR #" + workflowRun.pr_number + " in progress");
+                log.error("Failed to update pr-status check with id " + workflowRun.pr_check_id + " for PR #" + workflowRun.pr_number + " in progress");
             }
         }
     }
@@ -275,7 +292,7 @@ export class GhaChecks {
         const workflowJob = payload.workflow_job;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
-            pr_status_conclusion: null
+            pr_conclusion: null
         });
         if (!workflowRun) {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
@@ -288,7 +305,7 @@ export class GhaChecks {
         }
         const allPRWorkflowRuns = await gha_workflow_runs(db).find({
             pr_number: prNumber,
-            pr_status_conclusion: null
+            pr_conclusion: null
         }).all();
         if (allPRWorkflowRuns.length === 0) {
             log.warn(`No workflow runs for pr #${prNumber} found with pr_status_conclusion is null in db`);
@@ -300,7 +317,7 @@ export class GhaChecks {
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
-                    check_run_id: allPRWorkflowRuns[0].pr_status_check_id?.toString(),
+                    check_run_id: allPRWorkflowRuns[0].pr_check_id?.toString(),
                     status: "completed",
                     conclusion: conclusion,
                     completed_at: new Date().toISOString(),
@@ -311,12 +328,12 @@ export class GhaChecks {
                 };
                 const resp = await octokit.checks.update(params);
                 if (resp.status === 200) {
-                    log.info(`Updating pr-status check with id ${allPRWorkflowRuns[0].pr_status_check_id} for PR #${allPRWorkflowRuns[0].pr_number}` + " completed");
-                    await gha_workflow_runs(db).update({pr_status_check_id: allPRWorkflowRuns[0].pr_status_check_id}, {
-                        pr_status_conclusion: conclusion,
+                    log.info(`Updating pr-status check with id ${allPRWorkflowRuns[0].pr_check_id} for PR #${allPRWorkflowRuns[0].pr_number}` + " completed");
+                    await gha_workflow_runs(db).update({pr_check_id: allPRWorkflowRuns[0].pr_check_id}, {
+                        pr_conclusion: conclusion,
                     });
                 } else {
-                    log.error("Failed to update pr-status check with id " + allPRWorkflowRuns[0].pr_status_check_id + " for PR #" + allPRWorkflowRuns[0].pr_number + " completed");
+                    log.error("Failed to update pr-status check with id " + allPRWorkflowRuns[0].pr_check_id + " for PR #" + allPRWorkflowRuns[0].pr_number + " completed");
                 }
             } else {
                 log.info("Some jobs not finished for pr #" + allPRWorkflowRuns[0].pr_number);

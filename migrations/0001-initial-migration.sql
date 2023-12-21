@@ -17,16 +17,17 @@ CREATE TABLE IF NOT EXISTS gha_hooks
 
 CREATE TABLE IF NOT EXISTS gha_workflow_runs
 (
-    id                   SERIAL PRIMARY KEY,
-    name                 TEXT   NOT NULL,
-    workflow_run_id      BIGINT NULL,
-    workflow_job_id      BIGINT NULL,
-    head_sha             TEXT   NOT NULL,
-    pipeline_run_name    TEXT   NOT NULL,
-    status               TEXT   NULL,
-    conclusion           TEXT   NULL,
-    pr_number            INT    NOT NULL,
-    pr_status_check_id   BIGINT NULL,
-    pr_status_conclusion TEXT   NULL,
-    check_run_id         BIGINT NULL
+    id                SERIAL PRIMARY KEY,
+    name              TEXT      NOT NULL,
+    workflow_run_id   BIGINT    NULL,
+    workflow_job_id   BIGINT    NULL,
+    head_sha          TEXT      NOT NULL,
+    pipeline_run_name TEXT      NOT NULL,
+    status            TEXT      NULL,
+    conclusion        TEXT      NULL,
+    pr_number         INT       NOT NULL,
+    pr_check_id       BIGINT    NULL,
+    pr_conclusion     TEXT      NULL,
+    check_run_id      BIGINT    NULL,
+    hook              hook_type NOT NULL
 );

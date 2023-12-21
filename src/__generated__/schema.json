@@ -93,7 +93,7 @@
         "name": "hook",
         "isNullable": false,
         "hasDefault": false,
-        "typeId": 41245,
+        "typeId": 41286,
         "typeName": "HOOK_TYPE"
       },
       {
@@ -179,6 +179,13 @@
         "typeName": "TEXT"
       },
       {
+        "name": "hook",
+        "isNullable": false,
+        "hasDefault": false,
+        "typeId": 41286,
+        "typeName": "HOOK_TYPE"
+      },
+      {
         "name": "id",
         "isNullable": false,
         "hasDefault": true,
@@ -200,25 +207,25 @@
         "typeName": "TEXT"
       },
       {
-        "name": "pr_number",
-        "isNullable": false,
-        "hasDefault": false,
-        "typeId": 23,
-        "typeName": "INTEGER"
-      },
-      {
-        "name": "pr_status_check_id",
+        "name": "pr_check_id",
         "isNullable": true,
         "hasDefault": false,
         "typeId": 20,
         "typeName": "BIGINT"
       },
       {
-        "name": "pr_status_conclusion",
+        "name": "pr_conclusion",
         "isNullable": true,
         "hasDefault": false,
         "typeId": 25,
         "typeName": "TEXT"
+      },
+      {
+        "name": "pr_number",
+        "isNullable": false,
+        "hasDefault": false,
+        "typeId": 23,
+        "typeName": "INTEGER"
       },
       {
         "name": "status",

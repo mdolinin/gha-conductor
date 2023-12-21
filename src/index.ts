@@ -36,8 +36,8 @@ export = (app: Probot) => {
   });
 
   app.on(["pull_request.opened", "pull_request.reopened", "pull_request.synchronize", "pull_request.closed"], async (context) => {
-    app.log.info("PR handler called for " + context.payload.pull_request.number);
     const pr = context.payload.pull_request;
+    app.log.info(`PR handler called for ${pr.number} and action ${context.payload.action}`);
     let mergeable = pr.mergeable;
     let merge_commit_sha = pr.merge_commit_sha;
     if (mergeable === null) {
@@ -86,7 +86,7 @@ export = (app: Probot) => {
         const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType, merge_commit_sha);
         for (const pipelineName of triggeredPipelineNames) {
             app.log.info(`Triggered pipeline ${pipelineName}`);
-            await checks.createNewRun(pipelineName, context.payload.pull_request);
+            await checks.createNewRun(pipelineName, context.payload.pull_request, hookType);
         }
         if (triggeredPipelineNames.length === 0) {
             await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request);
