@@ -60,12 +60,13 @@ export class GhaChecks {
         merged_at: null;
         merged: boolean;
         merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string) {
         const {headSha, checkName} = this.parseHeadShaFromJobName(pipelineName);
         if (headSha) {
             await gha_workflow_runs(db).insert({
                 name: checkName,
                 head_sha: headSha,
+                merge_commit_sha: merge_commit_sha,
                 pipeline_run_name: pipelineName,
                 pr_number: pull_request.number,
                 hook: hookType,
@@ -116,14 +117,15 @@ export class GhaChecks {
         merged_at: null;
         merged: boolean;
         merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
             name: checkName,
-            head_sha: pull_request.head.sha,
+            head_sha: sha,
             status: "completed",
             conclusion: "success",
             completed_at: new Date().toISOString(),
@@ -171,14 +173,15 @@ export class GhaChecks {
         merged_at: null;
         merged: boolean;
         merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
             name: checkName,
-            head_sha: pull_request.head.sha,
+            head_sha: sha,
             status: "queued",
             started_at: new Date().toISOString()
         };
@@ -203,16 +206,17 @@ export class GhaChecks {
     async updateWorkflowRunCheckQueued(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobQueuedEvent, workflow_run_id: number) {
         // check if workflow run is exist in db
         const workflowJob = payload.workflow_job;
-        const knownWorkflowRuns = await gha_workflow_runs(db).count({pipeline_run_name: workflowJob.name});
-        if (knownWorkflowRuns === 0) {
+        const knownWorkflowRuns = await gha_workflow_runs(db).find({pipeline_run_name: workflowJob.name}).all();
+        if (knownWorkflowRuns.length === 0) {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             const {headSha, checkName} = this.parseHeadShaFromJobName(workflowJob.name);
+            const sha = knownWorkflowRuns[0].hook === "onBranchMerge" ? knownWorkflowRuns[0].merge_commit_sha : headSha;
             let params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
                 name: checkName,
-                head_sha: headSha,
+                head_sha: sha,
                 details_url: `https://github.com/${payload.repository.full_name}/actions/runs/${workflowJob.run_id}`,
                 status: "queued",
                 started_at: new Date().toISOString(),

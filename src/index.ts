@@ -83,15 +83,18 @@ export = (app: Probot) => {
         const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
         const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch);
         app.log.info(`Triggered hooks are ${JSON.stringify(triggeredHooks)}`);
+        if (merge_commit_sha === null) {
+            merge_commit_sha = context.payload.pull_request.head.sha;
+        }
         const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType, merge_commit_sha);
         for (const pipelineName of triggeredPipelineNames) {
             app.log.info(`Triggered pipeline ${pipelineName}`);
-            await checks.createNewRun(pipelineName, context.payload.pull_request, hookType);
+            await checks.createNewRun(pipelineName, context.payload.pull_request, hookType, merge_commit_sha);
         }
         if (triggeredPipelineNames.length === 0) {
-            await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request, hookType);
+            await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request, hookType, merge_commit_sha);
         } else {
-            await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, hookType);
+            await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, hookType, merge_commit_sha);
         }
     } else {
         app.log.info("No files changed in PR. No hooks will be triggered");

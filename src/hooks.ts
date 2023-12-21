@@ -86,7 +86,7 @@ export class Hooks {
                            merged_by: null
                        }),
                        action: string,
-                       triggeredHooks: string[], hookType: HookType, merge_commit_sha: string | null) {
+                       triggeredHooks: string[], hookType: HookType, merge_commit_sha: string) {
         let pr_action = action;
         if (pull_request.merged) {
             pr_action = "merged";

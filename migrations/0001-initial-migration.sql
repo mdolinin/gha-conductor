@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS gha_workflow_runs
     workflow_run_id   BIGINT    NULL,
     workflow_job_id   BIGINT    NULL,
     head_sha          TEXT      NOT NULL,
+    merge_commit_sha  TEXT      NOT NULL,
     pipeline_run_name TEXT      NOT NULL,
     status            TEXT      NULL,
     conclusion        TEXT      NULL,
