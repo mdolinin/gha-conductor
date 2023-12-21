@@ -40,7 +40,7 @@ export = (app: Probot) => {
     app.log.info(`PR handler called for ${pr.number} and action ${context.payload.action}`);
     let mergeable = pr.mergeable;
     let merge_commit_sha = pr.merge_commit_sha;
-    if (mergeable === null) {
+    if (mergeable === null && !pr.merged) {
         app.log.info("PR mergeability is null");
         let i = 0;
         while (i < 5 && mergeable === null) {
@@ -62,7 +62,7 @@ export = (app: Probot) => {
             return;
         }
     }
-    if (!mergeable) {
+    if (!mergeable && !pr.merged) {
       app.log.info(`PR is not mergeable. All checks are skipped`);
       return;
     }
