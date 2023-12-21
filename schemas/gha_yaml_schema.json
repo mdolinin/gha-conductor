@@ -692,6 +692,215 @@
                     }
                 ]
             }
+        },
+        "onPullRequestClose": {
+            "$id": "#/properties/onPullRequestClose",
+            "type": "array",
+            "title": "The onPullRequestClose schema",
+            "description": "on branch merge github event, triggers tasks to clean up resources",
+            "default": [],
+            "examples": [
+                [
+                    {
+                        "name": "run-clean-up",
+                        "pipelineRef": {
+                            "name": "pipeline-gradle-task"
+                        },
+                        "pipelineRunValues": {
+                            "params": {
+                                "COMMAND": ":projects:examples:example-a:server:cleanup"
+                            }
+                        },
+                        "triggerConditions": {
+                            "fileChangesMatchAny": [
+                                "namespaces/domain-a/projects/examples/example-a/server/**",
+                                "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                            ]
+                        }
+                    }
+                ]
+            ],
+            "additionalItems": true,
+            "items": {
+                "$id": "#/properties/onPullRequestClose/items",
+                "anyOf": [
+                    {
+                        "$id": "#/properties/onPullRequestClose/items/anyOf/0",
+                        "type": "object",
+                        "title": "The first anyOf schema",
+                        "description": "Runs task for the project “examples:example-a“ via  pipeline-gradle-task pipeline developed for executing a generic gradle task when ever there is a change in the files that are tracked under defaultFileChangeTrigger variable..",
+                        "default": {},
+                        "examples": [
+                            {
+                                "name": "run-clean-up",
+                                "pipelineRef": {
+                                    "name": "pipeline-gradle-task"
+                                },
+                                "pipelineRunValues": {
+                                    "params": {
+                                        "COMMAND": ":projects:examples:example-a:server:cleanup"
+                                    }
+                                },
+                                "triggerConditions": {
+                                    "fileChangesMatchAny": [
+                                        "namespaces/domain-a/projects/examples/example-a/server/**",
+                                        "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                        "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                    ]
+                                }
+                            }
+                        ],
+                        "required": [
+                            "name",
+                            "pipelineRef",
+                            "pipelineRunValues",
+                            "triggerConditions"
+                        ],
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/name",
+                                "type": "string",
+                                "title": "The name schema",
+                                "description": "run clean up task.",
+                                "default": "",
+                                "examples": [
+                                    "run-clean-up"
+                                ]
+                            },
+                            "pipelineRef": {
+                                "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRef",
+                                "type": "object",
+                                "title": "The pipelineRef schema",
+                                "description": "Generic pipeline name to run gradle tasks.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "name": "pipeline-gradle-task"
+                                    }
+                                ],
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRef/properties/name",
+                                        "type": "string",
+                                        "title": "The name schema",
+                                        "description": "Generic pipeline name to run gradle tasks.",
+                                        "default": "",
+                                        "examples": [
+                                            "pipeline-gradle-task"
+                                        ]
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "pipelineRunValues": {
+                                "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRunValues",
+                                "type": "object",
+                                "title": "The pipelineRunValues schema",
+                                "description": "run clean up task.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "params": {
+                                            "COMMAND": ":projects:examples:example-a:server:cleanup"
+                                        }
+                                    }
+                                ],
+                                "required": [
+                                    "params"
+                                ],
+                                "properties": {
+                                    "params": {
+                                        "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRunValues/properties/params",
+                                        "type": "object",
+                                        "title": "The params schema",
+                                        "description": "run clean up task.",
+                                        "default": {},
+                                        "examples": [
+                                            {
+                                                "COMMAND": ":projects:examples:example-a:server:cleanup"
+                                            }
+                                        ],
+                                        "required": [
+                                            "COMMAND"
+                                        ],
+                                        "properties": {
+                                            "COMMAND": {
+                                                "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRunValues/properties/params/properties/COMMAND",
+                                                "type": "string",
+                                                "title": "The COMMAND schema",
+                                                "description": "run clean up task.",
+                                                "default": "",
+                                                "examples": [
+                                                    ":projects:examples:example-a:server:cleanup"
+                                                ]
+                                            }
+                                        },
+                                        "additionalProperties": true
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "triggerConditions": {
+                                "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions",
+                                "type": "object",
+                                "title": "The triggerConditions schema",
+                                "description": "Trigger condition on file changes.",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "fileChangesMatchAny": [
+                                            "namespaces/domain-a/projects/examples/example-a/server/**",
+                                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
+                                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                        ]
+                                    }
+                                ],
+                                "required": [
+                                    "fileChangesMatchAny"
+                                ],
+                                "properties": {
+                                    "fileChangesMatchAny": {
+                                        "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
+                                        "type": "array",
+                                        "title": "The fileChangesMatchAny schema",
+                                        "description": "list of files that has updates.",
+                                        "default": [],
+                                        "examples": [
+                                            [
+                                                "namespaces/domain-a/projects/examples/example-a/api/**",
+                                                "namespaces/domain-a/projects/examples/example-a/server/**"
+                                            ]
+                                        ],
+                                        "additionalItems": true,
+                                        "items": {
+                                            "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
+                                            "anyOf": [
+                                                {
+                                                    "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
+                                                    "type": "string",
+                                                    "title": "The first anyOf schema",
+                                                    "description": "list of files that has updates.",
+                                                    "default": "",
+                                                    "examples": [
+                                                        "namespaces/domain-a/projects/examples/example-a/api/**",
+                                                        "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                ]
+            }
         }
     },
     "additionalProperties": true

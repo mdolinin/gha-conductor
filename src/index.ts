@@ -37,14 +37,11 @@ export = (app: Probot) => {
 
   app.on(["pull_request.opened", "pull_request.reopened", "pull_request.synchronize", "pull_request.closed"], async (context) => {
     app.log.info("PR handler called for " + context.payload.pull_request.number);
-    // check if PR is mergeable
     const pr = context.payload.pull_request;
     let mergeable = pr.mergeable;
     let merge_commit_sha = pr.merge_commit_sha;
     if (mergeable === null) {
-        // wait for mergeability to be calculated
         app.log.info("PR mergeability is null");
-        // check mergeability each five seconds in a loop max 10 times
         let i = 0;
         while (i < 5 && mergeable === null) {
             await new Promise(r => setTimeout(r, 5000));

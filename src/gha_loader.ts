@@ -90,5 +90,26 @@ export class GhaLoader {
                 }
             }
         }
+        if (ghaFileYaml.onPullRequestClose === undefined) {
+            return;
+        }
+        // iterate over onPullRequestClose hooks and store in db
+        for (const onPRClose of ghaFileYaml.onPullRequestClose) {
+            for (const fileChangesMatch of onPRClose.triggerConditions.fileChangesMatchAny) {
+                const hook = {
+                    repo_full_name: full_name,
+                    file_changes_matcher: fileChangesMatch,
+                    destination_branch_matcher: null,
+                    hook: 'onPullRequestClose' as HookType,
+                    hook_name: onPRClose.name,
+                    pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPRClose.name}`,
+                    pipeline_name: onPRClose.pipelineRef.name,
+                    pipeline_ref: null,
+                    pipeline_params: onPRClose.pipelineRunValues.params,
+                    shared_params: ghaFileYaml.sharedParams
+                }
+                await gha_hooks(db).insert(hook);
+            }
+        }
     }
 }

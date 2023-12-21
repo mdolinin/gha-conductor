@@ -93,6 +93,34 @@ export type TheFileChangesMatchAnySchema1 =
  * on branch merge github event, triggers gradle taks to publish image to artifactory
  */
 export type TheOnBranchMergeSchema = PropertiesOnBranchMergeItems[];
+export type PropertiesOnPullRequestCloseItems = TheFirstAnyOfSchema6;
+/**
+ * run clean up task.
+ */
+export type TheNameSchema3 = string;
+/**
+ * Generic pipeline name to run gradle tasks.
+ */
+export type TheNameSchema4 = string;
+/**
+ * run clean up task.
+ */
+export type TheCOMMANDSchema2 = string;
+export type PropertiesOnPullRequestCloseItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems =
+  TheFirstAnyOfSchema7;
+/**
+ * list of files that has updates.
+ */
+export type TheFirstAnyOfSchema7 = string;
+/**
+ * list of files that has updates.
+ */
+export type TheFileChangesMatchAnySchema2 =
+  PropertiesOnPullRequestCloseItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems[];
+/**
+ * on branch merge github event, triggers tasks to clean up resources
+ */
+export type TheOnPullRequestCloseSchema = PropertiesOnPullRequestCloseItems[];
 
 /**
  * The root schema comprises the entire JSON document.
@@ -104,6 +132,7 @@ export interface TheRootSchema {
   defaultFileChangeTrigger: TheDefaultFileChangeTriggerSchema;
   onPullRequest: TheOnPullRequestSchema;
   onBranchMerge: TheOnBranchMergeSchema;
+  onPullRequestClose?: TheOnPullRequestCloseSchema;
   [k: string]: unknown;
 }
 /**
@@ -188,5 +217,43 @@ export interface TheParamsSchema1 {
 export interface TheTriggerConditionsSchema1 {
   destinationBranchMatchesAny: TheDestinationBranchMatchesAnySchema;
   fileChangesMatchAny: TheFileChangesMatchAnySchema1;
+  [k: string]: unknown;
+}
+/**
+ * Runs task for the project “examples:example-a“ via  pipeline-gradle-task pipeline developed for executing a generic gradle task when ever there is a change in the files that are tracked under defaultFileChangeTrigger variable..
+ */
+export interface TheFirstAnyOfSchema6 {
+  name: TheNameSchema3;
+  pipelineRef: ThePipelineRefSchema2;
+  pipelineRunValues: ThePipelineRunValuesSchema2;
+  triggerConditions: TheTriggerConditionsSchema2;
+  [k: string]: unknown;
+}
+/**
+ * Generic pipeline name to run gradle tasks.
+ */
+export interface ThePipelineRefSchema2 {
+  name: TheNameSchema4;
+  [k: string]: unknown;
+}
+/**
+ * run clean up task.
+ */
+export interface ThePipelineRunValuesSchema2 {
+  params: TheParamsSchema2;
+  [k: string]: unknown;
+}
+/**
+ * run clean up task.
+ */
+export interface TheParamsSchema2 {
+  COMMAND: TheCOMMANDSchema2;
+  [k: string]: unknown;
+}
+/**
+ * Trigger condition on file changes.
+ */
+export interface TheTriggerConditionsSchema2 {
+  fileChangesMatchAny: TheFileChangesMatchAnySchema2;
   [k: string]: unknown;
 }
