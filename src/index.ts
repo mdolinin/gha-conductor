@@ -89,9 +89,9 @@ export = (app: Probot) => {
             await checks.createNewRun(pipelineName, context.payload.pull_request, hookType);
         }
         if (triggeredPipelineNames.length === 0) {
-            await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request);
+            await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request, hookType);
         } else {
-            await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request);
+            await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, hookType);
         }
     } else {
         app.log.info("No files changed in PR. No hooks will be triggered");

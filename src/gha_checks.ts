@@ -75,10 +75,27 @@ export class GhaChecks {
         }
     }
 
+    private hookToCheckName(hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
+        switch (hookType) {
+            case "onPullRequest":
+                return PRCheckName.PRStatus;
+            case "onBranchMerge":
+                return PRCheckName.PRMerge;
+            case "onPullRequestClose":
+                return PRCheckName.PRClose;
+        }
+    }
+
     async createPRCheckNoPipelinesTriggered(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
-        state: "closed"; closed_at: string; merged: boolean
+        state: "closed";
+        closed_at: string;
+        merged: boolean
     }) | PullRequest | (PullRequest & {
-        closed_at: null; merged_at: null; draft: true; merged: false; merged_by: null
+        closed_at: null;
+        merged_at: null;
+        draft: true;
+        merged: false;
+        merged_by: null
     }) | (PullRequest & {
         state: "open";
         closed_at: null;
@@ -87,16 +104,20 @@ export class GhaChecks {
         active_lock_reason: null;
         merged_by: null
     }) | (PullRequest & {
-        state: "open"; closed_at: null; merged_at: null; draft: false; merged: boolean; merged_by: null
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        draft: false;
+        merged: boolean;
+        merged_by: null
     }) | (PullRequest & {
-        state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null
-    })) {
-        let checkName = PRCheckName.PRStatus;
-        if (pull_request.merged) {
-            checkName = PRCheckName.PRMerge;
-        } else if (pull_request.state === "closed") {
-            checkName = PRCheckName.PRClose;
-        }
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        merged: boolean;
+        merged_by: null
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
+        const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
@@ -114,16 +135,22 @@ export class GhaChecks {
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
         if (resp.status === 201) {
-            log.info(`Pr-status check with id ${checkRunId} for PR #${pull_request.number} created`);
+            log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } else {
-            log.error("Failed to create pr-status check for PR #" + pull_request.number);
+            log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
     }
 
     async createPRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
-        state: "closed"; closed_at: string; merged: boolean
+        state: "closed";
+        closed_at: string;
+        merged: boolean
     }) | PullRequest | (PullRequest & {
-        closed_at: null; merged_at: null; draft: true; merged: false; merged_by: null
+        closed_at: null;
+        merged_at: null;
+        draft: true;
+        merged: false;
+        merged_by: null
     }) | (PullRequest & {
         state: "open";
         closed_at: null;
@@ -132,26 +159,36 @@ export class GhaChecks {
         active_lock_reason: null;
         merged_by: null
     }) | (PullRequest & {
-        state: "open"; closed_at: null; merged_at: null; draft: false; merged: boolean; merged_by: null
-    }) | (PullRequest & { state: "open"; closed_at: null; merged_at: null; merged: boolean; merged_by: null })) {
-        if (!pull_request.merged && pull_request.state !== "closed") {
-            log.info(`Creating pr-status check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
-            const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
-                owner: pull_request.base.repo.owner.login,
-                repo: pull_request.base.repo.name,
-                name: "pr-status",
-                head_sha: pull_request.head.sha,
-                status: "queued",
-                started_at: new Date().toISOString()
-            };
-            const resp = await octokit.checks.create(params);
-            const checkRunId = resp.data.id;
-            log.info(`Updating pr-status check with id ${checkRunId} for PR #${pull_request.number} in progress`);
-            if (resp.status === 201) {
-                await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null}, {
-                    pr_check_id: checkRunId
-                });
-            }
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        draft: false;
+        merged: boolean;
+        merged_by: null
+    }) | (PullRequest & {
+        state: "open";
+        closed_at: null;
+        merged_at: null;
+        merged: boolean;
+        merged_by: null
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
+        const checkName = this.hookToCheckName(hookType);
+        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+            owner: pull_request.base.repo.owner.login,
+            repo: pull_request.base.repo.name,
+            name: checkName,
+            head_sha: pull_request.head.sha,
+            status: "queued",
+            started_at: new Date().toISOString()
+        };
+        const resp = await octokit.checks.create(params);
+        const checkRunId = resp.data.id;
+        log.info(`Updating ${checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
+        if (resp.status === 201) {
+            await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null, hook: hookType}, {
+                pr_check_id: checkRunId
+            });
         }
     }
 
