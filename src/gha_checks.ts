@@ -452,13 +452,14 @@ export class GhaChecks {
             log.info(`Find all workflow runs that match check id ${checkId}`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
                 pr_check_id: checkId,
-                pr_conclusion: "success"
+                pr_conclusion: not(null),
             }).all();
         } else if (actionIdentifier === PRCheckAction.ReRunFailed) {
             log.info(`Find all workflow runs that match check id ${checkId} and conclusion is not success`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
                 pr_check_id: checkId,
-                pr_conclusion: anyOf(["failure", "cancelled", "skipped", "action_required", "neutral", "stale", "timed_out"])
+                pr_conclusion: not(null),
+                conclusion: anyOf(["failure", "cancelled", "skipped", "action_required", "neutral", "stale", "timed_out"])
             }).all();
         }
         // find all workflow runs for this with same pr_check_id

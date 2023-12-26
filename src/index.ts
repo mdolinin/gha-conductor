@@ -49,7 +49,7 @@ export = (app: Probot) => {
         app.log.info("PR mergeability is null");
         let i = 0;
         while (i < 5 && mergeable === null) {
-            await new Promise(r => setTimeout(r, 5000));
+            await new Promise(r => setTimeout(r, 2000));
             const resp = await context.octokit.pulls.get(
                 {
                     owner: context.payload.repository.owner.login,
