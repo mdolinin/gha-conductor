@@ -155,7 +155,7 @@ export = (app: Probot) => {
              check_run_id: context.payload.check_run.id,
              owner: context.payload.repository.owner.login,
              repo: context.payload.repository.name,
-             requested_action_identifier: PRCheckAction.ReRun
+             requested_action_identifier: PRCheckAction.ReRunFailed
          });
      } else {
          await checks.triggerReRunWorkflowRunCheck(context.octokit, context.payload as CheckRunRerequestedEvent);

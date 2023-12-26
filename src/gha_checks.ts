@@ -13,7 +13,7 @@ import db, {gha_workflow_runs} from "./db/database";
 import {GhaWorkflowRuns} from "./__generated__";
 import pino from "pino";
 import {getTransformStream} from "@probot/pino";
-import {anyOf} from "@databases/pg-typed";
+import {anyOf, not} from "@databases/pg-typed";
 
 const transform = getTransformStream();
 transform.pipe(pino.destination(1));
@@ -452,25 +452,26 @@ export class GhaChecks {
             log.info(`Find all workflow runs that match check id ${checkId}`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
                 pr_check_id: checkId,
+                pr_conclusion: "success"
             }).all();
         } else if (actionIdentifier === PRCheckAction.ReRunFailed) {
             log.info(`Find all workflow runs that match check id ${checkId} and conclusion is not success`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
                 pr_check_id: checkId,
-                conclusion: anyOf(["failure", "cancelled", "skipped", "action_required", "neutral", "stale", "timed_out"])
+                pr_conclusion: anyOf(["failure", "cancelled", "skipped", "action_required", "neutral", "stale", "timed_out"])
             }).all();
         }
         // find all workflow runs for this with same pr_check_id
         if (prRelatedWorkflowRuns.length === 0) {
             log.warn(`No workflow runs for check id ${checkId} found in db`);
         } else {
-            // create new PR check run
+            await this.cleanupPreviousResultFor(prRelatedWorkflowRuns);
             await this.reCreatePrCheck(prRelatedWorkflowRuns[0], octokit, checkId, payload.owner, payload.repo);
             await this.triggerReRunFor(prRelatedWorkflowRuns, octokit, payload.owner, payload.repo);
         }
     }
 
-    private async reCreatePrCheck(prRelatedWorkflowRun: GhaWorkflowRuns, octokit: InstanceType<typeof ProbotOctokit>, pr_check_id: number,  owner: string, repo: string) {
+    private async reCreatePrCheck(prRelatedWorkflowRun: GhaWorkflowRuns, octokit: InstanceType<typeof ProbotOctokit>, pr_check_id: number, owner: string, repo: string) {
         const checkName = this.hookToCheckName(prRelatedWorkflowRun.hook);
         log.info(`Re-creating ${checkName} check for ${owner}/${repo}#${prRelatedWorkflowRun.pr_number}`);
         const sha = prRelatedWorkflowRun.hook === "onBranchMerge" ? prRelatedWorkflowRun.merge_commit_sha : prRelatedWorkflowRun.head_sha;
@@ -504,25 +505,31 @@ export class GhaChecks {
             const resp = await octokit.actions.reRunWorkflow(params);
             if (resp.status === 201) {
                 log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
-                await gha_workflow_runs(db).update({workflow_run_id: workflowRun.workflow_run_id}, {
-                    workflow_job_id: null,
-                    conclusion: null,
-                    pr_conclusion: null,
-                });
             } else {
                 log.error(`Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`);
             }
         }
     }
 
+    private async cleanupPreviousResultFor(workflowRuns: GhaWorkflowRuns[]) {
+        for (const workflowRun of workflowRuns) {
+            await gha_workflow_runs(db).update({workflow_run_id: workflowRun.workflow_run_id}, {
+                workflow_job_id: null,
+                conclusion: null,
+                pr_conclusion: null,
+            });
+        }
+    }
+
     async triggerReRunWorkflowRunCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: CheckRunRerequestedEvent) {
-        // find all workflow runs with same check_run_id
+        // find all workflow runs with same check_run_id and not in progress
         const checkId = payload.check_run.id;
         const checkRelatedWorkflowRuns = await gha_workflow_runs(db).find({
             check_run_id: checkId,
+            pr_conclusion: not(null)
         }).all();
         if (checkRelatedWorkflowRuns.length === 0) {
-            log.warn(`No workflow runs for check id ${checkId} found in db`);
+            log.warn(`No workflow runs for check id ${checkId} and pr_conclusion is not null found in db`);
         } else {
             // create new pr check run
             const checkRelatedWorkflowRun = checkRelatedWorkflowRuns[0];
@@ -531,6 +538,7 @@ export class GhaChecks {
                 log.warn(`Workflow run ${checkRelatedWorkflowRun.pipeline_run_name} does not have pr_check_id`);
                 return;
             }
+            await this.cleanupPreviousResultFor(checkRelatedWorkflowRuns);
             await this.reCreatePrCheck(checkRelatedWorkflowRun, octokit, pr_check_id, payload.repository.owner.login, payload.repository.name);
             await this.triggerReRunFor(checkRelatedWorkflowRuns, octokit, payload.repository.owner.login, payload.repository.name);
         }
