@@ -3,7 +3,7 @@ import { GhaLoader } from "./gha_loader";
 import {Hooks} from "./hooks";
 import {GhaChecks, PRCheckAction, PRCheckName} from "./gha_checks";
 import {
-    CheckRunRequestedActionEvent, CheckRunRerequestedEvent,
+    CheckRunRerequestedEvent,
     WorkflowJobCompletedEvent,
     WorkflowJobInProgressEvent,
     WorkflowJobQueuedEvent
@@ -138,7 +138,12 @@ export = (app: Probot) => {
     const identifier = context.payload.requested_action.identifier;
     app.log.info(`check_run.requested_action event received for ${context.payload.check_run.name} with identifier ${identifier}`);
     if (identifier === PRCheckAction.ReRun || identifier === PRCheckAction.ReRunFailed) {
-        await checks.triggerReRunPRCheck(context.octokit, context.payload as CheckRunRequestedActionEvent);
+        await checks.triggerReRunPRCheck(context.octokit, {
+            check_run_id: context.payload.check_run.id,
+            owner: context.payload.repository.owner.login,
+            repo: context.payload.repository.name,
+            requested_action_identifier: identifier
+        });
     }
   });
 
@@ -146,10 +151,35 @@ export = (app: Probot) => {
      const checkRun = context.payload.check_run;
      app.log.info(`check_run.rerequested event received for ${checkRun.name} with status ${checkRun.status}`);
      if (checkRun.name === PRCheckName.PRStatus || checkRun.name === PRCheckName.PRMerge || checkRun.name === PRCheckName.PRClose) {
-         await checks.triggerReRunPRCheck(context.octokit, context.payload as CheckRunRerequestedEvent);
+         await checks.triggerReRunPRCheck(context.octokit, {
+             check_run_id: context.payload.check_run.id,
+             owner: context.payload.repository.owner.login,
+             repo: context.payload.repository.name,
+             requested_action_identifier: PRCheckAction.ReRun
+         });
      } else {
          await checks.triggerReRunWorkflowRunCheck(context.octokit, context.payload as CheckRunRerequestedEvent);
      }
+  });
+
+  app.on(["check_suite.rerequested"], async (context) => {
+      app.log.info(`check_suite.rerequested event received for ${context.payload.check_suite.id}`);
+      // get all check runs for this check suite
+      const checkRuns = await context.octokit.checks.listForSuite({
+          owner: context.payload.repository.owner.login,
+          repo: context.payload.repository.name,
+          check_suite_id: context.payload.check_suite.id
+      });
+        for (const checkRun of checkRuns.data.check_runs) {
+            if (checkRun.name === PRCheckName.PRStatus || checkRun.name === PRCheckName.PRMerge || checkRun.name === PRCheckName.PRClose) {
+                await checks.triggerReRunPRCheck(context.octokit, {
+                    check_run_id: checkRun.id,
+                    owner: context.payload.repository.owner.login,
+                    repo: context.payload.repository.name,
+                    requested_action_identifier: PRCheckAction.ReRun
+                });
+            }
+        }
   });
   // For more information on building apps:
   // https://probot.github.io/docs/

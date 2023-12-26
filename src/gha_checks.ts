@@ -1,5 +1,5 @@
 import {
-    CheckRunRequestedActionEvent, CheckRunRerequestedEvent,
+    CheckRunRerequestedEvent,
     PullRequest,
     WorkflowJobCompletedEvent,
     WorkflowJobInProgressEvent,
@@ -33,6 +33,13 @@ export enum PRCheckName {
 export enum PRCheckAction {
     ReRun = "re-run",
     ReRunFailed = "re-run-failed"
+}
+
+export interface ReRunPayload {
+    owner: string,
+    repo: string,
+    check_run_id: number,
+    requested_action_identifier: PRCheckAction
 }
 
 export class GhaChecks {
@@ -437,14 +444,10 @@ export class GhaChecks {
         }
     }
 
-
-    async triggerReRunPRCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: CheckRunRequestedActionEvent | CheckRunRerequestedEvent) {
+    async triggerReRunPRCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: ReRunPayload) {
         let prRelatedWorkflowRuns: string | GhaWorkflowRuns[] = []
-        let actionIdentifier: string | undefined = PRCheckAction.ReRun;
-        if (payload.requested_action !== null && payload.requested_action !== undefined) {
-            actionIdentifier = payload.requested_action.identifier;
-        }
-        const checkId = payload.check_run.id;
+        const actionIdentifier = payload.requested_action_identifier;
+        const checkId = payload.check_run_id;
         if (actionIdentifier === PRCheckAction.ReRun) {
             log.info(`Find all workflow runs that match check id ${checkId}`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
@@ -462,8 +465,8 @@ export class GhaChecks {
             log.warn(`No workflow runs for check id ${checkId} found in db`);
         } else {
             // create new PR check run
-            await this.reCreatePrCheck(prRelatedWorkflowRuns[0], octokit, checkId, payload.repository.owner.login, payload.repository.name);
-            await this.triggerReRunFor(prRelatedWorkflowRuns, octokit, payload.repository.owner.login, payload.repository.name);
+            await this.reCreatePrCheck(prRelatedWorkflowRuns[0], octokit, checkId, payload.owner, payload.repo);
+            await this.triggerReRunFor(prRelatedWorkflowRuns, octokit, payload.owner, payload.repo);
         }
     }
 
