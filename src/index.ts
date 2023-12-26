@@ -1,8 +1,13 @@
 import { Probot } from "probot";
 import { GhaLoader } from "./gha_loader";
 import {Hooks} from "./hooks";
-import {GhaChecks} from "./gha_checks";
-import {WorkflowJobCompletedEvent, WorkflowJobInProgressEvent, WorkflowJobQueuedEvent} from "@octokit/webhooks-types";
+import {GhaChecks, PRCheckAction} from "./gha_checks";
+import {
+    CheckRunRequestedActionEvent,
+    WorkflowJobCompletedEvent,
+    WorkflowJobInProgressEvent,
+    WorkflowJobQueuedEvent
+} from "@octokit/webhooks-types";
 
 export = (app: Probot) => {
 
@@ -128,6 +133,14 @@ export = (app: Probot) => {
             }
         }
     });
+
+  app.on(["check_run.requested_action"], async (context) => {
+    const identifier = context.payload.requested_action.identifier;
+    app.log.info(`check_run.requested_action event received for ${context.payload.check_run.name} with identifier ${identifier}`);
+    if (identifier === PRCheckAction.ReRun || identifier === PRCheckAction.ReRunFailed) {
+        await checks.triggerReRunPRCheck(context.octokit, context.payload as CheckRunRequestedActionEvent);
+    }
+  });
   // For more information on building apps:
   // https://probot.github.io/docs/
 

@@ -1,4 +1,5 @@
 import {
+    CheckRunRequestedActionEvent,
     PullRequest,
     WorkflowJobCompletedEvent,
     WorkflowJobInProgressEvent,
@@ -12,6 +13,7 @@ import db, {gha_workflow_runs} from "./db/database";
 import {GhaWorkflowRuns} from "./__generated__";
 import pino from "pino";
 import {getTransformStream} from "@probot/pino";
+import {anyOf} from "@databases/pg-typed";
 
 const transform = getTransformStream();
 transform.pipe(pino.destination(1));
@@ -26,6 +28,11 @@ enum PRCheckName {
     PRStatus = "pr-status",
     PRMerge = "pr-merge",
     PRClose = "pr-close"
+}
+
+export enum PRCheckAction {
+    ReRun = "re-run",
+    ReRunFailed = "re-run-failed"
 }
 
 export class GhaChecks {
@@ -355,6 +362,7 @@ export class GhaChecks {
             if (finished) {
                 log.info("All jobs finished for pr #" + allPRWorkflowRuns[0].pr_number);
                 const conclusion = this.getConclusion(allPRWorkflowRuns);
+                const actions = this.getAvailableActions(conclusion);
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
@@ -365,7 +373,8 @@ export class GhaChecks {
                     output: {
                         title: "All pipelines completed",
                         summary: "All pipelines completed"
-                    }
+                    },
+                    actions: actions
                 };
                 const resp = await octokit.checks.update(params);
                 if (resp.status === 200) {
@@ -380,6 +389,26 @@ export class GhaChecks {
                 log.info("Some jobs not finished for pr #" + allPRWorkflowRuns[0].pr_number);
             }
         }
+    }
+
+    private getAvailableActions(conclusion: string) {
+        const reRunAction = {
+            label: "Re-run",
+            description: "Re-run all pipelines",
+            identifier: PRCheckAction.ReRun
+        };
+        const reRunFailedAction = {
+            label: "Re-run failed",
+            description: "Re-run failed pipelines",
+            identifier: PRCheckAction.ReRunFailed
+        };
+        const actions = [
+            reRunAction
+        ];
+        if (conclusion !== "success") {
+            actions.push(reRunFailedAction);
+        }
+        return actions;
     }
 
     private getConclusion(workflowRuns: GhaWorkflowRuns[]) {
@@ -405,6 +434,70 @@ export class GhaChecks {
             return "timed_out";
         } else {
             return "failure";
+        }
+    }
+
+
+    async triggerReRunPRCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: CheckRunRequestedActionEvent) {
+        let prRelatedWorkflowRuns: string | any[] = []
+        const checkId = payload.check_run.id;
+        if (payload.requested_action.identifier === PRCheckAction.ReRun) {
+            log.info(`Find all workflow runs that match check id ${checkId}`);
+            prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
+                pr_check_id: checkId,
+            }).all();
+        } else if (payload.requested_action.identifier === PRCheckAction.ReRunFailed) {
+            log.info(`Find all workflow runs that match check id ${checkId} and conclusion is not success`);
+            prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
+                pr_check_id: checkId,
+                conclusion: anyOf(["failure", "cancelled", "skipped", "action_required", "neutral", "stale", "timed_out"])
+            }).all();
+        }
+        // find all workflow runs for this with same pr_check_id
+        if (prRelatedWorkflowRuns.length === 0) {
+            log.warn(`No workflow runs for check id ${checkId} found in db`);
+        } else {
+            // create new PR check run
+            const prRelatedWorkflowRun = prRelatedWorkflowRuns[0];
+            const checkName = this.hookToCheckName(prRelatedWorkflowRun.hook);
+            log.info(`Re-creating ${checkName} check for ${payload.repository.owner.login}/${payload.repository.name}#${prRelatedWorkflowRun.pr_number}`);
+            const sha = prRelatedWorkflowRun.hook === "onBranchMerge" ? prRelatedWorkflowRun.merge_commit_sha : prRelatedWorkflowRun.head_sha;
+            const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+                owner: payload.repository.owner.login,
+                repo: payload.repository.name,
+                name: checkName,
+                head_sha: sha,
+                status: "queued",
+                started_at: new Date().toISOString()
+            };
+            const resp = await octokit.checks.create(params);
+            const newPRcheckRunId = resp.data.id;
+            if (resp.status === 201) {
+                log.info(`${checkName} check with id ${newPRcheckRunId} for PR #${prRelatedWorkflowRun.pr_number} created`);
+                await gha_workflow_runs(db).update({pr_check_id: checkId}, {
+                    pr_check_id: newPRcheckRunId
+                });
+            } else {
+                log.error(`Failed to create ${checkName} check for PR #${prRelatedWorkflowRun.pr_number}`);
+            }
+            for (const workflowRun of prRelatedWorkflowRuns) {
+                const params: RestEndpointMethodTypes["actions"]["reRunWorkflow"]["parameters"] = {
+                    owner: payload.repository.owner.login,
+                    repo: payload.repository.name,
+                    run_id: workflowRun.workflow_run_id?.toString()
+                };
+                const resp = await octokit.actions.reRunWorkflow(params);
+                if (resp.status === 201) {
+                    log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
+                    await gha_workflow_runs(db).update({workflow_run_id: workflowRun.workflow_run_id}, {
+                        workflow_job_id: null,
+                        conclusion: null,
+                        pr_conclusion: null,
+                    });
+                } else {
+                    log.error(`Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`);
+                }
+            }
         }
     }
 }
