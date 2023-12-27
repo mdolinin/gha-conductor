@@ -14,6 +14,7 @@ import {GhaWorkflowRuns} from "./__generated__";
 import pino from "pino";
 import {getTransformStream} from "@probot/pino";
 import {anyOf, not} from "@databases/pg-typed";
+import {TriggeredPipeline} from "./hooks";
 
 const transform = getTransformStream();
 transform.pipe(pino.destination(1));
@@ -44,7 +45,7 @@ export interface ReRunPayload {
 
 export class GhaChecks {
 
-    async createNewRun(pipelineName: any, pull_request: (PullRequest & {
+    async createNewRun(pipeline: TriggeredPipeline, pull_request: (PullRequest & {
         state: "closed";
         closed_at: string;
         merged: boolean
@@ -75,18 +76,19 @@ export class GhaChecks {
         merged: boolean;
         merged_by: null
     }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string) {
-        const {headSha, checkName} = this.parseHeadShaFromJobName(pipelineName);
+        const {headSha, checkName} = this.parseHeadShaFromJobName(pipeline.name);
         if (headSha) {
             await gha_workflow_runs(db).insert({
                 name: checkName,
                 head_sha: headSha,
                 merge_commit_sha: merge_commit_sha,
-                pipeline_run_name: pipelineName,
+                pipeline_run_name: pipeline.name,
+                workflow_run_inputs: pipeline.inputs,
                 pr_number: pull_request.number,
                 hook: hookType,
             });
         } else {
-            log.error("Failed to parse head sha from pipeline name " + pipelineName);
+            log.error("Failed to parse head sha from pipeline name " + pipeline);
         }
     }
 
@@ -144,8 +146,8 @@ export class GhaChecks {
             conclusion: "success",
             completed_at: new Date().toISOString(),
             output: {
-                title: "No pipelines to run",
-                summary: "No pipelines to run"
+                title: "No workflows to run",
+                summary: `No workflows to run for hook ${hookType}`
             }
         };
         const resp = await octokit.checks.create(params);
@@ -191,13 +193,19 @@ export class GhaChecks {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
+        const workflowRuns = await gha_workflow_runs(db).find({pr_number: pull_request.number, pr_check_id: null, hook: hookType}).all();
+        const summary = this.formatGHCheckSummaryAll(workflowRuns);
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
             name: checkName,
             head_sha: sha,
             status: "queued",
-            started_at: new Date().toISOString()
+            started_at: new Date().toISOString(),
+            output: {
+                title: "Workflow runs are queued",
+                summary: summary
+            }
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
@@ -226,6 +234,7 @@ export class GhaChecks {
         } else {
             const {headSha, checkName} = this.parseHeadShaFromJobName(workflowJob.name);
             const sha = knownWorkflowRuns[0].hook === "onBranchMerge" ? knownWorkflowRuns[0].merge_commit_sha : headSha;
+            const summary = this.formatGHCheckSummaryAll(knownWorkflowRuns);
             let params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
@@ -234,6 +243,10 @@ export class GhaChecks {
                 details_url: `https://github.com/${payload.repository.full_name}/actions/runs/${workflowJob.run_id}`,
                 status: "queued",
                 started_at: new Date().toISOString(),
+                output: {
+                    title: "Workflow runs are queued",
+                    summary: summary
+                }
             };
             const resp = await octokit.checks.create(params);
             if (resp.status === 201) {
@@ -243,7 +256,8 @@ export class GhaChecks {
                     workflow_run_id: workflow_run_id,
                     workflow_job_id: workflowJob.id,
                     status: check.status,
-                    check_run_id: check.id
+                    check_run_id: check.id,
+                    workflow_run_url: check.details_url
                 });
             }
         }
@@ -264,8 +278,8 @@ export class GhaChecks {
                 check_run_id: workflowRun.check_run_id?.toString(),
                 status: "in_progress",
                 output: {
-                    title: "Pipelines in progress",
-                    summary: "Pipelines are running"
+                    title: "Workflow runs in progress",
+                    summary: this.formatGHCheckSummary(workflowRun, "", "in_progress", null)
                 }
             };
             const resp = await octokit.checks.update(params);
@@ -296,8 +310,8 @@ export class GhaChecks {
                 conclusion: payload.workflow_job.conclusion,
                 completed_at: new Date().toISOString(),
                 output: {
-                    title: "Pipelines completed",
-                    summary: "Pipelines completed"
+                    title: "Workflow runs completed",
+                    summary: this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", null)
                 }
             };
             const resp = await octokit.checks.update(params);
@@ -323,14 +337,15 @@ export class GhaChecks {
         if (!workflowRun) {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
+            const summary = this.formatGHCheckSummary(workflowRun, "", "in_progress", null);
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
                 check_run_id: workflowRun.pr_check_id?.toString(),
                 status: "in_progress",
                 output: {
-                    title: "Pipelines in progress",
-                    summary: "Pipelines are running"
+                    title: "Workflow runs in progress",
+                    summary: summary
                 }
             };
             const resp = await octokit.checks.update(params);
@@ -341,6 +356,54 @@ export class GhaChecks {
             }
         }
     }
+
+    private formatGHCheckSummary(workflow: GhaWorkflowRuns, conclusion: string, status: string, log: string | null) {
+        let workflowRunStatusIcon: string;
+        if (conclusion === "failure") {
+            workflowRunStatusIcon = "❌";
+        } else if (conclusion === "success") {
+            workflowRunStatusIcon = "✅";
+        } else if (status === "in_progress") {
+            workflowRunStatusIcon = "\uD83D\uDD04";
+        } else {
+            workflowRunStatusIcon = "⏸️";
+        }
+        let summary = `<details><summary>${workflowRunStatusIcon}: ${workflow.name}</summary><p>\n` +
+            `\n` +
+            `\n` +
+            `**[View Workflow Run](${workflow.workflow_run_url})**` +
+            `\n` +
+            `\n`;
+        if (log) {
+            summary += `### Workflow logs tail\n` +
+                `    \n` +
+                `\`\`\`console\n` +
+                `${log}\`\`\`\n`;
+        }
+        summary += `### Workflow run arguments\n` +
+            `\n` +
+            `\`\`\`json\n` +
+            `\n` +
+            `${JSON.stringify(workflow.workflow_run_inputs,  null, 2)} \n` +
+            `\n` +
+            `\`\`\`\n` +
+            `\n` +
+            `</p>\n` +
+            `</details>`;
+        return summary;
+    }
+
+    private formatGHCheckSummaryAll(workflowRuns: GhaWorkflowRuns[], status: string = "") {
+        let summary = "";
+        for (const workflowRun of workflowRuns) {
+            const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
+            const workflowRunStatus = workflowRun.status ? workflowRun.status : status;
+            summary += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, null);
+            summary += "\n";
+        }
+        return summary;
+    }
+
 
     async updatePRStatusCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         // find all workflow runs for this with same workflow_job_id
@@ -370,6 +433,7 @@ export class GhaChecks {
                 log.info("All jobs finished for pr #" + allPRWorkflowRuns[0].pr_number);
                 const conclusion = this.getConclusion(allPRWorkflowRuns);
                 const actions = this.getAvailableActions(conclusion);
+                const summary = this.formatGHCheckSummaryAll(allPRWorkflowRuns, "completed");
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
@@ -378,8 +442,8 @@ export class GhaChecks {
                     conclusion: conclusion,
                     completed_at: new Date().toISOString(),
                     output: {
-                        title: "All pipelines completed",
-                        summary: "All pipelines completed"
+                        title: "All workflow runs completed",
+                        summary: summary
                     },
                     actions: actions
                 };
@@ -401,12 +465,12 @@ export class GhaChecks {
     private getAvailableActions(conclusion: string) {
         const reRunAction = {
             label: "Re-run",
-            description: "Re-run all pipelines",
+            description: "Re-run all workflows",
             identifier: PRCheckAction.ReRun
         };
         const reRunFailedAction = {
             label: "Re-run failed",
-            description: "Re-run failed pipelines",
+            description: "Re-run failed workflows",
             identifier: PRCheckAction.ReRunFailed
         };
         const actions = [

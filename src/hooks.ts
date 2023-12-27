@@ -20,6 +20,12 @@ const log = pino(
 
 type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["createWorkflowDispatch"]["parameters"];
 
+
+export interface TriggeredPipeline {
+    name: string,
+    inputs: any
+}
+
 export class Hooks {
     async filterTriggeredHooks(repo_full_name: string, hookType: HookType,
                                files_changed: string[], baseBranch: string): Promise<Set<string>> {
@@ -86,7 +92,7 @@ export class Hooks {
                            merged_by: null
                        }),
                        action: string,
-                       triggeredHooks: string[], hookType: HookType, merge_commit_sha: string) {
+                       triggeredHooks: string[], hookType: HookType, merge_commit_sha: string): Promise<TriggeredPipeline[]> {
         let pr_action = action;
         if (pull_request.merged) {
             pr_action = "merged";
@@ -105,7 +111,7 @@ export class Hooks {
             'PR_ACTION': pr_action,
         }
         log.info("Searching for pipelines to run for PR " + pull_request.number + " with action " + action);
-        const triggeredPipelineNames = [];
+        const triggeredPipelines: TriggeredPipeline[] = [];
         for (const pipeline_run_name of triggeredHooks) {
             let pipelines: any;
             if (hookType === "onBranchMerge") {
@@ -125,26 +131,27 @@ export class Hooks {
             const pipeline_ref = pipelines.pipeline_ref ? pipelines.pipeline_ref : pull_request.base.repo.default_branch;
             const workflow_id = `${pipelines.pipeline_name}.yaml`;
             const pipeline_name = `${pipeline_run_name}-${pull_request.head.sha}`;
+            const inputs = {
+                PIPELINE_NAME: pipeline_name,
+                ...pipelines.shared_params,
+                ...pipelines.pipeline_params,
+                SERIALIZED_VARIABLES: JSON.stringify(common_serialized_variables)
+            };
             const workflowDispatch: workflowDispatchEventParameters = {
                 owner: owner,
                 repo: repo,
                 workflow_id: workflow_id,
                 ref: pipeline_ref,
-                inputs: {
-                    PIPELINE_NAME: pipeline_name,
-                    ...pipelines.shared_params,
-                    ...pipelines.pipeline_params,
-                    SERIALIZED_VARIABLES: JSON.stringify(common_serialized_variables)
-                }
+                inputs: inputs
             };
             const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
             log.info("Trigger pipeline " + pipeline_run_name + " for PR#" + pull_request.number);
             if (resp.status === 204) {
                 log.info("Pipeline " + pipeline_run_name + " triggered successfully");
             }
-            triggeredPipelineNames.push(pipeline_name);
+            triggeredPipelines.push({name: pipeline_name, inputs: inputs});
         }
-        return triggeredPipelineNames;
+        return triggeredPipelines;
     }
 
     static mapEventTypeToHook(

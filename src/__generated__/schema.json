@@ -93,7 +93,7 @@
         "name": "hook",
         "isNullable": false,
         "hasDefault": false,
-        "typeId": 41329,
+        "typeId": 41355,
         "typeName": "HOOK_TYPE"
       },
       {
@@ -182,7 +182,7 @@
         "name": "hook",
         "isNullable": false,
         "hasDefault": false,
-        "typeId": 41329,
+        "typeId": 41355,
         "typeName": "HOOK_TYPE"
       },
       {
@@ -254,6 +254,20 @@
         "hasDefault": false,
         "typeId": 20,
         "typeName": "BIGINT"
+      },
+      {
+        "name": "workflow_run_inputs",
+        "isNullable": true,
+        "hasDefault": false,
+        "typeId": 3802,
+        "typeName": "JSONB"
+      },
+      {
+        "name": "workflow_run_url",
+        "isNullable": true,
+        "hasDefault": false,
+        "typeId": 25,
+        "typeName": "TEXT"
       }
     ]
   }
