@@ -21,7 +21,7 @@ const log = pino(
 type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["createWorkflowDispatch"]["parameters"];
 
 
-export interface TriggeredPipeline {
+export interface TriggeredWorkflow {
     name: string,
     inputs: any
 }
@@ -59,8 +59,8 @@ export class Hooks {
         return triggeredHookNames
     }
 
-    async runPipelines(octokit: InstanceType<typeof ProbotOctokit>,
-                       pull_request: (PullRequest & {
+    async runWorkflow(octokit: InstanceType<typeof ProbotOctokit>,
+                      pull_request: (PullRequest & {
                            state: "closed";
                            closed_at: string;
                            merged: boolean
@@ -91,8 +91,8 @@ export class Hooks {
                            merged: boolean;
                            merged_by: null
                        }),
-                       action: string,
-                       triggeredHooks: string[], hookType: HookType, merge_commit_sha: string): Promise<TriggeredPipeline[]> {
+                      action: string,
+                      triggeredHooks: string[], hookType: HookType, merge_commit_sha: string): Promise<TriggeredWorkflow[]> {
         let pr_action = action;
         if (pull_request.merged) {
             pr_action = "merged";
@@ -110,8 +110,8 @@ export class Hooks {
             'PR_NUMBER': pull_request.number,
             'PR_ACTION': pr_action,
         }
-        log.info("Searching for pipelines to run for PR " + pull_request.number + " with action " + action);
-        const triggeredPipelines: TriggeredPipeline[] = [];
+        log.info(`Searching for workflow to run for PR #${pull_request.number} with action ${action}`);
+        const triggeredPipelines: TriggeredWorkflow[] = [];
         for (const pipeline_run_name of triggeredHooks) {
             let pipelines: any;
             if (hookType === "onBranchMerge") {
@@ -145,9 +145,9 @@ export class Hooks {
                 inputs: inputs
             };
             const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-            log.info("Trigger pipeline " + pipeline_run_name + " for PR#" + pull_request.number);
+            log.info("Trigger workflow " + pipeline_run_name + " for PR#" + pull_request.number);
             if (resp.status === 204) {
-                log.info("Pipeline " + pipeline_run_name + " triggered successfully");
+                log.info("Workflow " + pipeline_run_name + " triggered successfully");
             }
             triggeredPipelines.push({name: pipeline_name, inputs: inputs});
         }

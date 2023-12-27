@@ -14,7 +14,7 @@ import {GhaWorkflowRuns} from "./__generated__";
 import pino from "pino";
 import {getTransformStream} from "@probot/pino";
 import {anyOf, not} from "@databases/pg-typed";
-import {TriggeredPipeline} from "./hooks";
+import {TriggeredWorkflow} from "./hooks";
 
 const transform = getTransformStream();
 transform.pipe(pino.destination(1));
@@ -47,7 +47,7 @@ export interface ReRunPayload {
 
 export class GhaChecks {
 
-    async createNewRun(pipeline: TriggeredPipeline, pull_request: (PullRequest & {
+    async createNewRun(pipeline: TriggeredWorkflow, pull_request: (PullRequest & {
         state: "closed";
         closed_at: string;
         merged: boolean

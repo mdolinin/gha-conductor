@@ -91,9 +91,8 @@ export = (app: Probot) => {
         if (merge_commit_sha === null) {
             merge_commit_sha = context.payload.pull_request.head.sha;
         }
-        const triggeredPipelineNames = await hooks.runPipelines(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType, merge_commit_sha);
+        const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType, merge_commit_sha);
         for (const pipelineName of triggeredPipelineNames) {
-            app.log.info(`Triggered pipeline ${pipelineName}`);
             await checks.createNewRun(pipelineName, context.payload.pull_request, hookType, merge_commit_sha);
         }
         if (triggeredPipelineNames.length === 0) {
