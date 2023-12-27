@@ -346,11 +346,17 @@ export class GhaChecks {
         if (!workflowRun) {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
-            const summary = this.formatGHCheckSummary(workflowRun, "", "in_progress", null);
+            const allPRWorkflowRuns = await gha_workflow_runs(db).find({
+                pr_number: workflowRun.pr_number,
+                hook: workflowRun.hook,
+                pr_check_id: workflowRun.pr_check_id,
+                pr_conclusion: null
+            }).all();
+            const summary = await this.formatGHCheckSummaryAll(octokit, payload.repository.owner.login, payload.repository.name, allPRWorkflowRuns, "in_progress");
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.pr_check_id?.toString(),
+                check_run_id: Number(workflowRun.pr_check_id),
                 status: "in_progress",
                 output: {
                     title: "Workflow runs in progress",
