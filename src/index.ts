@@ -33,17 +33,16 @@ export = (app: Probot) => {
     }
     if (changedGhaFiles && (context.payload.ref === "refs/heads/master" || context.payload.ref === "refs/heads/main")) {
       app.log.info("Reload gha yaml's in repo");
-      await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.log);
+      await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name);
       app.log.info("Reload gha yaml's in repo done");
     }
   });
 
   app.on("pull_request.labeled", async (context) => {
-    app.log.info("context.payload is " + context.payload);
-    app.log.info("Label is " + context.payload.label.name);
+    app.log.info(`Pull request labeled event received for ${context.payload.pull_request.number} and label ${context.payload.label.name}`);
     if (context.payload.label.name === "gha-conductor:load") {
       app.log.info("Reload gha yaml's in repo");
-      await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.log);
+      await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name);
       app.log.info("Reload gha yaml's in repo done");
     }
   });
@@ -91,11 +90,11 @@ export = (app: Probot) => {
             pull_number: context.payload.pull_request.number
         });
         const changedFiles = changedFilesResp.data.map((file) => file.filename);
-        app.log.info("PR changed files are " + changedFiles);
+        app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
+        const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
         const eventType = context.payload.action;
         const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
-        const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch);
-        app.log.info(`Triggered hooks are ${JSON.stringify(triggeredHooks)}`);
+        const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR);
         if (merge_commit_sha === null) {
             merge_commit_sha = context.payload.pull_request.head.sha;
         }

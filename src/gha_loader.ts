@@ -1,5 +1,4 @@
 import {ProbotOctokit} from "probot";
-import {DeprecatedLogger} from "probot/lib/types";
 import simpleGit from "simple-git";
 import path from "path";
 import * as fs from "fs";
@@ -8,24 +7,48 @@ import {load} from "js-yaml";
 import db, {gha_hooks} from "./db/database";
 import {TheRootSchema} from "./gha_yaml";
 import {HookType} from "./__generated__/_enums";
+import {getTransformStream} from "@probot/pino";
+import pino from "pino";
+import {components} from "@octokit/openapi-types";
+
+const transform = getTransformStream();
+transform.pipe(pino.destination(1));
+const log = pino(
+    {
+        name: "gha-loader",
+    },
+    transform
+);
+
+export interface GhaHook {
+    repo_full_name: string,
+    file_changes_matcher: string,
+    destination_branch_matcher: string | null,
+    hook: HookType,
+    hook_name: string,
+    pipeline_unique_prefix: string,
+    pipeline_name: string,
+    pipeline_ref: string | null,
+    pipeline_params: any,
+    shared_params: any
+}
 
 export class GhaLoader {
 
     git = simpleGit();
 
-    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, log: DeprecatedLogger) {
+    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string) {
         const {token} = await octokit.auth({type: "installation"}) as Record<string, string>;
-        log.info("Token is " + token);
-        log.info("Full name is " + full_name);
+        log.debug(`Repo full name is ${full_name}`);
         // create temp dir
         const target = path.join(process.env.TMPDIR || '/tmp/', full_name);
-        log.info("Temp dir is " + target);
+        log.debug(`Temp dir is ${target}`);
         if (fs.existsSync(target)) {
             fs.rm(target, {recursive: true, force: true}, (err) => {
                 if (err) {
-                    log.info("Error deleting temp dir " + err);
+                    log.error("Error deleting temp dir " + err);
                 } else {
-                    log.info("Temp dir deleted");
+                    log.debug("Temp dir deleted");
                 }
             });
         }
@@ -73,7 +96,7 @@ export class GhaLoader {
         // iterate over onBranchMerge hooks and store in db
         for (const onBranchMerge of ghaFileYaml.onBranchMerge) {
             for (const fileChangesMatch of onBranchMerge.triggerConditions.fileChangesMatchAny) {
-                for(const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
+                for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
                     const hook = {
                         repo_full_name: full_name,
                         file_changes_matcher: fileChangesMatch,
@@ -111,5 +134,85 @@ export class GhaLoader {
                 await gha_hooks(db).insert(hook);
             }
         }
+    }
+
+    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
+        let hooks: GhaHook[] = [];
+        for (const file of data) {
+            if (!file.filename.endsWith(".gha.yaml")) {
+                continue;
+            }
+            log.info(`Loading hooks for file ${file.filename}`);
+            const resp = await octokit.request(file.contents_url);
+            if (resp.status !== 200) {
+                log.error(`Error loading file ${file.filename}`);
+                continue;
+            }
+            const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+            const ghaFileYaml = load(ghaFileContent);
+            hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml));
+        }
+        return hooks;
+    }
+
+    private getGhaHooks(ghaFileYaml: TheRootSchema): GhaHook[] {
+        const hooks: GhaHook[] = [];
+        for (const onPR of ghaFileYaml.onPullRequest) {
+            for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
+                const hook = {
+                    repo_full_name: "",
+                    file_changes_matcher: fileChangesMatch,
+                    destination_branch_matcher: null,
+                    hook: 'onPullRequest' as HookType,
+                    hook_name: onPR.name,
+                    pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPR.name}`,
+                    pipeline_name: onPR.pipelineRef.name,
+                    pipeline_ref: null,
+                    pipeline_params: onPR.pipelineRunValues.params,
+                    shared_params: ghaFileYaml.sharedParams
+                }
+                hooks.push(hook);
+            }
+        }
+        for (const onBranchMerge of ghaFileYaml.onBranchMerge) {
+            for (const fileChangesMatch of onBranchMerge.triggerConditions.fileChangesMatchAny) {
+                for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
+                    const hook = {
+                        repo_full_name: "",
+                        file_changes_matcher: fileChangesMatch,
+                        destination_branch_matcher: destinationBranchMatch,
+                        hook: 'onBranchMerge' as HookType,
+                        hook_name: onBranchMerge.name,
+                        pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onBranchMerge.name}`,
+                        pipeline_name: onBranchMerge.pipelineRef.name,
+                        pipeline_ref: null,
+                        pipeline_params: onBranchMerge.pipelineRunValues.params,
+                        shared_params: ghaFileYaml.sharedParams
+                    }
+                    hooks.push(hook);
+                }
+            }
+        }
+        if (ghaFileYaml.onPullRequestClose === undefined) {
+            return hooks;
+        }
+        for (const onPRClose of ghaFileYaml.onPullRequestClose) {
+            for (const fileChangesMatch of onPRClose.triggerConditions.fileChangesMatchAny) {
+                const hook = {
+                    repo_full_name: "",
+                    file_changes_matcher: fileChangesMatch,
+                    destination_branch_matcher: null,
+                    hook: 'onPullRequestClose' as HookType,
+                    hook_name: onPRClose.name,
+                    pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPRClose.name}`,
+                    pipeline_name: onPRClose.pipelineRef.name,
+                    pipeline_ref: null,
+                    pipeline_params: onPRClose.pipelineRunValues.params,
+                    shared_params: ghaFileYaml.sharedParams
+                }
+                hooks.push(hook);
+            }
+        }
+        return hooks;
     }
 }
