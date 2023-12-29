@@ -234,4 +234,8 @@ export class GhaLoader {
         log.info(`Branch ${baseBranch} does not exist in db for repo ${repo_full_name}`);
         await this.loadAllGhaYaml(octokit, repo_full_name, baseBranch);
     }
+
+    async deleteAllGhaHooksForBranch(fullName: string, branchName: string) {
+        await gha_hooks(db).delete({repo_full_name: fullName, branch: branchName});
+    }
 }

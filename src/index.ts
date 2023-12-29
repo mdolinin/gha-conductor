@@ -26,6 +26,20 @@ export = (app: Probot) => {
     });
 
     app.on("push", async (context) => {
+        // if push was delete branch
+        if (context.payload.deleted) {
+            const ref = context.payload.ref;
+            const branchName = context.payload.ref.split("/").pop();
+            if (ref.startsWith("refs/heads/") && branchName) {
+                const fullName = context.payload.repository.full_name;
+                app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${fullName}`);
+                await ghaLoader.deleteAllGhaHooksForBranch(fullName, branchName);
+                app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${fullName} done`);
+            } else {
+                app.log.info(`Delete is not for branch. Ref is ${ref} and branch name is ${branchName}`);
+            }
+            return;
+        }
         const changedFiles = context.payload.commits.flatMap((commit) => commit.added.concat(commit.modified));
         let changedGhaFiles = false;
         for (const file of changedFiles) {
