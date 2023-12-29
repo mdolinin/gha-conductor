@@ -224,4 +224,14 @@ export class GhaLoader {
         }
         return hooks;
     }
+
+    async loadAllGhaYamlForBranchIfNew(octokit: InstanceType<typeof ProbotOctokit>, repo_full_name: string, baseBranch: string) {
+        const branchHooksCount = await gha_hooks(db).count({repo_full_name: repo_full_name, branch: baseBranch});
+        if (branchHooksCount > 0) {
+            log.info(`Branch ${baseBranch} exists in db for repo ${repo_full_name} with ${branchHooksCount} hooks`);
+            return;
+        }
+        log.info(`Branch ${baseBranch} does not exist in db for repo ${repo_full_name}`);
+        await this.loadAllGhaYaml(octokit, repo_full_name, baseBranch);
+    }
 }

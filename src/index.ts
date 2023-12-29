@@ -108,6 +108,12 @@ export = (app: Probot) => {
         if (numOfChangedFiles > 0) {
             const repo_name = context.payload.repository.name;
             const repo_full_name = context.payload.repository.full_name;
+            // if PR is just opened load all gha hooks for base branch
+            if (context.payload.action === "opened") {
+                app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch}`);
+                await ghaLoader.loadAllGhaYamlForBranchIfNew(context.octokit, repo_full_name, baseBranch);
+                app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch} done`);
+            }
             const changedFilesResp = await context.octokit.pulls.listFiles({
                 owner: context.payload.repository.owner.login,
                 repo: repo_name,
