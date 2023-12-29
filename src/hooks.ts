@@ -36,6 +36,7 @@ export class Hooks {
         if (hookType === "onBranchMerge") {
             const main_matchers = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
+                branch: baseBranch,
                 hook: hookType,
                 destination_branch_matcher: baseBranch
             }).select('file_changes_matcher', 'pipeline_unique_prefix').all();
@@ -56,6 +57,7 @@ export class Hooks {
         } else {
             const main_matchers = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
+                branch: baseBranch,
                 hook: hookType
             }).select('file_changes_matcher', 'pipeline_unique_prefix').all();
             const pr_matchers = hooksChangedInPR.filter((hook) => hook.hook === hookType)
@@ -140,12 +142,14 @@ export class Hooks {
             let pipelines: any;
             if (hookType === "onBranchMerge") {
                 pipelines = await gha_hooks(db).findOne({
+                    branch: pull_request.base.ref,
                     pipeline_unique_prefix: pipeline_run_name,
                     hook: hookType,
                     destination_branch_matcher: pull_request.base.ref
                 });
             } else {
                 pipelines = await gha_hooks(db).findOne({
+                    branch: pull_request.base.ref,
                     pipeline_unique_prefix: pipeline_run_name,
                     hook: hookType
                 });

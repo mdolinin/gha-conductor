@@ -76,6 +76,13 @@
     "name": "gha_hooks",
     "columns": [
       {
+        "name": "branch",
+        "isNullable": false,
+        "hasDefault": false,
+        "typeId": 25,
+        "typeName": "TEXT"
+      },
+      {
         "name": "destination_branch_matcher",
         "isNullable": true,
         "hasDefault": false,
@@ -93,7 +100,7 @@
         "name": "hook",
         "isNullable": false,
         "hasDefault": false,
-        "typeId": 41355,
+        "typeId": 41400,
         "typeName": "HOOK_TYPE"
       },
       {
@@ -182,7 +189,7 @@
         "name": "hook",
         "isNullable": false,
         "hasDefault": false,
-        "typeId": 41355,
+        "typeId": 41400,
         "typeName": "HOOK_TYPE"
       },
       {

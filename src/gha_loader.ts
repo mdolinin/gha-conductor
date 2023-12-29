@@ -22,6 +22,7 @@ const log = pino(
 
 export interface GhaHook {
     repo_full_name: string,
+    branch: string,
     file_changes_matcher: string,
     destination_branch_matcher: string | null,
     hook: HookType,
@@ -35,51 +36,54 @@ export interface GhaHook {
 
 export class GhaLoader {
 
-    git = simpleGit();
+    private git = simpleGit();
 
-    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string) {
+    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string) {
         const {token} = await octokit.auth({type: "installation"}) as Record<string, string>;
         log.debug(`Repo full name is ${full_name}`);
         // create temp dir
         const target = path.join(process.env.TMPDIR || '/tmp/', full_name);
         log.debug(`Temp dir is ${target}`);
         if (fs.existsSync(target)) {
-            fs.rm(target, {recursive: true, force: true}, (err) => {
-                if (err) {
-                    log.error("Error deleting temp dir " + err);
-                } else {
-                    log.debug("Temp dir deleted");
-                }
-            });
+            fs.rmSync(target, {recursive: true, force: true});
         }
         fs.mkdirSync(target, {recursive: true});
         // clone repo
         let remote = `https://x-access-token:${token}@github.com/${full_name}.git`;
-        log.info("Repo path is " + remote);
-        const resp = await this.git.clone(remote, target).cwd({path: target});
-        if (resp === undefined || resp !== target) {
-            log.info("Clone failed");
+        log.debug(`Repo path is ${remote}`);
+        const cloneResp = await this.git.clone(remote, target);
+        if (cloneResp !== "") {
+            log.error(`Error cloning ${remote} repo ${cloneResp}`);
             return;
+        }
+        // then set the working directory of the root instance - you want all future
+        // tasks run through `git` to be from the new directory, rather than just tasks
+        // chained off this task
+        await this.git.cwd({path: target, root: true});
+        if (branch !== "master" && branch !== "main") {
+            const checkoutResp = await this.git.checkoutBranch(branch, `origin/${branch}`);
+            log.debug("Checkout response is " + JSON.stringify(checkoutResp));
         }
         // find all .gha.yaml files in repo using glob lib
         const ghaYamlFiles = await glob("**/.gha.yaml", {cwd: target});
         // parse yaml
         // delete all hooks for db before upserting
-        await gha_hooks(db).delete({repo_full_name: full_name});
+        await gha_hooks(db).delete({repo_full_name: full_name, branch: branch});
         for (const ghaYamlFilePath of ghaYamlFiles) {
             log.info("Found .gha.yaml file " + ghaYamlFilePath);
             const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
-            log.info("Parsed yaml of " + ghaYamlFilePath + " is " + JSON.stringify(ghaFileYaml));
-            await this.upsertGHAHooks(full_name, <TheRootSchema>ghaFileYaml);
+            log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
+            await this.upsertGHAHooks(full_name, branch, <TheRootSchema>ghaFileYaml);
         }
     }
 
-    private async upsertGHAHooks(full_name: string, ghaFileYaml: TheRootSchema) {
+    private async upsertGHAHooks(full_name: string, branch: string, ghaFileYaml: TheRootSchema) {
         // iterate over onPullRequest hooks and store in db
         for (const onPR of ghaFileYaml.onPullRequest) {
             for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
                 const hook = {
                     repo_full_name: full_name,
+                    branch: branch,
                     file_changes_matcher: fileChangesMatch,
                     destination_branch_matcher: null,
                     hook: 'onPullRequest' as HookType,
@@ -99,6 +103,7 @@ export class GhaLoader {
                 for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
                     const hook = {
                         repo_full_name: full_name,
+                        branch: branch,
                         file_changes_matcher: fileChangesMatch,
                         destination_branch_matcher: destinationBranchMatch,
                         hook: 'onBranchMerge' as HookType,
@@ -121,6 +126,7 @@ export class GhaLoader {
             for (const fileChangesMatch of onPRClose.triggerConditions.fileChangesMatchAny) {
                 const hook = {
                     repo_full_name: full_name,
+                    branch: branch,
                     file_changes_matcher: fileChangesMatch,
                     destination_branch_matcher: null,
                     hook: 'onPullRequestClose' as HookType,
@@ -161,6 +167,7 @@ export class GhaLoader {
             for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
                 const hook = {
                     repo_full_name: "",
+                    branch: "",
                     file_changes_matcher: fileChangesMatch,
                     destination_branch_matcher: null,
                     hook: 'onPullRequest' as HookType,
@@ -179,6 +186,7 @@ export class GhaLoader {
                 for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
                     const hook = {
                         repo_full_name: "",
+                        branch: "",
                         file_changes_matcher: fileChangesMatch,
                         destination_branch_matcher: destinationBranchMatch,
                         hook: 'onBranchMerge' as HookType,
@@ -200,6 +208,7 @@ export class GhaLoader {
             for (const fileChangesMatch of onPRClose.triggerConditions.fileChangesMatchAny) {
                 const hook = {
                     repo_full_name: "",
+                    branch: "",
                     file_changes_matcher: fileChangesMatch,
                     destination_branch_matcher: null,
                     hook: 'onPullRequestClose' as HookType,

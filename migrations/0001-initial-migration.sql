@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS gha_hooks
 (
     id                         SERIAL PRIMARY KEY,
     repo_full_name             TEXT      NOT NULL,
+    branch                     TEXT      NOT NULL,
     file_changes_matcher       TEXT      NOT NULL,
     destination_branch_matcher TEXT      NULL,
     hook                       hook_type NOT NULL,
