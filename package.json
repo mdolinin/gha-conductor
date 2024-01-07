@@ -14,6 +14,7 @@
   "scripts": {
     "build": "tsc",
     "start": "tsc && probot run ./lib/index.js",
+    "bot:start": "probot run ./lib/index.js",
     "test": "jest",
     "generate": "node scripts/generate.js",
     "db:migrate": "dotenv -- cross-var pg-migrations apply --directory migrations --database %DATABASE_URL%",

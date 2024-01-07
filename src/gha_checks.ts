@@ -441,7 +441,6 @@ export class GhaChecks {
         return summary;
     }
 
-
     async updatePRStatusCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         // find all workflow runs for this with same workflow_job_id
         const workflowJob = payload.workflow_job;
