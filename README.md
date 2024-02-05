@@ -141,6 +141,33 @@ jobs:
 * During the workflow run, the app will create corresponding GitHub checks for each job defined in `.gha.yaml` file
 * (Optional) Update branch protection rules to require successful `pr-status` check before merging
 
+
+## How it works
+Sequence diagram of how the app works for PR event:
+```mermaid
+sequenceDiagram
+    participant GitHub
+    participant App
+    participant Workflows
+
+    GitHub->>App: Send pull request event
+    App->>App: Check what files changed in PR
+    App->>App: Find what workflows needs to triggered
+    App->>Workflows: Trigger all requested workflows jobs
+    App->>GitHub: Create pr-status check
+    loop until all triggered jobs completed
+        Workflows->>App: Notify workflow job queued
+        App->>GitHub: Create check for triggered workflow job
+        Workflows->>App: Notify workflow job in_progress
+        App->>GitHub: Update workflow job check in_progress
+        App->>GitHub: Update pr-status check in_progress
+        Workflows->>App: Notify workflow job completed
+        App->>GitHub: Update workflow run check completed
+    end
+    App->>App: Calculate conclusion
+    App->>GitHub: Update pr-status check with conclusion
+```    
+
 ## Setup
 
 ```sh
