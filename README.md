@@ -152,7 +152,7 @@ sequenceDiagram
 
     GitHub->>App: Send pull request event
     App->>App: Check what files changed in PR
-    App->>App: Find what workflows needs to triggered
+    App->>App: Find what workflows needs to be triggered
     App->>Workflows: Trigger all requested workflows jobs
     App->>GitHub: Create pr-status check
     loop until all triggered jobs completed
@@ -167,6 +167,12 @@ sequenceDiagram
     App->>App: Calculate conclusion
     App->>GitHub: Update pr-status check with conclusion
 ```    
+
+## Persistence
+App uses PostgreSQL database to store information about which workflows should be triggered for each event and workflow executions that were triggered.
+- `@databases/pg` is used to interact with the database.
+- `pg-migrations` is used to manage database schema. Migrations are located in `migrations` directory.
+- `@databases/pg-typed` and `@databases/pg-schema-cli` are used to generate TypeScript types and JSON schemas from the database schema. Generated types and schema are located in `src/__generated__` directory.
 
 ## Setup
 
