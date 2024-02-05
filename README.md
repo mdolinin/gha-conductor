@@ -141,6 +141,8 @@ jobs:
 * During the workflow run, the app will create corresponding GitHub checks for each job defined in `.gha.yaml` file
 * (Optional) Update branch protection rules to require successful `pr-status` check before merging
 
+## Examples
+- Example of monorepo setup that uses `gha-conductor` can be found in [mdolinin/mono-repo-example](https://github.com/mdolinin/mono-repo-example) repository.
 
 ## How it works
 Sequence diagram of how the app works for PR event:
