@@ -6,6 +6,7 @@ import nock from "nock";
 import myProbotApp from "../src";
 import { Probot, ProbotOctokit } from "probot";
 // Requiring our fixtures
+import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json";
 import payload from "./fixtures/issues.opened.json";
 const issueCreatedBody = { body: "Thanks for opening this issue!" };
 const fs = require("fs");
@@ -15,8 +16,14 @@ const privateKey = fs.readFileSync(
   path.join(__dirname, "fixtures/mock-cert.pem"),
   "utf-8"
 );
+import {GhaLoader} from "../src/gha_loader";
+const loadAllGhaYamlMock = jest
+    .spyOn(GhaLoader.prototype, 'loadAllGhaYaml')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
 
-describe("My Probot app", () => {
+describe("gha-conductor app", () => {
   let probot: any;
 
   beforeEach(() => {
@@ -32,6 +39,11 @@ describe("My Probot app", () => {
     });
     // Load our app into probot
     probot.load(myProbotApp);
+  });
+
+  test("load all gha yaml files into db when PR labeled with gha-conductor:load", async () => {
+    await probot.receive({ name: "pull_request", payload: pullRequestLabeledPayload });
+    expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
   });
 
   test("creates a comment when an issue is opened", async () => {

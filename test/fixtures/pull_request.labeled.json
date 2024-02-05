@@ -1,18 +1,18 @@
 {
   "action": "labeled",
-  "number": 2,
+  "number": 26,
   "pull_request": {
-    "url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/2",
-    "id": 1617154975,
-    "node_id": "PR_kwDOKvIEtc5gY9Of",
-    "html_url": "https://github.com/mdolinin/mono-repo-example/pull/2",
-    "diff_url": "https://github.com/mdolinin/mono-repo-example/pull/2.diff",
-    "patch_url": "https://github.com/mdolinin/mono-repo-example/pull/2.patch",
-    "issue_url": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/2",
-    "number": 2,
+    "url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/26",
+    "id": 1662193375,
+    "node_id": "PR_kwDOKvIEtc5jEw7f",
+    "html_url": "https://github.com/mdolinin/mono-repo-example/pull/26",
+    "diff_url": "https://github.com/mdolinin/mono-repo-example/pull/26.diff",
+    "patch_url": "https://github.com/mdolinin/mono-repo-example/pull/26.patch",
+    "issue_url": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/26",
+    "number": 26,
     "state": "open",
     "locked": false,
-    "title": "feat(useful): add some work",
+    "title": "feat(work): update tests",
     "user": {
       "login": "mdolinin",
       "id": 3526781,
@@ -34,11 +34,11 @@
       "site_admin": false
     },
     "body": null,
-    "created_at": "2023-11-27T02:06:04Z",
-    "updated_at": "2023-11-27T02:15:48Z",
+    "created_at": "2024-01-02T19:13:15Z",
+    "updated_at": "2024-02-05T01:07:36Z",
     "closed_at": null,
     "merged_at": null,
-    "merge_commit_sha": "673969b0cf26c5c525fa333cf02f6269118d2b3a",
+    "merge_commit_sha": "2e1299c747c766b3e3c37e16b9052287c1d2e16f",
     "assignee": null,
     "assignees": [
 
@@ -62,15 +62,15 @@
     ],
     "milestone": null,
     "draft": false,
-    "commits_url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/2/commits",
-    "review_comments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/2/comments",
+    "commits_url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/26/commits",
+    "review_comments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/26/comments",
     "review_comment_url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/comments{/number}",
-    "comments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/2/comments",
-    "statuses_url": "https://api.github.com/repos/mdolinin/mono-repo-example/statuses/3d6cf43531685a29ee29a8f4f34958c00346f271",
+    "comments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/26/comments",
+    "statuses_url": "https://api.github.com/repos/mdolinin/mono-repo-example/statuses/ea5174128f916031d576e839d38a5402df25fd88",
     "head": {
-      "label": "mdolinin:feat/usefull-work-1",
-      "ref": "feat/usefull-work-1",
-      "sha": "3d6cf43531685a29ee29a8f4f34958c00346f271",
+      "label": "mdolinin:mdolinin-patch-1",
+      "ref": "mdolinin-patch-1",
+      "sha": "ea5174128f916031d576e839d38a5402df25fd88",
       "user": {
         "login": "mdolinin",
         "id": 3526781,
@@ -159,13 +159,13 @@
         "deployments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/deployments",
         "created_at": "2023-11-18T17:29:03Z",
         "updated_at": "2023-11-18T21:09:20Z",
-        "pushed_at": "2023-11-27T02:06:45Z",
+        "pushed_at": "2024-01-02T19:15:32Z",
         "git_url": "git://github.com/mdolinin/mono-repo-example.git",
         "ssh_url": "git@github.com:mdolinin/mono-repo-example.git",
         "clone_url": "https://github.com/mdolinin/mono-repo-example.git",
         "svn_url": "https://github.com/mdolinin/mono-repo-example",
         "homepage": null,
-        "size": 4,
+        "size": 60,
         "stargazers_count": 0,
         "watchers_count": 0,
         "language": "Makefile",
@@ -179,7 +179,7 @@
         "mirror_url": null,
         "archived": false,
         "disabled": false,
-        "open_issues_count": 2,
+        "open_issues_count": 4,
         "license": {
           "key": "mit",
           "name": "MIT License",
@@ -195,14 +195,14 @@
         ],
         "visibility": "private",
         "forks": 0,
-        "open_issues": 2,
+        "open_issues": 4,
         "watchers": 0,
         "default_branch": "main",
         "allow_squash_merge": true,
         "allow_merge_commit": true,
         "allow_rebase_merge": true,
         "allow_auto_merge": false,
-        "delete_branch_on_merge": false,
+        "delete_branch_on_merge": true,
         "allow_update_branch": false,
         "use_squash_pr_title_as_default": false,
         "squash_merge_commit_message": "COMMIT_MESSAGES",
@@ -214,7 +214,7 @@
     "base": {
       "label": "mdolinin:main",
       "ref": "main",
-      "sha": "ca683bd39590ef2c0851a7c54065c43adc07c45c",
+      "sha": "d45c105650015a3132779c631c39cc73c895966c",
       "user": {
         "login": "mdolinin",
         "id": 3526781,
@@ -303,13 +303,13 @@
         "deployments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/deployments",
         "created_at": "2023-11-18T17:29:03Z",
         "updated_at": "2023-11-18T21:09:20Z",
-        "pushed_at": "2023-11-27T02:06:45Z",
+        "pushed_at": "2024-01-02T19:15:32Z",
         "git_url": "git://github.com/mdolinin/mono-repo-example.git",
         "ssh_url": "git@github.com:mdolinin/mono-repo-example.git",
         "clone_url": "https://github.com/mdolinin/mono-repo-example.git",
         "svn_url": "https://github.com/mdolinin/mono-repo-example",
         "homepage": null,
-        "size": 4,
+        "size": 60,
         "stargazers_count": 0,
         "watchers_count": 0,
         "language": "Makefile",
@@ -323,7 +323,7 @@
         "mirror_url": null,
         "archived": false,
         "disabled": false,
-        "open_issues_count": 2,
+        "open_issues_count": 4,
         "license": {
           "key": "mit",
           "name": "MIT License",
@@ -339,14 +339,14 @@
         ],
         "visibility": "private",
         "forks": 0,
-        "open_issues": 2,
+        "open_issues": 4,
         "watchers": 0,
         "default_branch": "main",
         "allow_squash_merge": true,
         "allow_merge_commit": true,
         "allow_rebase_merge": true,
         "allow_auto_merge": false,
-        "delete_branch_on_merge": false,
+        "delete_branch_on_merge": true,
         "allow_update_branch": false,
         "use_squash_pr_title_as_default": false,
         "squash_merge_commit_message": "COMMIT_MESSAGES",
@@ -357,28 +357,28 @@
     },
     "_links": {
       "self": {
-        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/2"
+        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/26"
       },
       "html": {
-        "href": "https://github.com/mdolinin/mono-repo-example/pull/2"
+        "href": "https://github.com/mdolinin/mono-repo-example/pull/26"
       },
       "issue": {
-        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/2"
+        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/26"
       },
       "comments": {
-        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/2/comments"
+        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/26/comments"
       },
       "review_comments": {
-        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/2/comments"
+        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/26/comments"
       },
       "review_comment": {
         "href": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/comments{/number}"
       },
       "commits": {
-        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/2/commits"
+        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/26/commits"
       },
       "statuses": {
-        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/statuses/3d6cf43531685a29ee29a8f4f34958c00346f271"
+        "href": "https://api.github.com/repos/mdolinin/mono-repo-example/statuses/ea5174128f916031d576e839d38a5402df25fd88"
       }
     },
     "author_association": "OWNER",
@@ -386,15 +386,15 @@
     "active_lock_reason": null,
     "merged": false,
     "mergeable": true,
-    "rebaseable": false,
-    "mergeable_state": "clean",
+    "rebaseable": true,
+    "mergeable_state": "unstable",
     "merged_by": null,
     "comments": 0,
     "review_comments": 0,
     "maintainer_can_modify": false,
     "commits": 2,
-    "additions": 1,
-    "deletions": 0,
+    "additions": 2,
+    "deletions": 1,
     "changed_files": 1
   },
   "label": {
@@ -474,13 +474,13 @@
     "deployments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/deployments",
     "created_at": "2023-11-18T17:29:03Z",
     "updated_at": "2023-11-18T21:09:20Z",
-    "pushed_at": "2023-11-27T02:06:45Z",
+    "pushed_at": "2024-01-02T19:15:32Z",
     "git_url": "git://github.com/mdolinin/mono-repo-example.git",
     "ssh_url": "git@github.com:mdolinin/mono-repo-example.git",
     "clone_url": "https://github.com/mdolinin/mono-repo-example.git",
     "svn_url": "https://github.com/mdolinin/mono-repo-example",
     "homepage": null,
-    "size": 4,
+    "size": 60,
     "stargazers_count": 0,
     "watchers_count": 0,
     "language": "Makefile",
@@ -494,7 +494,7 @@
     "mirror_url": null,
     "archived": false,
     "disabled": false,
-    "open_issues_count": 2,
+    "open_issues_count": 4,
     "license": {
       "key": "mit",
       "name": "MIT License",
@@ -510,7 +510,7 @@
     ],
     "visibility": "private",
     "forks": 0,
-    "open_issues": 2,
+    "open_issues": 4,
     "watchers": 0,
     "default_branch": "main"
   },
