@@ -12,6 +12,8 @@ import deleteBranchPayload from "./fixtures/delete.branch.json";
 import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
+import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
+import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
 const issueCreatedBody = { body: "Thanks for opening this issue!" };
 const fs = require("fs");
 const path = require("path");
@@ -54,6 +56,30 @@ const filterTriggeredHooksMock = jest
 
 const updateWorkflowRunCheckQueuedMock = jest
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckQueued')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const updateWorkflowRunCheckInProgressMock = jest
+    .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckInProgress')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const updatePRStatusCheckInProgressMock = jest
+    .spyOn(GhaChecks.prototype, 'updatePRStatusCheckInProgress')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const updateWorkflowRunCheckCompletedMock = jest
+    .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckCompleted')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const updatePRStatusCheckCompletedMock = jest
+    .spyOn(GhaChecks.prototype, 'updatePRStatusCheckCompleted')
     .mockImplementation(() => {
       return Promise.resolve();
     });
@@ -183,7 +209,7 @@ describe("gha-conductor app", () => {
     expect(mock.pendingMocks()).toStrictEqual([]);
   });
 
-  test("when workflow job is queued, update pr-status check with status queued", async () => {
+  test("when workflow job event received, update pr-status checks and workflow run checks", async () => {
       const mock = nock("https://api.github.com")
           // Test that we correctly return a test token
           .post("/app/installations/44167724/access_tokens")
@@ -198,8 +224,22 @@ describe("gha-conductor app", () => {
           .reply(200, {
               id: 7856385885,
           })
+          .get("/repos/mdolinin/mono-repo-example/actions/runs/7856385885")
+          .reply(200, {
+              id: 7856385885,
+          })
+          .get("/repos/mdolinin/mono-repo-example/actions/runs/7856385885")
+          .reply(200, {
+              id: 7856385885,
+          })
       await probot.receive({ name: "workflow_job", payload: workflowJobQueuedPayload });
       expect(updateWorkflowRunCheckQueuedMock).toHaveBeenCalledTimes(1);
+      await probot.receive({ name: "workflow_job", payload: workflowJobInProgressPayload });
+      expect(updateWorkflowRunCheckInProgressMock).toHaveBeenCalledTimes(1);
+      expect(updatePRStatusCheckInProgressMock).toHaveBeenCalledTimes(1);
+      await probot.receive({ name: "workflow_job", payload: workflowJobCompletedPayload });
+      expect(updateWorkflowRunCheckCompletedMock).toHaveBeenCalledTimes(1);
+      expect(updatePRStatusCheckCompletedMock).toHaveBeenCalledTimes(1);
       expect(mock.pendingMocks()).toStrictEqual([]);
 
   });
