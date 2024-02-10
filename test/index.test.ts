@@ -11,6 +11,7 @@ import pushGhaYamlChangedPayload from "./fixtures/push.gha_yaml_changed.json";
 import deleteBranchPayload from "./fixtures/delete.branch.json";
 import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
+import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 const issueCreatedBody = { body: "Thanks for opening this issue!" };
 const fs = require("fs");
 const path = require("path");
@@ -21,6 +22,7 @@ const privateKey = fs.readFileSync(
 );
 import {GhaLoader} from "../src/gha_loader";
 import {Hooks} from "../src/hooks";
+import {GhaChecks} from "../src/gha_checks";
 const loadAllGhaYamlMock = jest
     .spyOn(GhaLoader.prototype, 'loadAllGhaYaml')
     .mockImplementation(() => {
@@ -48,6 +50,12 @@ const filterTriggeredHooksMock = jest
     .spyOn(Hooks.prototype, 'filterTriggeredHooks')
     .mockImplementation(() => {
       return Promise.resolve(new Set<string>());
+    });
+
+const updateWorkflowRunCheckQueuedMock = jest
+    .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckQueued')
+    .mockImplementation(() => {
+      return Promise.resolve();
     });
 
 describe("gha-conductor app", () => {
@@ -173,6 +181,27 @@ describe("gha-conductor app", () => {
     expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
     expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
     expect(mock.pendingMocks()).toStrictEqual([]);
+  });
+
+  test("when workflow job is queued, update pr-status check with status queued", async () => {
+      const mock = nock("https://api.github.com")
+          // Test that we correctly return a test token
+          .post("/app/installations/44167724/access_tokens")
+          .reply(200, {
+              token: "test",
+              permissions: {
+                  checks: "write",
+              },
+          })
+          // get workflow run by id
+          .get("/repos/mdolinin/mono-repo-example/actions/runs/7856385885")
+          .reply(200, {
+              id: 7856385885,
+          })
+      await probot.receive({ name: "workflow_job", payload: workflowJobQueuedPayload });
+      expect(updateWorkflowRunCheckQueuedMock).toHaveBeenCalledTimes(1);
+      expect(mock.pendingMocks()).toStrictEqual([]);
+
   });
 
   afterEach(() => {
