@@ -1,0 +1,313 @@
+{
+  "action": "rerequested",
+  "check_run": {
+    "id": 21439340511,
+    "name": "domain-a-example-b-test",
+    "node_id": "CR_kwDOKvIEtc8AAAAE_eJf3w",
+    "head_sha": "d3cba4781acccb8803befb6db1259f904594a1d9",
+    "external_id": "",
+    "url": "https://api.github.com/repos/mdolinin/mono-repo-example/check-runs/21439340511",
+    "html_url": "https://github.com/mdolinin/mono-repo-example/runs/21439340511",
+    "details_url": "https://github.com/mdolinin/mono-repo-example/actions/runs/7856504053",
+    "status": "completed",
+    "conclusion": "failure",
+    "started_at": "2024-02-10T17:55:11Z",
+    "completed_at": "2024-02-10T17:55:27Z",
+    "output": {
+      "title": "Workflow run completed",
+      "summary": "<details><summary>❌: domain-a-example-b-test</summary><p>\n\n\n**[View Workflow Run](https://github.com/mdolinin/mono-repo-example/actions/runs/7856504053)**\n\n### Workflow logs tail\n    \n```console\n2024-02-10T17:55:10.6017466Z Requested labels: ubuntu-latest\n2024-02-10T17:55:10.6017702Z Job defined at: mdolinin/mono-repo-example/.github/workflows/common-job.yaml@refs/heads/main\n2024-02-10T17:55:10.6017793Z Waiting for a runner to pick up this job...\n2024-02-10T17:55:11.0287797Z Job is waiting for a hosted runner to come online.\n2024-02-10T17:55:13.9410162Z Job is about to start running on the hosted runner: GitHub Actions 12 (hosted)\n2024-02-10T17:55:17.1830940Z Current runner version: '2.312.0'\n2024-02-10T17:55:17.1870332Z ##[group]Operating System\n2024-02-10T17:55:17.1871343Z Ubuntu\n2024-02-10T17:55:17.1872026Z 22.04.3\n2024-02-10T17:55:17.1872521Z LTS\n2024-02-10T17:55:17.1873179Z ##[endgroup]\n2024-02-10T17:55:17.1873787Z ##[group]Runner Image\n2024-02-10T17:55:17.1874462Z Image: ubuntu-22.04\n2024-02-10T17:55:17.1875050Z Version: 20240204.1.0\n2024-02-10T17:55:17.1876574Z Included Software: https://github.com/actions/runner-images/blob/ubuntu22/20240204.1/images/ubuntu/Ubuntu2204-Readme.md\n2024-02-10T17:55:17.1879612Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu22%2F20240204.1\n2024-02-10T17:55:17.1880963Z ##[endgroup]\n2024-02-10T17:55:17.1881730Z ##[group]Runner Image Provisioner\n2024-02-10T17:55:17.1882475Z 2.0.341.1\n2024-02-10T17:55:17.1883012Z ##[endgroup]\n2024-02-10T17:55:17.1884690Z ##[group]GITHUB_TOKEN Permissions\n2024-02-10T17:55:17.1887184Z Contents: read\n2024-02-10T17:55:17.1888640Z Metadata: read\n2024-02-10T17:55:17.1889695Z ##[endgroup]\n2024-02-10T17:55:17.1895100Z Secret source: Actions\n2024-02-10T17:55:17.1895988Z Prepare workflow directory\n2024-02-10T17:55:17.3389350Z Prepare all required actions\n2024-02-10T17:55:17.3655087Z Getting action download info\n2024-02-10T17:55:17.6040440Z Download action repository 'actions/checkout@v3' (SHA:f43a0e5ff2bd294095638e18286ca9a3d1956744)\n2024-02-10T17:55:17.9370671Z Complete job name: domain-a-example-b-test-d3cba4781acccb8803befb6db1259f904594a1d9\n2024-02-10T17:55:18.1781555Z ##[group]Run variables=$(echo $SERIALIZED_VARIABLES | jq -r 'to_entries|map(\"\\(.key)=\\(.value|tostring)\")|.[]')\n2024-02-10T17:55:18.1784796Z \u001B[36;1mvariables=$(echo $SERIALIZED_VARIABLES | jq -r 'to_entries|map(\"\\(.key)=\\(.value|tostring)\")|.[]')\u001B[0m\n2024-02-10T17:55:18.1786256Z \u001B[36;1mwhile IFS= read -r line; do\u001B[0m\n2024-02-10T17:55:18.1787301Z \u001B[36;1m    echo \"$line\" >> $GITHUB_ENV\u001B[0m\n2024-02-10T17:55:18.1788247Z \u001B[36;1mdone <<< \"$variables\"\u001B[0m\n2024-02-10T17:55:18.1883708Z shell: /usr/bin/bash -e {0}\n2024-02-10T17:55:18.1884764Z env:\n2024-02-10T17:55:18.1888832Z   SERIALIZED_VARIABLES: {\"PR_HEAD_REF\":\"mdolinin-patch-3\",\"PR_HEAD_SHA\":\"d3cba4781acccb8803befb6db1259f904594a1d9\",\"PR_BASE_REF\":\"main\",\"PR_BASE_SHA\":\"7fd444efc6ccde262661a1258b0718e78810fa8d\",\"PR_MERGE_SHA\":\"bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\",\"PR_NUMBER\":27,\"PR_ACTION\":\"opened\"}\n2024-02-10T17:55:18.1892293Z ##[endgroup]\n2024-02-10T17:55:18.3180314Z ##[group]Run actions/checkout@v3\n2024-02-10T17:55:18.3181967Z with:\n2024-02-10T17:55:18.3182543Z   fetch-depth: 0\n2024-02-10T17:55:18.3183441Z   ref: bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\n2024-02-10T17:55:18.3184360Z   repository: mdolinin/mono-repo-example\n2024-02-10T17:55:18.3185828Z   token: ***\n2024-02-10T17:55:18.3186516Z   ssh-strict: true\n2024-02-10T17:55:18.3187096Z   persist-credentials: true\n2024-02-10T17:55:18.3187765Z   clean: true\n2024-02-10T17:55:18.3483616Z   sparse-checkout-cone-mode: true\n2024-02-10T17:55:18.3484945Z   fetch-tags: false\n2024-02-10T17:55:18.3485414Z   lfs: false\n2024-02-10T17:55:18.3486078Z   submodules: false\n2024-02-10T17:55:18.3486568Z   set-safe-directory: true\n2024-02-10T17:55:18.3487396Z env:\n2024-02-10T17:55:18.3491172Z   SERIALIZED_VARIABLES: {\"PR_HEAD_REF\":\"mdolinin-patch-3\",\"PR_HEAD_SHA\":\"d3cba4781acccb8803befb6db1259f904594a1d9\",\"PR_BASE_REF\":\"main\",\"PR_BASE_SHA\":\"7fd444efc6ccde262661a1258b0718e78810fa8d\",\"PR_MERGE_SHA\":\"bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\",\"PR_NUMBER\":27,\"PR_ACTION\":\"opened\"}\n2024-02-10T17:55:18.3494046Z   PR_HEAD_REF: mdolinin-patch-3\n2024-02-10T17:55:18.3494775Z   PR_HEAD_SHA: d3cba4781acccb8803befb6db1259f904594a1d9\n2024-02-10T17:55:18.3495711Z   PR_BASE_REF: main\n2024-02-10T17:55:18.3496329Z   PR_BASE_SHA: 7fd444efc6ccde262661a1258b0718e78810fa8d\n2024-02-10T17:55:18.3497267Z   PR_MERGE_SHA: bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\n2024-02-10T17:55:18.3498073Z   PR_NUMBER: 27\n2024-02-10T17:55:18.3498507Z   PR_ACTION: opened\n2024-02-10T17:55:18.3498968Z ##[endgroup]\n2024-02-10T17:55:18.7157337Z Syncing repository: mdolinin/mono-repo-example\n2024-02-10T17:55:18.7160617Z ##[group]Getting Git version info\n2024-02-10T17:55:18.7162195Z Working directory is '/home/runner/work/mono-repo-example/mono-repo-example'\n2024-02-10T17:55:18.7165220Z [command]/usr/bin/git version\n2024-02-10T17:55:18.7216546Z git version 2.43.0\n2024-02-10T17:55:18.7273771Z ##[endgroup]\n2024-02-10T17:55:18.7292097Z Temporarily overriding HOME='/home/runner/work/_temp/72dc4ac5-794d-47aa-8d7d-4c9da9a3977e' before making global git config changes\n2024-02-10T17:55:18.7295031Z Adding repository directory to the temporary git global config as a safe directory\n2024-02-10T17:55:18.7297034Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/mono-repo-example/mono-repo-example\n2024-02-10T17:55:18.7349145Z Deleting the contents of '/home/runner/work/mono-repo-example/mono-repo-example'\n2024-02-10T17:55:18.7355429Z ##[group]Initializing the repository\n2024-02-10T17:55:18.7360909Z [command]/usr/bin/git init /home/runner/work/mono-repo-example/mono-repo-example\n2024-02-10T17:55:18.7471717Z hint: Using 'master' as the name for the initial branch. This default branch name\n2024-02-10T17:55:18.7473626Z hint: is subject to change. To configure the initial branch name to use in all\n2024-02-10T17:55:18.7475977Z hint: of your new repositories, which will suppress this warning, call:\n2024-02-10T17:55:18.7477489Z hint: \n2024-02-10T17:55:18.7478791Z hint: \tgit config --global init.defaultBranch <name>\n2024-02-10T17:55:18.7480082Z hint: \n2024-02-10T17:55:18.7481432Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\n2024-02-10T17:55:18.7483149Z hint: 'development'. The just-created branch can be renamed via this command:\n2024-02-10T17:55:18.7484816Z hint: \n2024-02-10T17:55:18.7485668Z hint: \tgit branch -m <name>\n2024-02-10T17:55:18.7504702Z Initialized empty Git repository in /home/runner/work/mono-repo-example/mono-repo-example/.git/\n2024-02-10T17:55:18.7583336Z [command]/usr/bin/git remote add origin https://github.com/mdolinin/mono-repo-example\n2024-02-10T17:55:18.7587078Z ##[endgroup]\n2024-02-10T17:55:18.7587947Z ##[group]Disabling automatic garbage collection\n2024-02-10T17:55:18.7592710Z [command]/usr/bin/git config --local gc.auto 0\n2024-02-10T17:55:18.7648526Z ##[endgroup]\n2024-02-10T17:55:18.7649678Z ##[group]Setting up auth\n2024-02-10T17:55:18.7659489Z [command]/usr/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2024-02-10T17:55:18.7706744Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2024-02-10T17:55:18.8221115Z [command]/usr/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2024-02-10T17:55:18.8257801Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2024-02-10T17:55:18.8845263Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***\n2024-02-10T17:55:18.8850393Z ##[endgroup]\n2024-02-10T17:55:18.8851369Z ##[group]Fetching the repository\n2024-02-10T17:55:18.8894332Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --progress --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*\n2024-02-10T17:55:19.5277426Z remote: Enumerating objects: 423, done.        \n2024-02-10T17:55:19.5278339Z remote: Counting objects:   0% (1/308)        \n2024-02-10T17:55:19.5279068Z remote: Counting objects:   1% (4/308)        \n2024-02-10T17:55:19.5279796Z remote: Counting objects:   2% (7/308)        \n2024-02-10T17:55:19.5280542Z remote: Counting objects:   3% (10/308)        \n2024-02-10T17:55:19.5281272Z remote: Counting objects:   4% (13/308)        \n2024-02-10T17:55:19.5282007Z remote: Counting objects:   5% (16/308)        \n2024-02-10T17:55:19.5282747Z remote: Counting objects:   6% (19/308)        \n2024-02-10T17:55:19.5284490Z remote: Counting objects:   7% (22/308)        \n2024-02-10T17:55:19.5285269Z remote: Counting objects:   8% (25/308)        \n2024-02-10T17:55:19.5286004Z remote: Counting objects:   9% (28/308)        \n2024-02-10T17:55:19.5286760Z remote: Counting objects:  10% (31/308)        \n2024-02-10T17:55:19.5291797Z remote: Counting objects:  11% (34/308)        \n2024-02-10T17:55:19.5292668Z remote: Counting objects:  12% (37/308)        \n2024-02-10T17:55:19.5293416Z remote: Counting objects:  13% (41/308)        \n2024-02-10T17:55:19.5294106Z remote: Counting objects:  14% (44/308)        \n2024-02-10T17:55:19.5294813Z remote: Counting objects:  15% (47/308)        \n2024-02-10T17:55:19.5295516Z remote: Counting objects:  16% (50/308)        \n2024-02-10T17:55:19.5296369Z remote: Counting objects:  17% (53/308)        \n2024-02-10T17:55:19.5297102Z remote: Counting objects:  18% (56/308)        \n2024-02-10T17:55:19.5297826Z remote: Counting objects:  19% (59/308)        \n2024-02-10T17:55:19.5298530Z remote: Counting objects:  20% (62/308)        \n2024-02-10T17:55:19.5299264Z remote: Counting objects:  21% (65/308)        \n2024-02-10T17:55:19.5300156Z remote: Counting objects:  22% (68/308)        \n2024-02-10T17:55:19.5300837Z remote: Counting objects:  23% (71/308)        \n2024-02-10T17:55:19.5301541Z remote: Counting objects:  24% (74/308)        \n2024-02-10T17:55:19.5304671Z remote: Counting objects:  25% (77/308)        \n2024-02-10T17:55:19.5305573Z remote: Counting objects:  26% (81/308)        \n2024-02-10T17:55:19.5306435Z remote: Counting objects:  27% (84/308)        \n2024-02-10T17:55:19.5307167Z remote: Counting objects:  28% (87/308)        \n2024-02-10T17:55:19.5307890Z remote: Counting objects:  29% (90/308)        \n2024-02-10T17:55:19.5311130Z remote: Counting objects:  30% (93/308)        \n2024-02-10T17:55:19.5311882Z remote: Counting objects:  31% (96/308)        \n2024-02-10T17:55:19.5312606Z remote: Counting objects:  32% (99/308)        \n2024-02-10T17:55:19.5313322Z remote: Counting objects:  33% (102/308)        \n2024-02-10T17:55:19.5314082Z remote: Counting objects:  34% (105/308)        \n2024-02-10T17:55:19.5317408Z remote: Counting objects:  35% (108/308)        \n2024-02-10T17:55:19.5320806Z remote: Counting objects:  36% (111/308)        \n2024-02-10T17:55:19.5321680Z remote: Counting objects:  37% (114/308)        \n2024-02-10T17:55:19.5327867Z remote: Counting objects:  38% (118/308)        \n2024-02-10T17:55:19.5328673Z remote: Counting objects:  39% (121/308)        \n2024-02-10T17:55:19.5329389Z remote: Counting objects:  40% (124/308)        \n2024-02-10T17:55:19.5332977Z remote: Counting objects:  41% (127/308)        \n2024-02-10T17:55:19.5333739Z remote: Counting objects:  42% (130/308)        \n2024-02-10T17:55:19.5334959Z remote: Counting objects:  43% (133/308)        \n2024-02-10T17:55:19.5335864Z remote: Counting objects:  44% (136/308)        \n2024-02-10T17:55:19.5336597Z remote: Counting objects:  45% (139/308)        \n2024-02-10T17:55:19.5337308Z remote: Counting objects:  46% (142/308)        \n2024-02-10T17:55:19.5338234Z remote: Counting objects:  47% (145/308)        \n2024-02-10T17:55:19.5338938Z remote: Counting objects:  48% (148/308)        \n2024-02-10T17:55:19.5339623Z remote: Counting objects:  49% (151/308)        \n2024-02-10T17:55:19.5340328Z remote: Counting objects:  50% (154/308)        \n2024-02-10T17:55:19.5341578Z remote: Counting objects:  51% (158/308)        \n2024-02-10T17:55:19.5342313Z remote: Counting objects:  52% (161/308)        \n2024-02-10T17:55:19.5343025Z remote: Counting objects:  53% (164/308)        \n2024-02-10T17:55:19.5343753Z remote: Counting objects:  54% (167/308)        \n2024-02-10T17:55:19.5344477Z remote: Counting objects:  55% (170/308)        \n2024-02-10T17:55:19.5345191Z remote: Counting objects:  56% (173/308)        \n2024-02-10T17:55:19.5345919Z remote: Counting objects:  57% (176/308)        \n2024-02-10T17:55:19.5346657Z remote: Counting objects:  58% (179/308)        \n2024-02-10T17:55:19.5350549Z remote: Counting objects:  59% (182/308)        \n2024-02-10T17:55:19.5351970Z remote: Counting objects:  60% (185/308)        \n2024-02-10T17:55:19.5352705Z remote: Counting objects:  61% (188/308)        \n2024-02-10T17:55:19.5354002Z remote: Counting objects:  62% (191/308)        \n2024-02-10T17:55:19.5354819Z remote: Counting objects:  63% (195/308)        \n2024-02-10T17:55:19.5355572Z remote: Counting objects:  64% (198/308)        \n2024-02-10T17:55:19.5356313Z remote: Counting objects:  65% (201/308)        \n2024-02-10T17:55:19.5357026Z remote: Counting objects:  66% (204/308)        \n2024-02-10T17:55:19.5357754Z remote: Counting objects:  67% (207/308)        \n2024-02-10T17:55:19.5358604Z remote: Counting objects:  68% (210/308)        \n2024-02-10T17:55:19.5359311Z remote: Counting objects:  69% (213/308)        \n2024-02-10T17:55:19.5360040Z remote: Counting objects:  70% (216/308)        \n2024-02-10T17:55:19.5360767Z remote: Counting objects:  71% (219/308)        \n2024-02-10T17:55:19.5361477Z remote: Counting objects:  72% (222/308)        \n2024-02-10T17:55:19.5362283Z remote: Counting objects:  73% (225/308)        \n2024-02-10T17:55:19.5363014Z remote: Counting objects:  74% (228/308)        \n2024-02-10T17:55:19.5364468Z remote: Counting objects:  75% (231/308)        \n2024-02-10T17:55:19.5365244Z remote: Counting objects:  76% (235/308)        \n2024-02-10T17:55:19.5365974Z remote: Counting objects:  77% (238/308)        \n2024-02-10T17:55:19.5366701Z remote: Counting objects:  78% (241/308)        \n2024-02-10T17:55:19.5367594Z remote: Counting objects:  79% (244/308)        \n2024-02-10T17:55:19.5368294Z remote: Counting objects:  80% (247/308)        \n2024-02-10T17:55:19.5369000Z remote: Counting objects:  81% (250/308)        \n2024-02-10T17:55:19.5369688Z remote: Counting objects:  82% (253/308)        \n2024-02-10T17:55:19.5370385Z remote: Counting objects:  83% (256/308)        \n2024-02-10T17:55:19.5371088Z remote: Counting objects:  84% (259/308)        \n2024-02-10T17:55:19.5371778Z remote: Counting objects:  85% (262/308)        \n2024-02-10T17:55:19.5372479Z remote: Counting objects:  86% (265/308)        \n2024-02-10T17:55:19.5373880Z remote: Counting objects:  87% (268/308)        \n2024-02-10T17:55:19.5421461Z remote: Counting objects:  88% (272/308)        \n2024-02-10T17:55:19.5422397Z remote: Counting objects:  89% (275/308)        \n2024-02-10T17:55:19.5423140Z remote: Counting objects:  90% (278/308)        \n2024-02-10T17:55:19.5424754Z remote: Counting objects:  91% (281/308)        \n2024-02-10T17:55:19.5425748Z remote: Counting objects:  92% (284/308)        \n2024-02-10T17:55:19.5426468Z remote: Counting objects:  93% (287/308)        \n2024-02-10T17:55:19.5427156Z remote: Counting objects:  94% (290/308)        \n2024-02-10T17:55:19.5427862Z remote: Counting objects:  95% (293/308)        \n2024-02-10T17:55:19.5428758Z remote: Counting objects:  96% (296/308)        \n2024-02-10T17:55:19.5429473Z remote: Counting objects:  97% (299/308)        \n2024-02-10T17:55:19.5430208Z remote: Counting objects:  98% (302/308)        \n2024-02-10T17:55:19.5430939Z remote: Counting objects:  99% (305/308)        \n2024-02-10T17:55:19.5431668Z remote: Counting objects: 100% (308/308)        \n2024-02-10T17:55:19.5432463Z remote: Counting objects: 100% (308/308), done.        \n2024-02-10T17:55:19.5433273Z remote: Compressing objects:   0% (1/229)        \n2024-02-10T17:55:19.5434043Z remote: Compressing objects:   1% (3/229)        \n2024-02-10T17:55:19.5434951Z remote: Compressing objects:   2% (5/229)        \n2024-02-10T17:55:19.5436022Z remote: Compressing objects:   3% (7/229)        \n2024-02-10T17:55:19.5436735Z remote: Compressing objects:   4% (10/229)        \n2024-02-10T17:55:19.5437643Z remote: Compressing objects:   5% (12/229)        \n2024-02-10T17:55:19.5438790Z remote: Compressing objects:   6% (14/229)        \n2024-02-10T17:55:19.5439898Z remote: Compressing objects:   7% (17/229)        \n2024-02-10T17:55:19.5440658Z remote: Compressing objects:   8% (19/229)        \n2024-02-10T17:55:19.5441450Z remote: Compressing objects:   9% (21/229)        \n2024-02-10T17:55:19.5442230Z remote: Compressing objects:  10% (23/229)        \n2024-02-10T17:55:19.5443206Z remote: Compressing objects:  11% (26/229)        \n2024-02-10T17:55:19.5444426Z remote: Compressing objects:  12% (28/229)        \n2024-02-10T17:55:19.5445168Z remote: Compressing objects:  13% (30/229)        \n2024-02-10T17:55:19.5445875Z remote: Compressing objects:  14% (33/229)        \n2024-02-10T17:55:19.5446607Z remote: Compressing objects:  15% (35/229)        \n2024-02-10T17:55:19.5447337Z remote: Compressing objects:  16% (37/229)        \n2024-02-10T17:55:19.5448043Z remote: Compressing objects:  17% (39/229)        \n2024-02-10T17:55:19.5448768Z remote: Compressing objects:  18% (42/229)        \n2024-02-10T17:55:19.5449489Z remote: Compressing objects:  19% (44/229)        \n2024-02-10T17:55:19.5450210Z remote: Compressing objects:  20% (46/229)        \n2024-02-10T17:55:19.5450918Z remote: Compressing objects:  21% (49/229)        \n2024-02-10T17:55:19.5451991Z remote: Compressing objects:  22% (51/229)        \n2024-02-10T17:55:19.5453118Z remote: Compressing objects:  23% (53/229)        \n2024-02-10T17:55:19.5453878Z remote: Compressing objects:  24% (55/229)        \n2024-02-10T17:55:19.5454656Z remote: Compressing objects:  25% (58/229)        \n2024-02-10T17:55:19.5455434Z remote: Compressing objects:  26% (60/229)        \n2024-02-10T17:55:19.5456505Z remote: Compressing objects:  27% (62/229)        \n2024-02-10T17:55:19.5458617Z remote: Compressing objects:  28% (65/229)        \n2024-02-10T17:55:19.5459786Z remote: Compressing objects:  29% (67/229)        \n2024-02-10T17:55:19.5460541Z remote: Compressing objects:  30% (69/229)        \n2024-02-10T17:55:19.5461303Z remote: Compressing objects:  31% (71/229)        \n2024-02-10T17:55:19.5462326Z remote: Compressing objects:  32% (74/229)        \n2024-02-10T17:55:19.5463095Z remote: Compressing objects:  33% (76/229)        \n2024-02-10T17:55:19.5463879Z remote: Compressing objects:  34% (78/229)        \n2024-02-10T17:55:19.5464666Z remote: Compressing objects:  35% (81/229)        \n2024-02-10T17:55:19.5465455Z remote: Compressing objects:  36% (83/229)        \n2024-02-10T17:55:19.5466250Z remote: Compressing objects:  37% (85/229)        \n2024-02-10T17:55:19.5467037Z remote: Compressing objects:  38% (88/229)        \n2024-02-10T17:55:19.5467960Z remote: Compressing objects:  39% (90/229)        \n2024-02-10T17:55:19.5469034Z remote: Compressing objects:  40% (92/229)        \n2024-02-10T17:55:19.5469851Z remote: Compressing objects:  41% (94/229)        \n2024-02-10T17:55:19.5470708Z remote: Compressing objects:  42% (97/229)        \n2024-02-10T17:55:19.5471557Z remote: Compressing objects:  43% (99/229)        \n2024-02-10T17:55:19.5472504Z remote: Compressing objects:  44% (101/229)        \n2024-02-10T17:55:19.5473300Z remote: Compressing objects:  45% (104/229)        \n2024-02-10T17:55:19.5474081Z remote: Compressing objects:  46% (106/229)        \n2024-02-10T17:55:19.5474879Z remote: Compressing objects:  47% (108/229)        \n2024-02-10T17:55:19.5475666Z remote: Compressing objects:  48% (110/229)        \n2024-02-10T17:55:19.5476452Z remote: Compressing objects:  49% (113/229)        \n2024-02-10T17:55:19.5477401Z remote: Compressing objects:  50% (115/229)        \n2024-02-10T17:55:19.5478165Z remote: Compressing objects:  51% (117/229)        \n2024-02-10T17:55:19.5478907Z remote: Compressing objects:  52% (120/229)        \n2024-02-10T17:55:19.5479672Z remote: Compressing objects:  53% (122/229)        \n2024-02-10T17:55:19.5480549Z remote: Compressing objects:  54% (124/229)        \n2024-02-10T17:55:19.5481286Z remote: Compressing objects:  55% (126/229)        \n2024-02-10T17:55:19.5482043Z remote: Compressing objects:  56% (129/229)        \n2024-02-10T17:55:19.5482797Z remote: Compressing objects:  57% (131/229)        \n2024-02-10T17:55:19.5483534Z remote: Compressing objects:  58% (133/229)        \n2024-02-10T17:55:19.5484495Z remote: Compressing objects:  59% (136/229)        \n2024-02-10T17:55:19.5485379Z remote: Compressing objects:  60% (138/229)        \n2024-02-10T17:55:19.5486343Z remote: Compressing objects:  61% (140/229)        \n2024-02-10T17:55:19.5487342Z remote: Compressing objects:  62% (142/229)        \n2024-02-10T17:55:19.5488128Z remote: Compressing objects:  63% (145/229)        \n2024-02-10T17:55:19.5488918Z remote: Compressing objects:  64% (147/229)        \n2024-02-10T17:55:19.5489841Z remote: Compressing objects:  65% (149/229)        \n2024-02-10T17:55:19.5490965Z remote: Compressing objects:  66% (152/229)        \n2024-02-10T17:55:19.5491961Z remote: Compressing objects:  67% (154/229)        \n2024-02-10T17:55:19.5492730Z remote: Compressing objects:  68% (156/229)        \n2024-02-10T17:55:19.5493520Z remote: Compressing objects:  69% (159/229)        \n2024-02-10T17:55:19.5494303Z remote: Compressing objects:  70% (161/229)        \n2024-02-10T17:55:19.5495223Z remote: Compressing objects:  71% (163/229)        \n2024-02-10T17:55:19.5495944Z remote: Compressing objects:  72% (165/229)        \n2024-02-10T17:55:19.5497077Z remote: Compressing objects:  73% (168/229)        \n2024-02-10T17:55:19.5497875Z remote: Compressing objects:  74% (170/229)        \n2024-02-10T17:55:19.5498648Z remote: Compressing objects:  75% (172/229)        \n2024-02-10T17:55:19.5499430Z remote: Compressing objects:  76% (175/229)        \n2024-02-10T17:55:19.5500214Z remote: Compressing objects:  77% (177/229)        \n2024-02-10T17:55:19.5500988Z remote: Compressing objects:  78% (179/229)        \n2024-02-10T17:55:19.5501779Z remote: Compressing objects:  79% (181/229)        \n2024-02-10T17:55:19.5502564Z remote: Compressing objects:  80% (184/229)        \n2024-02-10T17:55:19.5503332Z remote: Compressing objects:  81% (186/229)        \n2024-02-10T17:55:19.5504119Z remote: Compressing objects:  82% (188/229)        \n2024-02-10T17:55:19.5504900Z remote: Compressing objects:  83% (191/229)        \n2024-02-10T17:55:19.5505664Z remote: Compressing objects:  84% (193/229)        \n2024-02-10T17:55:19.5506448Z remote: Compressing objects:  85% (195/229)        \n2024-02-10T17:55:19.5507230Z remote: Compressing objects:  86% (197/229)        \n2024-02-10T17:55:19.5508015Z remote: Compressing objects:  87% (200/229)        \n2024-02-10T17:55:19.5508802Z remote: Compressing objects:  88% (202/229)        \n2024-02-10T17:55:19.5509585Z remote: Compressing objects:  89% (204/229)        \n2024-02-10T17:55:19.5510399Z remote: Compressing objects:  90% (207/229)        \n2024-02-10T17:55:19.5511353Z remote: Compressing objects:  91% (209/229)        \n2024-02-10T17:55:19.5512153Z remote: Compressing objects:  92% (211/229)        \n2024-02-10T17:55:19.5513279Z remote: Compressing objects:  93% (213/229)        \n2024-02-10T17:55:19.5514064Z remote: Compressing objects:  94% (216/229)        \n2024-02-10T17:55:19.5514832Z remote: Compressing objects:  95% (218/229)        \n2024-02-10T17:55:19.5515623Z remote: Compressing objects:  96% (220/229)        \n2024-02-10T17:55:19.5516403Z remote: Compressing objects:  97% (223/229)        \n2024-02-10T17:55:19.5517685Z remote: Compressing objects:  98% (225/229)        \n2024-02-10T17:55:19.5518441Z remote: Compressing objects:  99% (227/229)        \n2024-02-10T17:55:19.5519203Z remote: Compressing objects: 100% (229/229)        \n2024-02-10T17:55:19.5520229Z remote: Compressing objects: 100% (229/229), done.        \n2024-02-10T17:55:19.5551025Z Receiving objects:   0% (1/423)\n2024-02-10T17:55:19.5551664Z Receiving objects:   1% (5/423)\n2024-02-10T17:55:19.5552251Z Receiving objects:   2% (9/423)\n2024-02-10T17:55:19.5552800Z Receiving objects:   3% (13/423)\n2024-02-10T17:55:19.5553529Z Receiving objects:   4% (17/423)\n2024-02-10T17:55:19.5554229Z Receiving objects:   5% (22/423)\n2024-02-10T17:55:19.5555092Z Receiving objects:   6% (26/423)\n2024-02-10T17:55:19.5555655Z Receiving objects:   7% (30/423)\n2024-02-10T17:55:19.5556216Z Receiving objects:   8% (34/423)\n2024-02-10T17:55:19.5556753Z Receiving objects:   9% (39/423)\n2024-02-10T17:55:19.5557309Z Receiving objects:  10% (43/423)\n2024-02-10T17:55:19.5557868Z Receiving objects:  11% (47/423)\n2024-02-10T17:55:19.5558565Z Receiving objects:  12% (51/423)\n2024-02-10T17:55:19.5559439Z Receiving objects:  13% (55/423)\n2024-02-10T17:55:19.5559977Z Receiving objects:  14% (60/423)\n2024-02-10T17:55:19.5560500Z Receiving objects:  15% (64/423)\n2024-02-10T17:55:19.5561034Z Receiving objects:  16% (68/423)\n2024-02-10T17:55:19.5561753Z Receiving objects:  17% (72/423)\n2024-02-10T17:55:19.5562288Z Receiving objects:  18% (77/423)\n2024-02-10T17:55:19.5563017Z Receiving objects:  19% (81/423)\n2024-02-10T17:55:19.5563556Z Receiving objects:  20% (85/423)\n2024-02-10T17:55:19.5564513Z Receiving objects:  21% (89/423)\n2024-02-10T17:55:19.5565099Z Receiving objects:  22% (94/423)\n2024-02-10T17:55:19.5565653Z Receiving objects:  23% (98/423)\n2024-02-10T17:55:19.5566194Z Receiving objects:  24% (102/423)\n2024-02-10T17:55:19.5566774Z Receiving objects:  25% (106/423)\n2024-02-10T17:55:19.5567342Z Receiving objects:  26% (110/423)\n2024-02-10T17:55:19.5567893Z Receiving objects:  27% (115/423)\n2024-02-10T17:55:19.5568458Z Receiving objects:  28% (119/423)\n2024-02-10T17:55:19.5569040Z Receiving objects:  29% (123/423)\n2024-02-10T17:55:19.5569581Z Receiving objects:  30% (127/423)\n2024-02-10T17:55:19.5570316Z Receiving objects:  31% (132/423)\n2024-02-10T17:55:19.5637078Z Receiving objects:  32% (136/423)\n2024-02-10T17:55:19.5637804Z Receiving objects:  33% (140/423)\n2024-02-10T17:55:19.5638368Z Receiving objects:  34% (144/423)\n2024-02-10T17:55:19.5638961Z Receiving objects:  35% (149/423)\n2024-02-10T17:55:19.5639532Z Receiving objects:  36% (153/423)\n2024-02-10T17:55:19.5640077Z Receiving objects:  37% (157/423)\n2024-02-10T17:55:19.5640716Z Receiving objects:  38% (161/423)\n2024-02-10T17:55:19.5641283Z Receiving objects:  39% (165/423)\n2024-02-10T17:55:19.5641825Z Receiving objects:  40% (170/423)\n2024-02-10T17:55:19.5642393Z Receiving objects:  41% (174/423)\n2024-02-10T17:55:19.5642952Z Receiving objects:  42% (178/423)\n2024-02-10T17:55:19.5643496Z Receiving objects:  43% (182/423)\n2024-02-10T17:55:19.5644062Z Receiving objects:  44% (187/423)\n2024-02-10T17:55:19.5644891Z Receiving objects:  45% (191/423)\n2024-02-10T17:55:19.5645454Z Receiving objects:  46% (195/423)\n2024-02-10T17:55:19.5646168Z Receiving objects:  47% (199/423)\n2024-02-10T17:55:19.5646712Z Receiving objects:  48% (204/423)\n2024-02-10T17:55:19.5647237Z Receiving objects:  49% (208/423)\n2024-02-10T17:55:19.5647782Z Receiving objects:  50% (212/423)\n2024-02-10T17:55:19.5648619Z Receiving objects:  51% (216/423)\n2024-02-10T17:55:19.5649197Z Receiving objects:  52% (220/423)\n2024-02-10T17:55:19.5649742Z Receiving objects:  53% (225/423)\n2024-02-10T17:55:19.5650284Z Receiving objects:  54% (229/423)\n2024-02-10T17:55:19.5650810Z Receiving objects:  55% (233/423)\n2024-02-10T17:55:19.5664905Z Receiving objects:  56% (237/423)\n2024-02-10T17:55:19.5665564Z Receiving objects:  57% (242/423)\n2024-02-10T17:55:19.5667843Z Receiving objects:  58% (246/423)\n2024-02-10T17:55:19.5668948Z Receiving objects:  59% (250/423)\n2024-02-10T17:55:19.5723083Z Receiving objects:  60% (254/423)\n2024-02-10T17:55:19.5745559Z remote: Total 423 (delta 88), reused 104 (delta 21), pack-reused 115        \n2024-02-10T17:55:19.5746598Z Receiving objects:  61% (259/423)\n2024-02-10T17:55:19.5747185Z Receiving objects:  62% (263/423)\n2024-02-10T17:55:19.5747752Z Receiving objects:  63% (267/423)\n2024-02-10T17:55:19.5748307Z Receiving objects:  64% (271/423)\n2024-02-10T17:55:19.5748871Z Receiving objects:  65% (275/423)\n2024-02-10T17:55:19.5749450Z Receiving objects:  66% (280/423)\n2024-02-10T17:55:19.5751618Z Receiving objects:  67% (284/423)\n2024-02-10T17:55:19.5752260Z Receiving objects:  68% (288/423)\n2024-02-10T17:55:19.5753971Z Receiving objects:  69% (292/423)\n2024-02-10T17:55:19.5754586Z Receiving objects:  70% (297/423)\n2024-02-10T17:55:19.5756788Z Receiving objects:  71% (301/423)\n2024-02-10T17:55:19.5758201Z Receiving objects:  72% (305/423)\n2024-02-10T17:55:19.5760179Z Receiving objects:  73% (309/423)\n2024-02-10T17:55:19.5760802Z Receiving objects:  74% (314/423)\n2024-02-10T17:55:19.5762476Z Receiving objects:  75% (318/423)\n2024-02-10T17:55:19.5792686Z Receiving objects:  76% (322/423)\n2024-02-10T17:55:19.5793257Z Receiving objects:  77% (326/423)\n2024-02-10T17:55:19.5793832Z Receiving objects:  78% (330/423)\n2024-02-10T17:55:19.5794402Z Receiving objects:  79% (335/423)\n2024-02-10T17:55:19.5794957Z Receiving objects:  80% (339/423)\n2024-02-10T17:55:19.5795696Z Receiving objects:  81% (343/423)\n2024-02-10T17:55:19.5796277Z Receiving objects:  82% (347/423)\n2024-02-10T17:55:19.5796825Z Receiving objects:  83% (352/423)\n2024-02-10T17:55:19.5797793Z Receiving objects:  84% (356/423)\n2024-02-10T17:55:19.5798638Z Receiving objects:  85% (360/423)\n2024-02-10T17:55:19.5799706Z Receiving objects:  86% (364/423)\n2024-02-10T17:55:19.5800393Z Receiving objects:  87% (369/423)\n2024-02-10T17:55:19.5801074Z Receiving objects:  88% (373/423)\n2024-02-10T17:55:19.5801734Z Receiving objects:  89% (377/423)\n2024-02-10T17:55:19.5802398Z Receiving objects:  90% (381/423)\n2024-02-10T17:55:19.5803383Z Receiving objects:  91% (385/423)\n2024-02-10T17:55:19.5803945Z Receiving objects:  92% (390/423)\n2024-02-10T17:55:19.5805082Z Receiving objects:  93% (394/423)\n2024-02-10T17:55:19.5805658Z Receiving objects:  94% (398/423)\n2024-02-10T17:55:19.5806331Z Receiving objects:  95% (402/423)\n2024-02-10T17:55:19.5807105Z Receiving objects:  96% (407/423)\n2024-02-10T17:55:19.5807853Z Receiving objects:  97% (411/423)\n2024-02-10T17:55:19.5808659Z Receiving objects:  98% (415/423)\n2024-02-10T17:55:19.5809237Z Receiving objects:  99% (419/423)\n2024-02-10T17:55:19.5810002Z Receiving objects: 100% (423/423)\n2024-02-10T17:55:19.5811317Z Receiving objects: 100% (423/423), 54.65 KiB | 3.42 MiB/s, done.\n2024-02-10T17:55:19.5812191Z Resolving deltas:   0% (0/118)\n2024-02-10T17:55:19.5812739Z Resolving deltas:   1% (2/118)\n2024-02-10T17:55:19.5813265Z Resolving deltas:   2% (3/118)\n2024-02-10T17:55:19.5813802Z Resolving deltas:   3% (4/118)\n2024-02-10T17:55:19.5814365Z Resolving deltas:   4% (5/118)\n2024-02-10T17:55:19.5814882Z Resolving deltas:   5% (6/118)\n2024-02-10T17:55:19.5815700Z Resolving deltas:   6% (8/118)\n2024-02-10T17:55:19.5816264Z Resolving deltas:   7% (9/118)\n2024-02-10T17:55:19.5816797Z Resolving deltas:   8% (10/118)\n2024-02-10T17:55:19.5817506Z Resolving deltas:   9% (11/118)\n2024-02-10T17:55:19.5818069Z Resolving deltas:  10% (12/118)\n2024-02-10T17:55:19.5818606Z Resolving deltas:  11% (13/118)\n2024-02-10T17:55:19.5819162Z Resolving deltas:  12% (15/118)\n2024-02-10T17:55:19.5819994Z Resolving deltas:  13% (16/118)\n2024-02-10T17:55:19.5820579Z Resolving deltas:  14% (17/118)\n2024-02-10T17:55:19.5821184Z Resolving deltas:  15% (18/118)\n2024-02-10T17:55:19.5822041Z Resolving deltas:  16% (19/118)\n2024-02-10T17:55:19.5822905Z Resolving deltas:  17% (21/118)\n2024-02-10T17:55:19.5824632Z Resolving deltas:  18% (22/118)\n2024-02-10T17:55:19.5825385Z Resolving deltas:  19% (23/118)\n2024-02-10T17:55:19.5825936Z Resolving deltas:  20% (24/118)\n2024-02-10T17:55:19.5826481Z Resolving deltas:  21% (25/118)\n2024-02-10T17:55:19.5827029Z Resolving deltas:  22% (26/118)\n2024-02-10T17:55:19.5827558Z Resolving deltas:  23% (28/118)\n2024-02-10T17:55:19.5828120Z Resolving deltas:  24% (29/118)\n2024-02-10T17:55:19.5828666Z Resolving deltas:  25% (30/118)\n2024-02-10T17:55:19.5829194Z Resolving deltas:  26% (31/118)\n2024-02-10T17:55:19.5829740Z Resolving deltas:  27% (32/118)\n2024-02-10T17:55:19.5830285Z Resolving deltas:  28% (34/118)\n2024-02-10T17:55:19.5830876Z Resolving deltas:  29% (35/118)\n2024-02-10T17:55:19.5831427Z Resolving deltas:  30% (36/118)\n2024-02-10T17:55:19.5831968Z Resolving deltas:  31% (37/118)\n2024-02-10T17:55:19.5832758Z Resolving deltas:  32% (38/118)\n2024-02-10T17:55:19.5833443Z Resolving deltas:  33% (39/118)\n2024-02-10T17:55:19.5833956Z Resolving deltas:  34% (41/118)\n2024-02-10T17:55:19.5834453Z Resolving deltas:  35% (42/118)\n2024-02-10T17:55:19.5834960Z Resolving deltas:  36% (43/118)\n2024-02-10T17:55:19.5835470Z Resolving deltas:  37% (44/118)\n2024-02-10T17:55:19.5836139Z Resolving deltas:  38% (45/118)\n2024-02-10T17:55:19.5836686Z Resolving deltas:  39% (47/118)\n2024-02-10T17:55:19.5837717Z Resolving deltas:  40% (48/118)\n2024-02-10T17:55:19.5838248Z Resolving deltas:  41% (49/118)\n2024-02-10T17:55:19.5838795Z Resolving deltas:  42% (50/118)\n2024-02-10T17:55:19.5839338Z Resolving deltas:  43% (51/118)\n2024-02-10T17:55:19.5839866Z Resolving deltas:  44% (52/118)\n2024-02-10T17:55:19.5840408Z Resolving deltas:  45% (54/118)\n2024-02-10T17:55:19.5840965Z Resolving deltas:  46% (55/118)\n2024-02-10T17:55:19.5841495Z Resolving deltas:  47% (56/118)\n2024-02-10T17:55:19.5842223Z Resolving deltas:  48% (57/118)\n2024-02-10T17:55:19.5843084Z Resolving deltas:  49% (58/118)\n2024-02-10T17:55:19.5843596Z Resolving deltas:  50% (59/118)\n2024-02-10T17:55:19.5844121Z Resolving deltas:  51% (61/118)\n2024-02-10T17:55:19.5845307Z Resolving deltas:  52% (62/118)\n2024-02-10T17:55:19.5845824Z Resolving deltas:  53% (63/118)\n2024-02-10T17:55:19.5846707Z Resolving deltas:  54% (64/118)\n2024-02-10T17:55:19.5847218Z Resolving deltas:  55% (65/118)\n2024-02-10T17:55:19.5847712Z Resolving deltas:  56% (67/118)\n2024-02-10T17:55:19.5848236Z Resolving deltas:  57% (68/118)\n2024-02-10T17:55:19.5849519Z Resolving deltas:  58% (69/118)\n2024-02-10T17:55:19.5850073Z Resolving deltas:  59% (70/118)\n2024-02-10T17:55:19.5850616Z Resolving deltas:  60% (71/118)\n2024-02-10T17:55:19.5851169Z Resolving deltas:  61% (72/118)\n2024-02-10T17:55:19.5851698Z Resolving deltas:  62% (74/118)\n2024-02-10T17:55:19.5852257Z Resolving deltas:  63% (75/118)\n2024-02-10T17:55:19.5852810Z Resolving deltas:  64% (76/118)\n2024-02-10T17:55:19.5853336Z Resolving deltas:  65% (77/118)\n2024-02-10T17:55:19.5853881Z Resolving deltas:  66% (78/118)\n2024-02-10T17:55:19.5854749Z Resolving deltas:  67% (80/118)\n2024-02-10T17:55:19.5855241Z Resolving deltas:  68% (81/118)\n2024-02-10T17:55:19.5855944Z Resolving deltas:  69% (82/118)\n2024-02-10T17:55:19.5856492Z Resolving deltas:  70% (83/118)\n2024-02-10T17:55:19.5857017Z Resolving deltas:  71% (84/118)\n2024-02-10T17:55:19.5857563Z Resolving deltas:  72% (85/118)\n2024-02-10T17:55:19.5858114Z Resolving deltas:  73% (87/118)\n2024-02-10T17:55:19.5858656Z Resolving deltas:  74% (88/118)\n2024-02-10T17:55:19.5859431Z Resolving deltas:  75% (89/118)\n2024-02-10T17:55:19.5859958Z Resolving deltas:  76% (90/118)\n2024-02-10T17:55:19.5860465Z Resolving deltas:  77% (91/118)\n2024-02-10T17:55:19.5861253Z Resolving deltas:  78% (93/118)\n2024-02-10T17:55:19.5861803Z Resolving deltas:  79% (94/118)\n2024-02-10T17:55:19.5862605Z Resolving deltas:  80% (95/118)\n2024-02-10T17:55:19.5863175Z Resolving deltas:  81% (96/118)\n2024-02-10T17:55:19.5863725Z Resolving deltas:  82% (97/118)\n2024-02-10T17:55:19.5865256Z Resolving deltas:  83% (98/118)\n2024-02-10T17:55:19.5865782Z Resolving deltas:  84% (100/118)\n2024-02-10T17:55:19.5866593Z Resolving deltas:  85% (101/118)\n2024-02-10T17:55:19.5867233Z Resolving deltas:  86% (102/118)\n2024-02-10T17:55:19.5867953Z Resolving deltas:  87% (103/118)\n2024-02-10T17:55:19.5868537Z Resolving deltas:  88% (104/118)\n2024-02-10T17:55:19.5869093Z Resolving deltas:  89% (106/118)\n2024-02-10T17:55:19.5869627Z Resolving deltas:  90% (107/118)\n2024-02-10T17:55:19.5870195Z Resolving deltas:  91% (108/118)\n2024-02-10T17:55:19.5870745Z Resolving deltas:  92% (109/118)\n2024-02-10T17:55:19.5871278Z Resolving deltas:  93% (110/118)\n2024-02-10T17:55:19.5871828Z Resolving deltas:  94% (111/118)\n2024-02-10T17:55:19.5872376Z Resolving deltas:  95% (113/118)\n2024-02-10T17:55:19.5872915Z Resolving deltas:  96% (114/118)\n2024-02-10T17:55:19.5873613Z Resolving deltas:  97% (115/118)\n2024-02-10T17:55:19.5874169Z Resolving deltas:  98% (116/118)\n2024-02-10T17:55:19.5874707Z Resolving deltas:  99% (117/118)\n2024-02-10T17:55:19.5875515Z Resolving deltas: 100% (118/118)\n2024-02-10T17:55:19.5876147Z Resolving deltas: 100% (118/118), done.\n2024-02-10T17:55:19.5905104Z From https://github.com/mdolinin/mono-repo-example\n2024-02-10T17:55:19.5906079Z  * [new branch]      main             -> origin/main\n2024-02-10T17:55:19.5907079Z  * [new branch]      mdolinin-patch-1 -> origin/mdolinin-patch-1\n2024-02-10T17:55:19.5911120Z  * [new branch]      mdolinin-patch-2 -> origin/mdolinin-patch-2\n2024-02-10T17:55:19.5913237Z  * [new branch]      mdolinin-patch-3 -> origin/mdolinin-patch-3\n2024-02-10T17:55:19.5914503Z  * [new branch]      mdolinin-patch-5 -> origin/mdolinin-patch-5\n2024-02-10T17:55:19.5915744Z  * [new branch]      mdolinin-patch-6 -> origin/mdolinin-patch-6\n2024-02-10T17:55:19.5963108Z [command]/usr/bin/git rev-parse --verify --quiet bc8f04bd4e63d22e7b2fe5ae9a2349d905316868^{object}\n2024-02-10T17:55:19.6017088Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\n2024-02-10T17:55:20.0085069Z remote: Enumerating objects: 1, done.        \n2024-02-10T17:55:20.0102488Z remote: Counting objects: 100% (1/1)        \n2024-02-10T17:55:20.0104401Z remote: Counting objects: 100% (1/1), done.        \n2024-02-10T17:55:20.0106197Z remote: Total 1 (delta 0), reused 0 (delta 0), pack-reused 0        \n2024-02-10T17:55:20.0167020Z From https://github.com/mdolinin/mono-repo-example\n2024-02-10T17:55:20.0169141Z  * branch            bc8f04bd4e63d22e7b2fe5ae9a2349d905316868 -> FETCH_HEAD\n2024-02-10T17:55:20.0196588Z ##[endgroup]\n2024-02-10T17:55:20.0197282Z ##[group]Determining the checkout info\n2024-02-10T17:55:20.0199333Z ##[endgroup]\n2024-02-10T17:55:20.0200030Z ##[group]Checking out the ref\n2024-02-10T17:55:20.0207607Z [command]/usr/bin/git checkout --progress --force bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\n2024-02-10T17:55:20.0274116Z Note: switching to 'bc8f04bd4e63d22e7b2fe5ae9a2349d905316868'.\n2024-02-10T17:55:20.0274961Z \n2024-02-10T17:55:20.0275861Z You are in 'detached HEAD' state. You can look around, make experimental\n2024-02-10T17:55:20.0277337Z changes and commit them, and you can discard any commits you make in this\n2024-02-10T17:55:20.0278506Z state without impacting any branches by switching back to a branch.\n2024-02-10T17:55:20.0279235Z \n2024-02-10T17:55:20.0279627Z If you want to create a new branch to retain commits you create, you may\n2024-02-10T17:55:20.0280858Z do so (now or later) by using -c with the switch command. Example:\n2024-02-10T17:55:20.0281942Z \n2024-02-10T17:55:20.0282191Z   git switch -c <new-branch-name>\n2024-02-10T17:55:20.0282518Z \n2024-02-10T17:55:20.0284016Z Or undo this operation with:\n2024-02-10T17:55:20.0285356Z \n2024-02-10T17:55:20.0285697Z   git switch -\n2024-02-10T17:55:20.0285959Z \n2024-02-10T17:55:20.0286878Z Turn off this advice by setting config variable advice.detachedHead to false\n2024-02-10T17:55:20.0287557Z \n2024-02-10T17:55:20.0292921Z HEAD is now at bc8f04b Merge d3cba4781acccb8803befb6db1259f904594a1d9 into 7fd444efc6ccde262661a1258b0718e78810fa8d\n2024-02-10T17:55:20.0296874Z ##[endgroup]\n2024-02-10T17:55:20.0367350Z [command]/usr/bin/git log -1 --format='%H'\n2024-02-10T17:55:20.0407721Z 'bc8f04bd4e63d22e7b2fe5ae9a2349d905316868'\n2024-02-10T17:55:20.0663818Z ##[group]Run make test\n2024-02-10T17:55:20.0664327Z \u001B[36;1mmake test\u001B[0m\n2024-02-10T17:55:20.0730973Z shell: /usr/bin/bash -e {0}\n2024-02-10T17:55:20.0731446Z env:\n2024-02-10T17:55:20.0733298Z   SERIALIZED_VARIABLES: {\"PR_HEAD_REF\":\"mdolinin-patch-3\",\"PR_HEAD_SHA\":\"d3cba4781acccb8803befb6db1259f904594a1d9\",\"PR_BASE_REF\":\"main\",\"PR_BASE_SHA\":\"7fd444efc6ccde262661a1258b0718e78810fa8d\",\"PR_MERGE_SHA\":\"bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\",\"PR_NUMBER\":27,\"PR_ACTION\":\"opened\"}\n2024-02-10T17:55:20.0735547Z   PR_HEAD_REF: mdolinin-patch-3\n2024-02-10T17:55:20.0736131Z   PR_HEAD_SHA: d3cba4781acccb8803befb6db1259f904594a1d9\n2024-02-10T17:55:20.0736920Z   PR_BASE_REF: main\n2024-02-10T17:55:20.0737405Z   PR_BASE_SHA: 7fd444efc6ccde262661a1258b0718e78810fa8d\n2024-02-10T17:55:20.0738133Z   PR_MERGE_SHA: bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\n2024-02-10T17:55:20.0738743Z   PR_NUMBER: 27\n2024-02-10T17:55:20.0739093Z   PR_ACTION: opened\n2024-02-10T17:55:20.0739757Z   USER_HOME: /home/runner/work/mono-repo-example/mono-repo-example\n2024-02-10T17:55:20.0740433Z ##[endgroup]\n2024-02-10T17:55:20.0879351Z echo \"Testing example-b\"\n2024-02-10T17:55:20.0900239Z Testing example-b\n2024-02-10T17:55:20.0902768Z ./tests/test.sh\n2024-02-10T17:55:20.0924028Z Hello from example-b\n2024-02-10T17:55:20.0926202Z Usefull work 3\n2024-02-10T17:55:20.0926878Z make: *** [Makefile:5: test] Error 1\n2024-02-10T17:55:20.0949706Z ##[error]Process completed with exit code 2.\n2024-02-10T17:55:20.1078790Z Post job cleanup.\n2024-02-10T17:55:20.2498885Z [command]/usr/bin/git version\n2024-02-10T17:55:20.2565992Z git version 2.43.0\n2024-02-10T17:55:20.2650597Z Temporarily overriding HOME='/home/runner/work/_temp/ee3e4b4c-57e1-40ce-b04d-75caa82909b3' before making global git config changes\n2024-02-10T17:55:20.2653778Z Adding repository directory to the temporary git global config as a safe directory\n2024-02-10T17:55:20.2663123Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/mono-repo-example/mono-repo-example\n2024-02-10T17:55:20.2723487Z [command]/usr/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2024-02-10T17:55:20.2778967Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2024-02-10T17:55:20.3158354Z [command]/usr/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2024-02-10T17:55:20.3176020Z http.https://github.com/.extraheader\n2024-02-10T17:55:20.3191450Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader\n2024-02-10T17:55:20.3243496Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2024-02-10T17:55:20.3888804Z Cleaning up orphan processes\n```\n### Workflow run arguments\n\n```json\n\n{\n  \"COMMAND\": \"make test\",\n  \"ROOT_DIR\": \"namespaces/domain-a/projects/example-b\",\n  \"PIPELINE_NAME\": \"domain-a-example-b-test-d3cba4781acccb8803befb6db1259f904594a1d9\",\n  \"SERIALIZED_VARIABLES\": \"{\\\"PR_HEAD_REF\\\":\\\"mdolinin-patch-3\\\",\\\"PR_HEAD_SHA\\\":\\\"d3cba4781acccb8803befb6db1259f904594a1d9\\\",\\\"PR_BASE_REF\\\":\\\"main\\\",\\\"PR_BASE_SHA\\\":\\\"7fd444efc6ccde262661a1258b0718e78810fa8d\\\",\\\"PR_MERGE_SHA\\\":\\\"bc8f04bd4e63d22e7b2fe5ae9a2349d905316868\\\",\\\"PR_NUMBER\\\":27,\\\"PR_ACTION\\\":\\\"opened\\\"}\"\n} \n\n```\n\n</p>\n</details>",
+      "text": null,
+      "annotations_count": 0,
+      "annotations_url": "https://api.github.com/repos/mdolinin/mono-repo-example/check-runs/21439340511/annotations"
+    },
+    "check_suite": {
+      "id": 20638784158,
+      "node_id": "CS_kwDOKvIEtc8AAAAEzirang",
+      "head_branch": "mdolinin-patch-3",
+      "head_sha": "d3cba4781acccb8803befb6db1259f904594a1d9",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://api.github.com/repos/mdolinin/mono-repo-example/check-suites/20638784158",
+      "before": "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+      "after": "d3cba4781acccb8803befb6db1259f904594a1d9",
+      "pull_requests": [
+        {
+          "url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/27",
+          "id": 1710857270,
+          "number": 27,
+          "head": {
+            "ref": "mdolinin-patch-3",
+            "sha": "d3cba4781acccb8803befb6db1259f904594a1d9",
+            "repo": {
+              "id": 720503989,
+              "url": "https://api.github.com/repos/mdolinin/mono-repo-example",
+              "name": "mono-repo-example"
+            }
+          },
+          "base": {
+            "ref": "main",
+            "sha": "7fd444efc6ccde262661a1258b0718e78810fa8d",
+            "repo": {
+              "id": 720503989,
+              "url": "https://api.github.com/repos/mdolinin/mono-repo-example",
+              "name": "mono-repo-example"
+            }
+          }
+        }
+      ],
+      "app": {
+        "id": 629251,
+        "slug": "gha-conductor",
+        "node_id": "A_kwDOADXQfc4ACZoD",
+        "owner": {
+          "login": "mdolinin",
+          "id": 3526781,
+          "node_id": "MDQ6VXNlcjM1MjY3ODE=",
+          "avatar_url": "https://avatars.githubusercontent.com/u/3526781?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/mdolinin",
+          "html_url": "https://github.com/mdolinin",
+          "followers_url": "https://api.github.com/users/mdolinin/followers",
+          "following_url": "https://api.github.com/users/mdolinin/following{/other_user}",
+          "gists_url": "https://api.github.com/users/mdolinin/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/mdolinin/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/mdolinin/subscriptions",
+          "organizations_url": "https://api.github.com/users/mdolinin/orgs",
+          "repos_url": "https://api.github.com/users/mdolinin/repos",
+          "events_url": "https://api.github.com/users/mdolinin/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/mdolinin/received_events",
+          "type": "User",
+          "site_admin": false
+        },
+        "name": "gha-conductor",
+        "description": "Github Actions for monorepo setup",
+        "external_url": "https://github.com//",
+        "html_url": "https://github.com/apps/gha-conductor",
+        "created_at": "2023-11-18T21:34:20Z",
+        "updated_at": "2023-11-27T02:14:04Z",
+        "permissions": {
+          "actions": "write",
+          "checks": "write",
+          "contents": "read",
+          "issues": "write",
+          "metadata": "read",
+          "pull_requests": "write"
+        },
+        "events": [
+          "issues",
+          "pull_request",
+          "push",
+          "workflow_dispatch",
+          "workflow_job",
+          "workflow_run"
+        ]
+      },
+      "created_at": "2024-02-10T17:55:05Z",
+      "updated_at": "2024-02-10T17:56:01Z"
+    },
+    "app": {
+      "id": 629251,
+      "slug": "gha-conductor",
+      "node_id": "A_kwDOADXQfc4ACZoD",
+      "owner": {
+        "login": "mdolinin",
+        "id": 3526781,
+        "node_id": "MDQ6VXNlcjM1MjY3ODE=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/3526781?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/mdolinin",
+        "html_url": "https://github.com/mdolinin",
+        "followers_url": "https://api.github.com/users/mdolinin/followers",
+        "following_url": "https://api.github.com/users/mdolinin/following{/other_user}",
+        "gists_url": "https://api.github.com/users/mdolinin/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/mdolinin/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/mdolinin/subscriptions",
+        "organizations_url": "https://api.github.com/users/mdolinin/orgs",
+        "repos_url": "https://api.github.com/users/mdolinin/repos",
+        "events_url": "https://api.github.com/users/mdolinin/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/mdolinin/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "name": "gha-conductor",
+      "description": "Github Actions for monorepo setup",
+      "external_url": "https://github.com//",
+      "html_url": "https://github.com/apps/gha-conductor",
+      "created_at": "2023-11-18T21:34:20Z",
+      "updated_at": "2023-11-27T02:14:04Z",
+      "permissions": {
+        "actions": "write",
+        "checks": "write",
+        "contents": "read",
+        "issues": "write",
+        "metadata": "read",
+        "pull_requests": "write"
+      },
+      "events": [
+        "issues",
+        "pull_request",
+        "push",
+        "workflow_dispatch",
+        "workflow_job",
+        "workflow_run"
+      ]
+    },
+    "pull_requests": [
+      {
+        "url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls/27",
+        "id": 1710857270,
+        "number": 27,
+        "head": {
+          "ref": "mdolinin-patch-3",
+          "sha": "d3cba4781acccb8803befb6db1259f904594a1d9",
+          "repo": {
+            "id": 720503989,
+            "url": "https://api.github.com/repos/mdolinin/mono-repo-example",
+            "name": "mono-repo-example"
+          }
+        },
+        "base": {
+          "ref": "main",
+          "sha": "7fd444efc6ccde262661a1258b0718e78810fa8d",
+          "repo": {
+            "id": 720503989,
+            "url": "https://api.github.com/repos/mdolinin/mono-repo-example",
+            "name": "mono-repo-example"
+          }
+        }
+      }
+    ]
+  },
+  "repository": {
+    "id": 720503989,
+    "node_id": "R_kgDOKvIEtQ",
+    "name": "mono-repo-example",
+    "full_name": "mdolinin/mono-repo-example",
+    "private": true,
+    "owner": {
+      "login": "mdolinin",
+      "id": 3526781,
+      "node_id": "MDQ6VXNlcjM1MjY3ODE=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3526781?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mdolinin",
+      "html_url": "https://github.com/mdolinin",
+      "followers_url": "https://api.github.com/users/mdolinin/followers",
+      "following_url": "https://api.github.com/users/mdolinin/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mdolinin/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mdolinin/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mdolinin/subscriptions",
+      "organizations_url": "https://api.github.com/users/mdolinin/orgs",
+      "repos_url": "https://api.github.com/users/mdolinin/repos",
+      "events_url": "https://api.github.com/users/mdolinin/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mdolinin/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "html_url": "https://github.com/mdolinin/mono-repo-example",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/mdolinin/mono-repo-example",
+    "forks_url": "https://api.github.com/repos/mdolinin/mono-repo-example/forks",
+    "keys_url": "https://api.github.com/repos/mdolinin/mono-repo-example/keys{/key_id}",
+    "collaborators_url": "https://api.github.com/repos/mdolinin/mono-repo-example/collaborators{/collaborator}",
+    "teams_url": "https://api.github.com/repos/mdolinin/mono-repo-example/teams",
+    "hooks_url": "https://api.github.com/repos/mdolinin/mono-repo-example/hooks",
+    "issue_events_url": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/events{/number}",
+    "events_url": "https://api.github.com/repos/mdolinin/mono-repo-example/events",
+    "assignees_url": "https://api.github.com/repos/mdolinin/mono-repo-example/assignees{/user}",
+    "branches_url": "https://api.github.com/repos/mdolinin/mono-repo-example/branches{/branch}",
+    "tags_url": "https://api.github.com/repos/mdolinin/mono-repo-example/tags",
+    "blobs_url": "https://api.github.com/repos/mdolinin/mono-repo-example/git/blobs{/sha}",
+    "git_tags_url": "https://api.github.com/repos/mdolinin/mono-repo-example/git/tags{/sha}",
+    "git_refs_url": "https://api.github.com/repos/mdolinin/mono-repo-example/git/refs{/sha}",
+    "trees_url": "https://api.github.com/repos/mdolinin/mono-repo-example/git/trees{/sha}",
+    "statuses_url": "https://api.github.com/repos/mdolinin/mono-repo-example/statuses/{sha}",
+    "languages_url": "https://api.github.com/repos/mdolinin/mono-repo-example/languages",
+    "stargazers_url": "https://api.github.com/repos/mdolinin/mono-repo-example/stargazers",
+    "contributors_url": "https://api.github.com/repos/mdolinin/mono-repo-example/contributors",
+    "subscribers_url": "https://api.github.com/repos/mdolinin/mono-repo-example/subscribers",
+    "subscription_url": "https://api.github.com/repos/mdolinin/mono-repo-example/subscription",
+    "commits_url": "https://api.github.com/repos/mdolinin/mono-repo-example/commits{/sha}",
+    "git_commits_url": "https://api.github.com/repos/mdolinin/mono-repo-example/git/commits{/sha}",
+    "comments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/comments{/number}",
+    "issue_comment_url": "https://api.github.com/repos/mdolinin/mono-repo-example/issues/comments{/number}",
+    "contents_url": "https://api.github.com/repos/mdolinin/mono-repo-example/contents/{+path}",
+    "compare_url": "https://api.github.com/repos/mdolinin/mono-repo-example/compare/{base}...{head}",
+    "merges_url": "https://api.github.com/repos/mdolinin/mono-repo-example/merges",
+    "archive_url": "https://api.github.com/repos/mdolinin/mono-repo-example/{archive_format}{/ref}",
+    "downloads_url": "https://api.github.com/repos/mdolinin/mono-repo-example/downloads",
+    "issues_url": "https://api.github.com/repos/mdolinin/mono-repo-example/issues{/number}",
+    "pulls_url": "https://api.github.com/repos/mdolinin/mono-repo-example/pulls{/number}",
+    "milestones_url": "https://api.github.com/repos/mdolinin/mono-repo-example/milestones{/number}",
+    "notifications_url": "https://api.github.com/repos/mdolinin/mono-repo-example/notifications{?since,all,participating}",
+    "labels_url": "https://api.github.com/repos/mdolinin/mono-repo-example/labels{/name}",
+    "releases_url": "https://api.github.com/repos/mdolinin/mono-repo-example/releases{/id}",
+    "deployments_url": "https://api.github.com/repos/mdolinin/mono-repo-example/deployments",
+    "created_at": "2023-11-18T17:29:03Z",
+    "updated_at": "2023-11-18T21:09:20Z",
+    "pushed_at": "2024-02-10T17:55:04Z",
+    "git_url": "git://github.com/mdolinin/mono-repo-example.git",
+    "ssh_url": "git@github.com:mdolinin/mono-repo-example.git",
+    "clone_url": "https://github.com/mdolinin/mono-repo-example.git",
+    "svn_url": "https://github.com/mdolinin/mono-repo-example",
+    "homepage": null,
+    "size": 62,
+    "stargazers_count": 0,
+    "watchers_count": 0,
+    "language": "Makefile",
+    "has_issues": true,
+    "has_projects": true,
+    "has_downloads": true,
+    "has_wiki": false,
+    "has_pages": false,
+    "has_discussions": false,
+    "forks_count": 0,
+    "mirror_url": null,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 5,
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZTEz"
+    },
+    "allow_forking": true,
+    "is_template": false,
+    "web_commit_signoff_required": false,
+    "topics": [
+
+    ],
+    "visibility": "private",
+    "forks": 0,
+    "open_issues": 5,
+    "watchers": 0,
+    "default_branch": "main"
+  },
+  "sender": {
+    "login": "mdolinin",
+    "id": 3526781,
+    "node_id": "MDQ6VXNlcjM1MjY3ODE=",
+    "avatar_url": "https://avatars.githubusercontent.com/u/3526781?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/mdolinin",
+    "html_url": "https://github.com/mdolinin",
+    "followers_url": "https://api.github.com/users/mdolinin/followers",
+    "following_url": "https://api.github.com/users/mdolinin/following{/other_user}",
+    "gists_url": "https://api.github.com/users/mdolinin/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/mdolinin/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/mdolinin/subscriptions",
+    "organizations_url": "https://api.github.com/users/mdolinin/orgs",
+    "repos_url": "https://api.github.com/users/mdolinin/repos",
+    "events_url": "https://api.github.com/users/mdolinin/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/mdolinin/received_events",
+    "type": "User",
+    "site_admin": false
+  },
+  "installation": {
+    "id": 44167724,
+    "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNDQxNjc3MjQ="
+  }
+}
