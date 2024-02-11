@@ -1,6 +1,7 @@
 import {GhaChecks} from "../src/gha_checks";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
+import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
 import {PullRequest} from "@octokit/webhooks-types";
 
 const insertMock = jest.fn();
@@ -18,6 +19,19 @@ const findAllMock = jest.fn().mockImplementation(() => {
         }
     ]
 });
+const findOneMock = jest.fn().mockImplementation(() => {
+    return {
+        id: 1,
+        name: 'gha-checks-1234567890',
+        head_sha: '1234567890',
+        merge_commit_sha: '1234567890',
+        pipeline_run_name: 'gha-checks-1234567890',
+        workflow_run_inputs: {},
+        pr_number: 1,
+        hook: 'onPullRequest',
+        check_run_id: 2,
+    }
+});
 const findMock = jest.fn().mockImplementation(() => {
     return {
         all: findAllMock
@@ -31,6 +45,7 @@ jest.mock('../src/db/database', () => {
             return {
                 insert: insertMock,
                 find: findMock,
+                findOne: findOneMock,
                 update: updateMock,
             };
         })
@@ -212,6 +227,43 @@ describe('gha_checks', () => {
             workflow_job_id: 21439086539,
             workflow_run_id: 1,
             workflow_run_url: ''
+        });
+    });
+
+    it('should update check, when workflow run in progress', async () => {
+        const updateCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 2,
+                    status: 'in_progress',
+                    details_url: ''
+                },
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            }
+        }
+        // @ts-ignore
+        await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
+        expect(findOneMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            conclusion: null
+        });
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            check_run_id: "2",
+            output: expect.anything(),
+            owner: workflowJobInProgressPayload.repository.owner.login,
+            repo: workflowJobInProgressPayload.repository.name,
+            status: "in_progress",
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            check_run_id: 2,
+        }, {
+            status: "in_progress"
         });
     });
 });
