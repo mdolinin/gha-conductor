@@ -14,6 +14,9 @@ import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
 import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
+import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
+import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
+import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json";
 const issueCreatedBody = { body: "Thanks for opening this issue!" };
 const fs = require("fs");
 const path = require("path");
@@ -80,6 +83,18 @@ const updateWorkflowRunCheckCompletedMock = jest
 
 const updatePRStatusCheckCompletedMock = jest
     .spyOn(GhaChecks.prototype, 'updatePRStatusCheckCompleted')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const triggerReRunPRCheckMock = jest
+    .spyOn(GhaChecks.prototype, 'triggerReRunPRCheck')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const triggerReRunWorkflowRunCheckMock = jest
+    .spyOn(GhaChecks.prototype, 'triggerReRunWorkflowRunCheck')
     .mockImplementation(() => {
       return Promise.resolve();
     });
@@ -241,7 +256,43 @@ describe("gha-conductor app", () => {
       expect(updateWorkflowRunCheckCompletedMock).toHaveBeenCalledTimes(1);
       expect(updatePRStatusCheckCompletedMock).toHaveBeenCalledTimes(1);
       expect(mock.pendingMocks()).toStrictEqual([]);
+  });
 
+  test("when user click re-run button on managed check, trigger workflow again", async () => {
+      await probot.receive({ name: "check_run", payload: checkRunRequestedActionPayload });
+      expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
+  });
+
+  test(" when user click re-run link on failed check, trigger workflow again", async () => {
+      await probot.receive({ name: "check_run", payload: checkRunReRequestedPayload });
+      expect(triggerReRunWorkflowRunCheckMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("when user click re-run checks button on PR, trigger workflows again", async () => {
+      triggerReRunPRCheckMock.mockReset();
+      const mock = nock("https://api.github.com")
+          // Test that we correctly return a test token
+          .post("/app/installations/44167724/access_tokens")
+          .reply(200, {
+              token: "test",
+              permissions: {
+                  checks: "write",
+              },
+          })
+          // get list of check runs for check suite
+          .get("/repos/mdolinin/mono-repo-example/check-suites/20638784158/check-runs")
+          .reply(200, {
+              check_runs: [
+                    {
+                        id: 7856385885,
+                        name: "pr-status",
+                    }
+                ]
+          });
+
+     await probot.receive({ name: "check_suite", payload: checkSuiteRerequestedPayload });
+     expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
+     expect(mock.pendingMocks()).toStrictEqual([]);
   });
 
   afterEach(() => {
