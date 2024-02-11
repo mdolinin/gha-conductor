@@ -2,6 +2,7 @@ import {GhaChecks} from "../src/gha_checks";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
+import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
 import {PullRequest} from "@octokit/webhooks-types";
 
 const insertMock = jest.fn();
@@ -264,6 +265,56 @@ describe('gha_checks', () => {
             check_run_id: 2,
         }, {
             status: "in_progress"
+        });
+    });
+
+    it('should update check, when workflow run completed', async () => {
+        const updateCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 2,
+                    status: 'completed',
+                    details_url: '',
+                    conclusion: 'success'
+                },
+                status: 200,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        }
+        // @ts-ignore
+        await checks.updateWorkflowRunCheckCompleted(octokit, workflowJobCompletedPayload);
+        expect(findOneMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            conclusion: null
+        });
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            check_run_id: "2",
+            output: expect.anything(),
+            conclusion: "success",
+            completed_at: expect.anything(),
+            owner: workflowJobCompletedPayload.repository.owner.login,
+            repo: workflowJobCompletedPayload.repository.name,
+            status: "completed",
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            check_run_id: 2,
+        }, {
+            status: "completed",
+            conclusion: "success"
         });
     });
 });
