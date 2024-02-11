@@ -58,6 +58,30 @@ const filterTriggeredHooksMock = jest
       return Promise.resolve(new Set<string>());
     });
 
+let runWorkflowMock = jest
+    .spyOn(Hooks.prototype, 'runWorkflow')
+    .mockImplementation(() => {
+      return Promise.resolve([]);
+    });
+
+const createNewRunMock = jest
+    .spyOn(GhaChecks.prototype, 'createNewRun')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const createPRCheckNoPipelinesTriggeredMock = jest
+    .spyOn(GhaChecks.prototype, 'createPRCheckNoPipelinesTriggered')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
+const createPRCheckForTriggeredPipelinesMock = jest
+    .spyOn(GhaChecks.prototype, 'createPRCheckForTriggeredPipelines')
+    .mockImplementation(() => {
+      return Promise.resolve();
+    });
+
 const updateWorkflowRunCheckQueuedMock = jest
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckQueued')
     .mockImplementation(() => {
@@ -119,9 +143,12 @@ describe("gha-conductor app", () => {
     loadAllGhaYamlMock.mockReset();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("creates a comment when an issue is opened", async () => {
     const mock = nock("https://api.github.com")
-        // Test that we correctly return a test token
         .post("/app/installations/2/access_tokens")
         .reply(200, {
           token: "test",
@@ -129,17 +156,13 @@ describe("gha-conductor app", () => {
             issues: "write",
           },
         })
-
-        // Test that a comment is posted
         .post("/repos/hiimbex/testing-things/issues/1/comments", (body: any) => {
           expect(body).toMatchObject(issueCreatedBody);
           return true;
         })
         .reply(200);
 
-    // Receive a webhook event
     await probot.receive({ name: "issues", payload });
-
     expect(mock.pendingMocks()).toStrictEqual([]);
   });
 
@@ -150,7 +173,6 @@ describe("gha-conductor app", () => {
 
   test("when pushed changes with .gha.yaml and branch is base for at least one PR, load it into db", async () => {
     const mock = nock("https://api.github.com")
-        // Test that we correctly return a test token
         .post("/app/installations/44167724/access_tokens")
         .reply(200, {
           token: "test",
@@ -158,8 +180,6 @@ describe("gha-conductor app", () => {
             pull_requests: "write",
           },
         })
-
-        // get list of all open PRs in the repo
         .get("/repos/mdolinin/mono-repo-example/pulls?state=open&base=main")
         .reply(200, [
           {
@@ -179,9 +199,49 @@ describe("gha-conductor app", () => {
     expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
   });
 
+    test("when PR opened but is not mergeable, do nothing", async () => {
+        const mock = nock("https://api.github.com")
+        const unmergeablePullRequestOpenedPayload = {
+            ...pullRequestOpenedPayload,
+            pull_request: {
+                ...pullRequestOpenedPayload.pull_request,
+                mergeable: false,
+            }
+        }
+        await probot.receive({ name: "pull_request", payload: unmergeablePullRequestOpenedPayload });
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(0);
+        expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
+  test("when PR opened but is not mergeable after checking mergeability, do nothing", async () => {
+      const mock = nock("https://api.github.com")
+          .post("/app/installations/44167724/access_tokens")
+          .reply(200, {
+              token: "test",
+              permissions: {
+                  pull_requests: "write",
+              },
+          })
+          .get("/repos/mdolinin/mono-repo-example/pulls/27")
+          .reply(200, {
+              mergeable: false,
+              merge_commit_sha: null,
+              base: {
+                  ref: "main",
+              },
+          });
+
+      await probot.receive({ name: "pull_request", payload: pullRequestOpenedPayload });
+      expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(0);
+      expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
+      expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
+      expect(mock.pendingMocks()).toStrictEqual([]);
+  });
+
   test("when PR opened with files that not match any hook, create pr-status check with status completed", async () => {
     const mock = nock("https://api.github.com")
-      // Test that we correctly return a test token
       .post("/app/installations/44167724/access_tokens")
       .reply(200, {
           token: "test",
@@ -189,8 +249,6 @@ describe("gha-conductor app", () => {
               pull_requests: "write",
           },
       })
-
-      // get list of all open PRs in the repo
       .get("/repos/mdolinin/mono-repo-example/pulls/27")
       .reply(200, {
           mergeable: true,
@@ -199,35 +257,64 @@ describe("gha-conductor app", () => {
               ref: "main",
         },
       })
-      // get pull request files
       .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
       .reply(200, [
           {
               filename: "test.sh",
           },
-      ])
-      // create check run
-      .post("/repos/mdolinin/mono-repo-example/check-runs", (body: any) => {
-          expect(body).toMatchObject({
-              name: "pr-status",
-              head_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
-              status: "completed",
-              conclusion: "success",
-          });
-          return true;
-      })
-      .reply(200);
+      ]);
 
     await probot.receive({ name: "pull_request", payload: pullRequestOpenedPayload });
     expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
     expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
     expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
+    expect(runWorkflowMock).toHaveBeenCalledTimes(1);
+    expect(createNewRunMock).toHaveBeenCalledTimes(0);
+    expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(1);
+    expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
     expect(mock.pendingMocks()).toStrictEqual([]);
+  });
+
+  test("when PR opened with files that match hook, create pr-status check with status queued", async () => {
+      runWorkflowMock = runWorkflowMock.mockImplementation(() => {
+            return Promise.resolve([{name: "test", inputs: {}}]);
+      });
+     const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27")
+            .reply(200, {
+                mergeable: true,
+                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                base: {
+                    ref: "main",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ]);
+
+      await probot.receive({ name: "pull_request", payload: pullRequestOpenedPayload });
+      expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+      expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
+      expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
+      expect(runWorkflowMock).toHaveBeenCalledTimes(1);
+      expect(createNewRunMock).toHaveBeenCalledTimes(1);
+      expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+      expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
+      expect(mock.pendingMocks()).toStrictEqual([]);
   });
 
   test("when workflow job event received, update pr-status checks and workflow run checks", async () => {
       const mock = nock("https://api.github.com")
-          // Test that we correctly return a test token
           .post("/app/installations/44167724/access_tokens")
           .reply(200, {
               token: "test",
@@ -235,7 +322,6 @@ describe("gha-conductor app", () => {
                   checks: "write",
               },
           })
-          // get workflow run by id
           .get("/repos/mdolinin/mono-repo-example/actions/runs/7856385885")
           .reply(200, {
               id: 7856385885,
@@ -270,15 +356,12 @@ describe("gha-conductor app", () => {
   });
 
   test(" when user click re-run link on failed pr-status, trigger all pr workflows again", async () => {
-      triggerReRunPRCheckMock.mockReset();
       await probot.receive({ name: "check_run", payload: prStatuscheckRunReRequestedPayload });
       expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
   });
 
   test("when user click re-run checks button on PR, trigger workflows again", async () => {
-      triggerReRunPRCheckMock.mockReset();
       const mock = nock("https://api.github.com")
-          // Test that we correctly return a test token
           .post("/app/installations/44167724/access_tokens")
           .reply(200, {
               token: "test",
@@ -286,7 +369,6 @@ describe("gha-conductor app", () => {
                   checks: "write",
               },
           })
-          // get list of check runs for check suite
           .get("/repos/mdolinin/mono-repo-example/check-suites/20638784158/check-runs")
           .reply(200, {
               check_runs: [
