@@ -16,6 +16,7 @@ import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.js
 import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
 import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
 import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
+import prStatuscheckRunReRequestedPayload from "./fixtures/pr_status.check_run.rerequested.json";
 import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json";
 const issueCreatedBody = { body: "Thanks for opening this issue!" };
 const fs = require("fs");
@@ -266,6 +267,12 @@ describe("gha-conductor app", () => {
   test(" when user click re-run link on failed check, trigger workflow again", async () => {
       await probot.receive({ name: "check_run", payload: checkRunReRequestedPayload });
       expect(triggerReRunWorkflowRunCheckMock).toHaveBeenCalledTimes(1);
+  });
+
+  test(" when user click re-run link on failed pr-status, trigger all pr workflows again", async () => {
+      triggerReRunPRCheckMock.mockReset();
+      await probot.receive({ name: "check_run", payload: prStatuscheckRunReRequestedPayload });
+      expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
   });
 
   test("when user click re-run checks button on PR, trigger workflows again", async () => {
