@@ -1,5 +1,6 @@
 import {GhaChecks} from "../src/gha_checks";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
+import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 import {PullRequest} from "@octokit/webhooks-types";
 
 const insertMock = jest.fn();
@@ -38,6 +39,10 @@ jest.mock('../src/db/database', () => {
 
 describe('gha_checks', () => {
     const checks = new GhaChecks();
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
 
     it('store new run into db', async () => {
         const pipeline = {name: 'gha-checks-1234567890', inputs: {}};
@@ -121,7 +126,7 @@ describe('gha_checks', () => {
 
     it('create pr-status check for triggered pipelines', async () => {
         const merge_commit_sha = '1234567890';
-        let createCheckMock = jest.fn().mockImplementation(() => {
+        const createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 1,
@@ -154,5 +159,59 @@ describe('gha_checks', () => {
         expect(createCheckMock).toHaveBeenCalledTimes(1);
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
         expect(updateMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should update check, when workflow run queued', async () => {
+        const createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 1,
+                    status: 'queued',
+                    details_url: ''
+                },
+                status: 201,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        };
+        // @ts-ignore
+        await checks.updateWorkflowRunCheckQueued(octokit, workflowJobQueuedPayload, 1);
+        expect(findMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
+        expect(createCheckMock).toHaveBeenCalledWith({
+            details_url: 'https://github.com/mdolinin/mono-repo-example/actions/runs/7856385885',
+            head_sha: 'b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8',
+            name: 'domain-a-example-b-build',
+            status: 'queued',
+            owner: workflowJobQueuedPayload.repository.owner.login,
+            repo: workflowJobQueuedPayload.repository.name,
+            started_at: expect.anything(),
+            output: expect.anything(),
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
+            workflow_job_id: null
+        }, {
+            check_run_id: 1,
+            status: "queued",
+            workflow_job_id: 21439086539,
+            workflow_run_id: 1,
+            workflow_run_url: ''
+        });
     });
 });
