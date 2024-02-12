@@ -1,8 +1,9 @@
-import {GhaChecks} from "../src/gha_checks";
+import {GhaChecks, PRCheckAction, ReRunPayload} from "../src/gha_checks";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
 import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
+import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
 import {PullRequest} from "@octokit/webhooks-types";
 
 const insertMock = jest.fn();
@@ -19,7 +20,8 @@ const findAllMock = jest.fn().mockImplementation(() => {
             hook: 'onPullRequest',
             status: 'completed',
             pr_check_id: 4,
-            conclusion: 'success'
+            conclusion: 'success',
+            workflow_run_id: 5,
         }
     ]
 });
@@ -427,6 +429,81 @@ describe('gha_checks', () => {
             pr_check_id: 4,
         }, {
             pr_conclusion: "success"
+        });
+    });
+
+    it('should trigger re-run of all workflows, when re-all button clicked', async () => {
+        const reRunPayload: ReRunPayload = {
+            check_run_id: checkRunRequestedActionPayload.check_run.id,
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            requested_action_identifier: PRCheckAction.ReRun,
+        };
+        const createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 21439086478,
+                    status: 'queued',
+                    details_url: ''
+                },
+                status: 201,
+            }
+        });
+        const reRunWorkflowMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 21439086478,
+                    status: 'queued',
+                    details_url: ''
+                },
+                status: 201,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock,
+            },
+            actions: {
+                reRunWorkflow: reRunWorkflowMock
+            }
+        };
+        // @ts-ignore
+        await checks.triggerReRunPRCheck(octokit, reRunPayload);
+        expect(findMock).toHaveBeenCalledWith({
+            pr_check_id: reRunPayload.check_run_id,
+            pr_conclusion: expect.objectContaining({
+                "__query": expect.anything(),
+                "__special": {
+                    query: null,
+                    type: "not",
+                }
+            })
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(updateMock).toHaveBeenCalledWith({
+            workflow_run_id: 5,
+        }, {
+            workflow_job_id: null,
+            conclusion: null,
+            pr_conclusion: null,
+        });
+        expect(createCheckMock).toHaveBeenCalledWith({
+            head_sha: '1234567890',
+            name: 'pr-status',
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            status: 'queued',
+            started_at: expect.anything(),
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pr_check_id: reRunPayload.check_run_id,
+        }, {
+            pr_check_id: 21439086478,
+        });
+        expect(reRunWorkflowMock).toHaveBeenCalledWith({
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            run_id: 5,
         });
     });
 });
