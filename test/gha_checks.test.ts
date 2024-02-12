@@ -4,6 +4,7 @@ import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
 import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
 import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
+import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
 import {PullRequest} from "@octokit/webhooks-types";
 
 const insertMock = jest.fn();
@@ -497,6 +498,75 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pr_check_id: reRunPayload.check_run_id,
+        }, {
+            pr_check_id: 21439086478,
+        });
+        expect(reRunWorkflowMock).toHaveBeenCalledWith({
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            run_id: 5,
+        });
+    });
+
+    it('should trigger re-run of all workflows, when re-all link clicked', async () => {
+        const createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 21439086478,
+                    status: 'queued',
+                    details_url: ''
+                },
+                status: 201,
+            }
+        });
+        const reRunWorkflowMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 21439086478,
+                    status: 'queued',
+                    details_url: ''
+                },
+                status: 201,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock,
+            },
+            actions: {
+                reRunWorkflow: reRunWorkflowMock
+            }
+        };
+        // @ts-ignore
+        await checks.triggerReRunWorkflowRunCheck(octokit, checkRunReRequestedPayload);
+        expect(findMock).toHaveBeenCalledWith({
+            check_run_id: checkRunReRequestedPayload.check_run.id,
+            pr_conclusion: expect.objectContaining({
+                "__query": expect.anything(),
+                "__special": {
+                    query: null,
+                    type: "not",
+                }
+            })
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(updateMock).toHaveBeenCalledWith({
+            workflow_run_id: 5,
+        }, {
+            workflow_job_id: null,
+            conclusion: null,
+            pr_conclusion: null,
+        });
+        expect(createCheckMock).toHaveBeenCalledWith({
+            head_sha: '1234567890',
+            name: 'pr-status',
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            status: 'queued',
+            started_at: expect.anything(),
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pr_check_id: 4,
         }, {
             pr_check_id: 21439086478,
         });
