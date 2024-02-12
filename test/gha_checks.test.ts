@@ -16,7 +16,10 @@ const findAllMock = jest.fn().mockImplementation(() => {
             pipeline_run_name: 'gha-checks-1234567890',
             workflow_run_inputs: {},
             pr_number: 1,
-            hook: 'onPullRequest'
+            hook: 'onPullRequest',
+            status: 'completed',
+            pr_check_id: 4,
+            conclusion: 'success'
         }
     ]
 });
@@ -31,6 +34,7 @@ const findOneMock = jest.fn().mockImplementation(() => {
         pr_number: 1,
         hook: 'onPullRequest',
         check_run_id: 2,
+        pr_check_id: 3,
     }
 });
 const findMock = jest.fn().mockImplementation(() => {
@@ -315,6 +319,114 @@ describe('gha_checks', () => {
         }, {
             status: "completed",
             conclusion: "success"
+        });
+    });
+
+    it('should update pr-status check, when workflow run in progress', async () => {
+        const updateCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 2,
+                    status: 'in_progress',
+                    details_url: ''
+                },
+                status: 200,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        }
+        // @ts-ignore
+        await checks.updatePRStatusCheckInProgress(octokit, workflowJobInProgressPayload);
+        expect(findOneMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            conclusion: null
+        });
+        expect(findMock).toHaveBeenCalledWith({
+            pr_number: 1,
+            hook: 'onPullRequest',
+            pr_check_id: 3,
+            pr_conclusion: null
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            check_run_id: 3,
+            output: expect.anything(),
+            owner: workflowJobInProgressPayload.repository.owner.login,
+            repo: workflowJobInProgressPayload.repository.name,
+            status: "in_progress",
+        });
+        expect(updateMock).not.toHaveBeenCalled();
+    });
+
+    it('should update pr-status check, when workflow run completed', async () => {
+        const updateCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 2,
+                    status: 'completed',
+                    details_url: '',
+                    conclusion: 'success'
+                },
+                status: 200,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        }
+        // @ts-ignore
+        await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
+        expect(findOneMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            pr_conclusion: null
+        });
+        expect(findMock).toHaveBeenCalledWith({
+            pr_number: 1,
+            pr_conclusion: null
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            check_run_id: "4",
+            output: expect.anything(),
+            conclusion: "success",
+            completed_at: expect.anything(),
+            owner: workflowJobCompletedPayload.repository.owner.login,
+            repo: workflowJobCompletedPayload.repository.name,
+            status: "completed",
+            actions: [
+                {
+                    description: "Re-run all workflows",
+                    identifier: "re-run",
+                    label: "Re-run",
+                }
+            ]
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pr_check_id: 4,
+        }, {
+            pr_conclusion: "success"
         });
     });
 });
