@@ -21,11 +21,25 @@ const findMock = jest.fn().mockImplementation(() => {
     }
 });
 
+const findOneMock = jest.fn().mockImplementation(() => {
+    return {
+        pipeline_ref: "pipeline_ref",
+        pipeline_name: "pipeline_name",
+        shared_params: {
+            shared_param: "shared_param"
+        },
+        pipeline_params: {
+            pipeline_param: "pipeline_param"
+        }
+    }
+});
+
 jest.mock('../src/db/database', () => {
     return {
         gha_hooks: jest.fn(() => {
             return {
                 find: findMock,
+                findOne: findOneMock
             };
         })
     }
@@ -93,6 +107,91 @@ describe('gha hooks', () => {
         );
         expect(selectMock).toHaveBeenCalledWith('file_changes_matcher', 'pipeline_unique_prefix');
         expect(findAllMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should trigger correct workflow, when list of hooks provided', async () => {
+        const merge_commit_sha = "0123456789abcdef";
+        const workflowDispatchMock = jest.fn().mockImplementation(() => {
+            return {
+                status: 204
+            }
+        });
+        const octokit = {
+            rest: {
+                actions: {
+                    createWorkflowDispatch: workflowDispatchMock
+                }
+            }
+        };
+        const pull_request = {
+            merged: false,
+            number: 1,
+            head: {
+                ref: "head_ref",
+                sha: "head_sha"
+            },
+            base: {
+                ref: "base_ref",
+                sha: "base_sha",
+                repo: {
+                    name: "repo_name",
+                    owner: {
+                        login: "owner_login"
+                    }
+                }
+            }
+        };
+        // @ts-ignore
+        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", ["hook1", "hook2"], "onPullRequest", merge_commit_sha);
+        expect(findOneMock).toHaveBeenCalledWith({
+            branch: "base_ref",
+            hook: "onPullRequest",
+            pipeline_unique_prefix: "hook1"
+        });
+        expect(workflowDispatchMock).toHaveBeenCalledWith({
+            inputs: {
+                PIPELINE_NAME: "hook1-head_sha",
+                SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
+                pipeline_param: "pipeline_param",
+                shared_param: "shared_param"
+            },
+            owner: "owner_login",
+            ref: "pipeline_ref",
+            repo: "repo_name",
+            workflow_id: "pipeline_name.yaml"
+        });
+        expect(workflowDispatchMock).toHaveBeenCalledWith({
+            inputs: {
+                PIPELINE_NAME: "hook2-head_sha",
+                SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
+                pipeline_param: "pipeline_param",
+                shared_param: "shared_param"
+            },
+            owner: "owner_login",
+            ref: "pipeline_ref",
+            repo: "repo_name",
+            workflow_id: "pipeline_name.yaml"
+        });
+        expect(triggeredPipelineNames).toEqual([
+            {
+                inputs: {
+                    PIPELINE_NAME: "hook1-head_sha",
+                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
+                    pipeline_param: "pipeline_param",
+                    shared_param: "shared_param"
+                },
+                name: "hook1-head_sha"
+            },
+            {
+                inputs: {
+                    PIPELINE_NAME: "hook2-head_sha",
+                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
+                    pipeline_param: "pipeline_param",
+                    shared_param: "shared_param"
+                },
+                name: "hook2-head_sha"
+            }
+        ]);
     });
 
 });
