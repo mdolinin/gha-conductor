@@ -1,4 +1,4 @@
-import minimatch from "minimatch";
+import {minimatch} from "minimatch";
 import {ProbotOctokit} from "probot";
 import {PullRequest} from "@octokit/webhooks-types";
 import {
