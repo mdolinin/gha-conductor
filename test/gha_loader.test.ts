@@ -26,8 +26,8 @@ jest.mock('../src/db/database', () => {
     }
 });
 
-const readFileSyncMock = jest.fn().mockImplementation(() => {
-    return `moduleName: example-c
+const ghaYamlExample = `
+moduleName: example-c
 teamNamespace: domain-b
 
 sharedParams:
@@ -80,7 +80,11 @@ onPullRequestClose:
     triggerConditions:
       destinationBranchMatchesAny:
         - 'main'
-      fileChangesMatchAny: *defaultFileChangeTrigger`;
+      fileChangesMatchAny: *defaultFileChangeTrigger
+`;
+
+const readFileSyncMock = jest.fn().mockImplementation(() => {
+    return ghaYamlExample;
 });
 
 jest.mock('fs', () => {
@@ -133,6 +137,77 @@ describe('gha loader', () => {
         expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
         expect(insertMock).toHaveBeenCalledTimes(8);
+    });
+
+    it('should load all hooks, when one of gha yaml changes in the PR', async () => {
+        const octokit = {
+            request: jest.fn().mockImplementation(() => {
+                return {
+                    data: {
+                        content: Buffer.from(ghaYamlExample).toString('base64'),
+                    },
+                    status: 200
+                }
+            })
+        };
+        const diffEntries = [
+            {
+                filename: ".gha.yaml",
+                contents_url: "contents_url",
+            }
+        ];
+        // @ts-ignore
+        const hooks = await ghaLoader.loadGhaHooks(octokit, diffEntries);
+        expect(hooks).toEqual([{
+            "branch": "",
+            "destination_branch_matcher": null,
+            "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+            "hook": "onPullRequest",
+            "hook_name": "build",
+            "pipeline_name": "common-job",
+            "pipeline_params": {"COMMAND": "make build"},
+            "pipeline_ref": null,
+            "pipeline_unique_prefix": "domain-b-example-c-build",
+            "repo_full_name": "",
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+        }, {
+            "branch": "",
+            "destination_branch_matcher": null,
+            "file_changes_matcher": "namespaces/domain-b/projects/example-c/tests/test.sh",
+            "hook": "onPullRequest",
+            "hook_name": "test",
+            "pipeline_name": "common-job",
+            "pipeline_params": {"COMMAND": "make test"},
+            "pipeline_ref": null,
+            "pipeline_unique_prefix": "domain-b-example-c-test",
+            "repo_full_name": "",
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+        }, {
+            "branch": "",
+            "destination_branch_matcher": "main",
+            "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+            "hook": "onBranchMerge",
+            "hook_name": "release",
+            "pipeline_name": "common-job",
+            "pipeline_params": {"COMMAND": "make release"},
+            "pipeline_ref": null,
+            "pipeline_unique_prefix": "domain-b-example-c-release",
+            "repo_full_name": "",
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+        }, {
+            "branch": "",
+            "destination_branch_matcher": null,
+            "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+            "hook": "onPullRequestClose",
+            "hook_name": "cleanup",
+            "pipeline_name": "common-job",
+            "pipeline_params": {"COMMAND": "make clean"},
+            "pipeline_ref": null,
+            "pipeline_unique_prefix": "domain-b-example-c-cleanup",
+            "repo_full_name": "",
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+        }]);
+        expect(octokit.request).toHaveBeenCalledWith("contents_url");
     });
 
 });
