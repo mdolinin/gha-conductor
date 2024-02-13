@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/mdolinin/gha-conductor/compare/v1.3.0...v1.3.1) (2024-02-13)
+
+
+### Bug Fixes
+
+* **deploy:** add public/index.html for vercel build and hosting ([b127369](https://github.com/mdolinin/gha-conductor/commit/b127369ae030f055083c90d9ab87f95ad2c76926))
+
 # [1.3.0](https://github.com/mdolinin/gha-conductor/compare/v1.2.0...v1.3.0) (2024-02-13)
 
 
