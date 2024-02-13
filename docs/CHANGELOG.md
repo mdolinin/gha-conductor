@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/mdolinin/gha-conductor/compare/v1.2.0...v1.3.0) (2024-02-13)
+
+
+### Features
+
+* **deploy:** define middleware to deploy into vercel ([9421a2f](https://github.com/mdolinin/gha-conductor/commit/9421a2f42698ea0b9ad4cb40633a696fc9622dde))
+
 # [1.2.0](https://github.com/mdolinin/gha-conductor/compare/v1.1.0...v1.2.0) (2024-02-13)
 
 
