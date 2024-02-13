@@ -1373,6 +1373,16 @@
     readable-stream "^3.6.0"
     split2 "^4.0.0"
 
+"@semantic-release/changelog@^6.0.3":
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/@semantic-release/changelog/-/changelog-6.0.3.tgz#6195630ecbeccad174461de727d5f975abc23eeb"
+  integrity sha512-dZuR5qByyfe3Y03TpmCvAxCyTnp7r5XwtHRf/8vD9EAn4ZWbavUX8adMtXYzE86EVh0gyLA7lm5yW4IV30XUag==
+  dependencies:
+    "@semantic-release/error" "^3.0.0"
+    aggregate-error "^3.0.0"
+    fs-extra "^11.0.0"
+    lodash "^4.17.4"
+
 "@semantic-release/commit-analyzer@^11.0.0":
   version "11.1.0"
   resolved "https://registry.yarnpkg.com/@semantic-release/commit-analyzer/-/commit-analyzer-11.1.0.tgz#dd24663c4e1e7c218f53de73f5c639eb2d5a077e"
@@ -1432,7 +1442,7 @@
     p-filter "^4.0.0"
     url-join "^5.0.0"
 
-"@semantic-release/npm@^11.0.0":
+"@semantic-release/npm@^11.0.0", "@semantic-release/npm@^11.0.2":
   version "11.0.2"
   resolved "https://registry.yarnpkg.com/@semantic-release/npm/-/npm-11.0.2.tgz#6d50046df286572718484c9a66b2095277e2f650"
   integrity sha512-owtf3RjyPvRE63iUKZ5/xO4uqjRpVQDUB9+nnXj0xwfIeM9pRl+cG+zGDzdftR4m3f2s4Wyf3SexW+kF5DFtWA==
