@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/mdolinin/gha-conductor/compare/v1.3.2...v1.3.3) (2024-02-13)
+
+
+### Bug Fixes
+
+* **deploy:** revert redundant changes ([af63b53](https://github.com/mdolinin/gha-conductor/commit/af63b537b280f03a7c0253df4503b2cd6f7e95b7))
+
 ## [1.3.2](https://github.com/mdolinin/gha-conductor/compare/v1.3.1...v1.3.2) (2024-02-13)
 
 
