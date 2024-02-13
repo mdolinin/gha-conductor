@@ -8,6 +8,7 @@ const globMock = jest.fn().mockImplementation(() => {
 });
 const deleteMock = jest.fn();
 const insertMock = jest.fn();
+const countMock = jest.fn().mockReturnValue(0);
 
 jest.mock('glob', () => {
     return {
@@ -20,7 +21,8 @@ jest.mock('../src/db/database', () => {
         gha_hooks: jest.fn(() => {
             return {
                 delete: deleteMock,
-                insert: insertMock
+                insert: insertMock,
+                count: countMock
             };
         })
     }
@@ -208,6 +210,32 @@ describe('gha loader', () => {
             "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
         }]);
         expect(octokit.request).toHaveBeenCalledWith("contents_url");
+    });
+
+    it('should load gha yaml files for the branch, when there is no existing hooks for the branch', async () => {
+        const octokit = {
+            auth: jest.fn().mockImplementation(() => {
+                return {
+                    token: "token2"
+                }
+            }),
+        };
+        // @ts-ignore
+        await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "repo_full_name2", "branch");
+        expect(countMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
+        expect(octokit.auth).toHaveBeenCalledWith({type: "installation"});
+        expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:token2@github.com/repo_full_name2.git", expect.stringMatching(RegExp('.*repo_full_name2')));
+        expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name2')), root: true});
+        expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
+        expect(globMock).toHaveBeenCalled();
+        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
+        expect(readFileSyncMock).toHaveBeenCalledTimes(2);
+        expect(insertMock).toHaveBeenCalledTimes(8);
+    });
+
+    it('should delete all hooks from db, when branch is deleted', async () => {
+        await ghaLoader.deleteAllGhaHooksForBranch("repo_full_name3", "branch3");
+        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name3", branch: "branch3"});
     });
 
 });
