@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/mdolinin/gha-conductor/compare/v1.1.0...v1.2.0) (2024-02-13)
+
+
+### Features
+
+* **ci:** use github PAT for release ([45b7dea](https://github.com/mdolinin/gha-conductor/commit/45b7dea81499bba50cf1a8ca28317448d2fae069))
+
 # [1.1.0](https://github.com/mdolinin/gha-conductor/compare/v1.0.0...v1.1.0) (2024-02-13)
 
 
