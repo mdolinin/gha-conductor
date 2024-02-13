@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/mdolinin/gha-conductor/compare/v1.3.1...v1.3.2) (2024-02-13)
+
+
+### Bug Fixes
+
+* **deploy:** decode private key from base64 ([54ddfb7](https://github.com/mdolinin/gha-conductor/commit/54ddfb73c1eb2d5f23f059a0fd97ae8d07a89484))
+
 ## [1.3.1](https://github.com/mdolinin/gha-conductor/compare/v1.3.0...v1.3.1) (2024-02-13)
 
 
