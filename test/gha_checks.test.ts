@@ -258,6 +258,7 @@ describe('gha_checks', () => {
         await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            workflow_job_id: workflowJobInProgressPayload.workflow_job.id,
             conclusion: null
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
@@ -269,6 +270,7 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            workflow_job_id: workflowJobInProgressPayload.workflow_job.id,
             check_run_id: 2,
         }, {
             status: "in_progress"
@@ -305,6 +307,7 @@ describe('gha_checks', () => {
         await checks.updateWorkflowRunCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
             conclusion: null
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
@@ -318,6 +321,7 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
             check_run_id: 2,
         }, {
             status: "completed",
@@ -354,6 +358,7 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckInProgress(octokit, workflowJobInProgressPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            workflow_job_id: workflowJobInProgressPayload.workflow_job.id,
             conclusion: null
         });
         expect(findMock).toHaveBeenCalledWith({
@@ -403,9 +408,11 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
             pr_conclusion: null
         });
         expect(findMock).toHaveBeenCalledWith({
+            pr_check_id: 3,
             pr_number: 1,
             pr_conclusion: null
         });

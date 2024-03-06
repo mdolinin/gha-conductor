@@ -273,6 +273,7 @@ export class GhaChecks {
         const workflowJob = payload.workflow_job;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            workflow_job_id: workflowJob.id,
             conclusion: null
         });
         if (!workflowRun) {
@@ -292,7 +293,11 @@ export class GhaChecks {
             if (resp.status === 200) {
                 const check = resp.data;
                 // update workflow run in db
-                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, check_run_id: check.id}, {
+                await gha_workflow_runs(db).update({
+                    pipeline_run_name: workflowJob.name,
+                    workflow_job_id: workflowJob.id,
+                    check_run_id: check.id
+                }, {
                     status: check.status,
                 });
             }
@@ -303,6 +308,7 @@ export class GhaChecks {
         const workflowJob = payload.workflow_job;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            workflow_job_id: workflowJob.id,
             conclusion: null
         });
         if (!workflowRun) {
@@ -327,7 +333,11 @@ export class GhaChecks {
             if (resp.status === 200) {
                 const check = resp.data;
                 // update workflow run in db
-                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name, check_run_id: check.id}, {
+                await gha_workflow_runs(db).update({
+                    pipeline_run_name: workflowJob.name,
+                    workflow_job_id: workflowJob.id,
+                    check_run_id: check.id
+                }, {
                     status: check.status,
                     conclusion: check.conclusion,
                 });
@@ -340,6 +350,7 @@ export class GhaChecks {
         const workflowJob = payload.workflow_job;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            workflow_job_id: workflowJob.id,
             conclusion: null
         });
         // update pr_status check run
@@ -446,6 +457,7 @@ export class GhaChecks {
         const workflowJob = payload.workflow_job;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            workflow_job_id: workflowJob.id,
             pr_conclusion: null
         });
         if (!workflowRun) {
@@ -453,16 +465,22 @@ export class GhaChecks {
             return;
         }
         const prNumber = workflowRun.pr_number;
+        const prCheckId = workflowRun.pr_check_id;
         if (prNumber === null) {
             log.warn(`Workflow run ${workflowJob.name} does not have pr_number`);
             return;
         }
+        if (prCheckId === null) {
+            log.warn(`Workflow run ${workflowJob.name} does not have pr_check_id`);
+            return;
+        }
         const allPRWorkflowRuns = await gha_workflow_runs(db).find({
             pr_number: prNumber,
+            pr_check_id: prCheckId,
             pr_conclusion: null
         }).all();
         if (allPRWorkflowRuns.length === 0) {
-            log.warn(`No workflow runs for pr #${prNumber} found with pr_status_conclusion is null in db`);
+            log.warn(`No workflow runs for ${payload.repository.full_name} pr #${prNumber} found with pr_check_id ${prCheckId} and pr_status_conclusion is null in db`);
         } else {
             const finished = allPRWorkflowRuns.every((run) => run.status === "completed");
             if (finished) {
