@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/mdolinin/gha-conductor/compare/v1.3.3...v1.3.4) (2024-03-06)
+
+
+### Bug Fixes
+
+* **container:** install git binary into container for simple-git ([953beac](https://github.com/mdolinin/gha-conductor/commit/953beac1cb2f7366f94c14d28d0fa81b2b9fb8cc))
+
 ## [1.3.3](https://github.com/mdolinin/gha-conductor/compare/v1.3.2...v1.3.3) (2024-02-13)
 
 
