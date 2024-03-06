@@ -135,6 +135,7 @@ describe('gha hooks', () => {
                 sha: "base_sha",
                 repo: {
                     name: "repo_name",
+                    full_name: "repo_full_name",
                     owner: {
                         login: "owner_login"
                     }
@@ -144,6 +145,7 @@ describe('gha hooks', () => {
         // @ts-ignore
         const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", ["hook1", "hook2"], "onPullRequest", merge_commit_sha);
         expect(findOneMock).toHaveBeenCalledWith({
+            repo_full_name: "repo_full_name",
             branch: "base_ref",
             hook: "onPullRequest",
             pipeline_unique_prefix: "hook1"

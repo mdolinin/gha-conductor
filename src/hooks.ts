@@ -142,6 +142,7 @@ export class Hooks {
             let pipelines: any;
             if (hookType === "onBranchMerge") {
                 pipelines = await gha_hooks(db).findOne({
+                    repo_full_name: pull_request.base.repo.full_name,
                     branch: pull_request.base.ref,
                     pipeline_unique_prefix: pipeline_run_name,
                     hook: hookType,
@@ -149,6 +150,7 @@ export class Hooks {
                 });
             } else {
                 pipelines = await gha_hooks(db).findOne({
+                    repo_full_name: pull_request.base.repo.full_name,
                     branch: pull_request.base.ref,
                     pipeline_unique_prefix: pipeline_run_name,
                     hook: hookType
