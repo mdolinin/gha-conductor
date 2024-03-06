@@ -1,3 +1,10 @@
+## [1.3.6](https://github.com/mdolinin/gha-conductor/compare/v1.3.5...v1.3.6) (2024-03-06)
+
+
+### Bug Fixes
+
+* **multi-repo:** use workflow_job_id when search for gha_workflow_runs in db ([ae16fd9](https://github.com/mdolinin/gha-conductor/commit/ae16fd95ea607c273524d5cb8ab4f89eacdc7267))
+
 ## [1.3.5](https://github.com/mdolinin/gha-conductor/compare/v1.3.4...v1.3.5) (2024-03-06)
 
 
