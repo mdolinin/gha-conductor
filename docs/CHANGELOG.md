@@ -1,3 +1,10 @@
+## [1.3.5](https://github.com/mdolinin/gha-conductor/compare/v1.3.4...v1.3.5) (2024-03-06)
+
+
+### Bug Fixes
+
+* **multi-repo:** use repo full name when search for triggered hooks ([cd4e57a](https://github.com/mdolinin/gha-conductor/commit/cd4e57a128d09a5557dd44c52ba258c7ca87e0fc))
+
 ## [1.3.4](https://github.com/mdolinin/gha-conductor/compare/v1.3.3...v1.3.4) (2024-03-06)
 
 
