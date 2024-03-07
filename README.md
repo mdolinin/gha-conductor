@@ -137,6 +137,7 @@ jobs:
 * Create `.gha.yaml` files in your repository
 * Define GitHub Actions workflows in `.github/workflows` directory
 * Run the app
+* (First time only) Open PR and add label `gha-conductor:load` to trigger the app to load all `.gha.yaml` files and create corresponding hooks in the database
 * When you create a pull request, merge a branch or close a pull request, the app will trigger the workflows defined in `.gha.yaml` files
 * During the workflow run, the app will create corresponding GitHub checks for each job defined in `.gha.yaml` file
 * (Optional) Update branch protection rules to require successful `pr-status` check before merging
@@ -189,6 +190,8 @@ yarn db:migrate
 yarn db:generate
 # Run the bot
 yarn start
+# Run tests
+yarn test
 ```
 
 ## Docker
@@ -198,8 +201,30 @@ yarn start
 docker build -t gha-conductor .
 
 # 2. Start container
-docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> gha-conductor
+docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> -e WEBHOOK_SECRET=<secret-value> -e LOG_LEVEL=info -e DATABASE_URL=<postgres://user:pass@localhost:5432/postgres> gha-conductor
 ```
+
+## Self-hosting
+1. [Register a new GitHub App](https://probot.github.io/docs/deployment/#register-the-github-app)
+2. Install the app on your account or organization
+3. Create a new PostgreSQL database
+4. Apply database migrations
+    ```sh
+    export DATABASE_URL=<your-database-url>
+    yarn db:migrate
+    ```
+5. Set the following environment variables:
+   - `APP_ID` - the ID of the GitHub App
+   - `PRIVATE_KEY` - the private key of the GitHub App, base64 encoded
+   - `WEBHOOK_SECRET` - the secret used to secure webhooks
+   - `LOG_LEVEL` - the log level (default: `info`)
+   - `DATABASE_URL` - the URL of the PostgreSQL database (format: `postgres://user:pass@localhost:5432/postgres`)
+6. Run the app as a Docker container
+    ```sh
+    docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> -e WEBHOOK_SECRET=<secret-value> -e LOG_LEVEL=info -e DATABASE_URL=<db-url> ghcr.io/mdolinin/gha-conductor:latest
+    ```
+7. Update the webhook URL in the GitHub App settings to point to your server
+8. (Optional) Update branch protection rules to require successful `pr-status` check before merging
 
 ## Contributing
 
