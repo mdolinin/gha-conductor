@@ -1,3 +1,15 @@
+# [1.4.0](https://github.com/mdolinin/gha-conductor/compare/v1.3.6...v1.4.0) (2024-03-08)
+
+
+### Bug Fixes
+
+* **app:** remove redundant issue opened handler ([c6380d6](https://github.com/mdolinin/gha-conductor/commit/c6380d6bcf499e43bc5e507c026981622800b15d))
+
+
+### Features
+
+* **fork:** if PR is from forked repo then skip all hooks ([7a9a7f6](https://github.com/mdolinin/gha-conductor/commit/7a9a7f68dc966118c59d8af37bf841e907d0ac14))
+
 ## [1.3.6](https://github.com/mdolinin/gha-conductor/compare/v1.3.5...v1.3.6) (2024-03-06)
 
 
