@@ -7,6 +7,27 @@ Currently, GitHub Actions does not support monorepo repositories natively.
 You can define workflows in `.github/workflows` directory, but if you have a monorepo repository, you might want to run different workflows for different subdirectories.
 This can be achieved by using `paths` filter in the workflow definition, but it is not very flexible and can be hard to maintain.
 
+## Features
+- Define CI/CD workflows closer to the project code (any directory in the repository)
+- Reuse common workflows across multiple projects
+- Trigger workflows based on PR open/updated, closed or merged events
+- Trigger workflows based on what files changed in the pull request
+- Trigger workflows based on what branch the pull request is merged into
+- Reload all hooks from `.gha.yaml` files by adding label `gha-conductor:load` to PR
+- Run multiple workflows in parallel for the same event
+- Report status of the workflow run as GitHub checks
+![pr-status-check](./docs/green-pr-checks.png)
+- Aggregate status of the all triggered workflows for the same event and report it as `pr-satus` GitHub check
+![pr-status-multiple-workflows](./docs/pr-status-multiple-workflows.png)
+- Provide ability to require all workflows to pass before merging PR (just add `pr-status` check to branch protection rules)
+- Verify changes in `.gha.yaml` files w/o merge into main branch by open PR with changes
+- Re-run all workflows from PR checks page
+- Re-run specific workflow from PR checks page
+- Re-run only failed workflows from PR checks page (save time and resources)
+![checks-re-run-options](./docs/checks-re-run-options.png)
+- Show workflow logs in PR checks page
+- Link to the workflow run from PR checks page
+
 ## What gha-conductor does
 This app provides a way to define which workflows should be run for each event.
 During the workflow run, the app will create corresponding GitHub checks.
