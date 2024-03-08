@@ -118,6 +118,16 @@ export = (app: Probot) => {
         }
         const baseBranch = context.payload.pull_request.base.ref;
         app.log.info("PR base branch is " + baseBranch);
+        // if PR is from forked repo then skip all hooks
+        if (pr.head.repo.fork) {
+            app.log.info("PR is from forked repo. No hooks will be triggered");
+            // add comment to PR
+            const comment = context.issue({
+                body: "PR is from forked repo. No hooks will be triggered."
+            });
+            await context.octokit.issues.createComment(comment);
+            return;
+        }
         const numOfChangedFiles = context.payload.pull_request.changed_files;
         if (numOfChangedFiles > 0) {
             const repo_name = context.payload.repository.name;

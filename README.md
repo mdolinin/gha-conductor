@@ -171,6 +171,11 @@ sequenceDiagram
     App->>GitHub: Update pr-status check with conclusion
 ```    
 
+### When app will not trigger workflows on PR event
+- if PR is opened from fork
+- if PR is not mergeable
+- if PR has no files changed
+
 ## Persistence
 App uses PostgreSQL database to store information about which workflows should be triggered for each event and workflow executions that were triggered.
 - `@databases/pg` is used to interact with the database.
