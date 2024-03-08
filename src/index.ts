@@ -18,13 +18,6 @@ export = (app: Probot) => {
     const hooks = new Hooks();
     const checks = new GhaChecks();
 
-    app.on("issues.opened", async (context) => {
-        const issueComment = context.issue({
-            body: "Thanks for opening this issue!",
-        });
-        await context.octokit.issues.createComment(issueComment);
-    });
-
     app.on("push", async (context) => {
         // if push was delete branch
         if (context.payload.deleted) {

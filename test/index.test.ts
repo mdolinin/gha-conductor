@@ -6,7 +6,6 @@ import nock from "nock";
 import myProbotApp from "../src";
 import {Probot, ProbotOctokit} from "probot";
 // Requiring our fixtures
-import payload from "./fixtures/issues.opened.json";
 import pushGhaYamlChangedPayload from "./fixtures/push.gha_yaml_changed.json";
 import deleteBranchPayload from "./fixtures/delete.branch.json";
 import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json";
@@ -19,9 +18,8 @@ import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
 import prStatuscheckRunReRequestedPayload from "./fixtures/pr_status.check_run.rerequested.json";
 import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json";
 
-const issueCreatedBody = {body: "Thanks for opening this issue!"};
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
 const privateKey = fs.readFileSync(
     path.join(__dirname, "fixtures/mock-cert.pem"),
@@ -147,25 +145,6 @@ describe("gha-conductor app", () => {
 
     afterEach(() => {
         jest.clearAllMocks();
-    });
-
-    test("creates a comment when an issue is opened", async () => {
-        const mock = nock("https://api.github.com")
-            .post("/app/installations/2/access_tokens")
-            .reply(200, {
-                token: "test",
-                permissions: {
-                    issues: "write",
-                },
-            })
-            .post("/repos/hiimbex/testing-things/issues/1/comments", (body: any) => {
-                expect(body).toMatchObject(issueCreatedBody);
-                return true;
-            })
-            .reply(200);
-
-        await probot.receive({name: "issues", payload});
-        expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
     test("delete all related gha hooks, when branch is deleted", async () => {
