@@ -32,7 +32,7 @@
     "simple-git": "^3.21.0"
   },
   "devDependencies": {
-    "@databases/pg-migrations": "^5.0.2",
+    "@databases/pg-migrations": "^5.0.3",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^11.0.2",
