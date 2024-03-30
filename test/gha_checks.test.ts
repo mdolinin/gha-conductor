@@ -91,6 +91,7 @@ describe('gha_checks', () => {
                 },
                 repo: {
                     ...pullRequestOpenedPayload.pull_request.base.repo,
+                    custom_properties: {},
                     visibility: "private",
                     owner: {
                         ...pullRequestOpenedPayload.pull_request.base.repo.owner,
@@ -106,6 +107,7 @@ describe('gha_checks', () => {
                 },
                 repo: {
                     ...pullRequestOpenedPayload.pull_request.head.repo,
+                    custom_properties: {},
                     visibility: "private",
                     owner: {
                         ...pullRequestOpenedPayload.pull_request.head.repo.owner,
@@ -262,7 +264,7 @@ describe('gha_checks', () => {
             conclusion: null
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
-            check_run_id: "2",
+            check_run_id: 2,
             output: expect.anything(),
             owner: workflowJobInProgressPayload.repository.owner.login,
             repo: workflowJobInProgressPayload.repository.name,
@@ -311,7 +313,7 @@ describe('gha_checks', () => {
             conclusion: null
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
-            check_run_id: "2",
+            check_run_id: 2,
             output: expect.anything(),
             conclusion: "success",
             completed_at: expect.anything(),
@@ -418,7 +420,7 @@ describe('gha_checks', () => {
         });
         expect(findAllMock).toHaveBeenCalled();
         expect(updateCheckMock).toHaveBeenCalledWith({
-            check_run_id: "4",
+            check_run_id: 4,
             output: expect.anything(),
             conclusion: "success",
             completed_at: expect.anything(),
