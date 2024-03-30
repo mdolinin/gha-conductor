@@ -36,7 +36,7 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^11.0.2",
-    "@types/jest": "^29.0.0",
+    "@types/jest": "^29.5.12",
     "@types/node": "^18.0.0",
     "@types/pino-std-serializers": "^4.0.0",
     "cross-var": "^1.1.0",
