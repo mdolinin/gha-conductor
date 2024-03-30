@@ -5914,12 +5914,11 @@ next-tick@1, next-tick@^1.1.0:
   resolved "https://registry.npmjs.org/next-tick/-/next-tick-1.1.0.tgz"
   integrity sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==
 
-nock@^13.0.5:
-  version "13.3.8"
-  resolved "https://registry.npmjs.org/nock/-/nock-13.3.8.tgz"
-  integrity sha512-96yVFal0c/W1lG7mmfRe7eO+hovrhJYd2obzzOZ90f6fjpeU/XNvd9cYHZKZAQJumDfhXgoTpkpJ9pvMj+hqHw==
+nock@^14.0.0-beta.5:
+  version "14.0.0-beta.5"
+  resolved "https://registry.yarnpkg.com/nock/-/nock-14.0.0-beta.5.tgz#df390c660cb3f57e075cb38cf77e0064bd0c5f00"
+  integrity sha512-u255tf4DYvyErTlPZA9uTfXghiZZy+NflUOFONPVKZ5tP0yaHwKig28zyFOLhu8y5YcCRC+V5vDk4HHileh2iw==
   dependencies:
-    debug "^4.1.0"
     json-stringify-safe "^5.0.1"
     propagate "^2.0.0"
 
