@@ -375,14 +375,14 @@
   resolved "https://registry.yarnpkg.com/@databases/pg-errors/-/pg-errors-1.0.0.tgz#ea4a1320d84872a13085365fea44f922db180a99"
   integrity sha512-Yz3exbptZwOn4ZD/MSwY6z++XVyOFsMh5DERvSw3awRwJFnfdaqdeiIxxX0MVjM6KPihF0xxp8lPO7vTc5ydpw==
 
-"@databases/pg-migrations@^5.0.2":
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/@databases/pg-migrations/-/pg-migrations-5.0.2.tgz#b1bf7794b2a1a13d26171901850201b71c3d9b56"
-  integrity sha512-l3mRxMTmmY7MGBhEJgjzVKxChwNqNLPtiLBOO6V6L4INFXO3Vuiundj3WAZl6qlYmE8NwPvQLr+e9aMWq0rnnA==
+"@databases/pg-migrations@^5.0.3":
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/@databases/pg-migrations/-/pg-migrations-5.0.3.tgz#87b1aee1ffed8f2b46f758b070be159420f731ac"
+  integrity sha512-mUKbVYiACRZJOhE96Y5Fr2IIJ2iBNPVM6L3LgBypH9zIQMOLixGpJ6ZS0oabtNIFJhjncXl5FVEtYaa8x5KkoA==
   dependencies:
     "@databases/migrations-base" "^3.0.1"
-    "@databases/pg" "^5.4.1"
-    "@databases/pg-config" "^3.1.1"
+    "@databases/pg" "^5.5.0"
+    "@databases/pg-config" "^3.2.0"
     assert-never "^1.2.1"
     chalk "^4.1.0"
     interrogator "^2.0.0"
@@ -428,7 +428,7 @@
   dependencies:
     "@databases/pg-bulk" "^1.2.0"
 
-"@databases/pg@^5.0.0", "@databases/pg@^5.4.1", "@databases/pg@^5.5.0":
+"@databases/pg@^5.0.0", "@databases/pg@^5.5.0":
   version "5.5.0"
   resolved "https://registry.yarnpkg.com/@databases/pg/-/pg-5.5.0.tgz#7fd38641cd46985800e29c0cb03fe76699af7b1a"
   integrity sha512-WIojK9AYIlNi5YRfc5YUOow3PQ82ClmwT9HG3nEsKLUERYieoVmHMYDQLS0ry6FjgJx+2yFs7LCw4kZpWu1TBw==
@@ -7630,17 +7630,10 @@ semver@^6.3.0, semver@^6.3.1:
   resolved "https://registry.npmjs.org/semver/-/semver-6.3.1.tgz"
   integrity sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==
 
-semver@^7.0.0, semver@^7.1.1, semver@^7.1.2, semver@^7.3.5, semver@^7.3.7, semver@^7.5.2:
+semver@^7.0.0, semver@^7.1.1, semver@^7.1.2, semver@^7.3.2, semver@^7.3.4, semver@^7.3.5, semver@^7.3.7, semver@^7.3.8, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4:
   version "7.6.0"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.0.tgz#1a46a4db4bffcccd97b743b5005c8325f23d4e2d"
   integrity sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==
-  dependencies:
-    lru-cache "^6.0.0"
-
-semver@^7.3.2, semver@^7.3.4, semver@^7.3.8, semver@^7.5.3, semver@^7.5.4:
-  version "7.5.4"
-  resolved "https://registry.npmjs.org/semver/-/semver-7.5.4.tgz"
-  integrity sha512-1bCSESV6Pv+i21Hvpxp3Dx+pSD8lIPt8uVjRrxAUt/nbswYc+tK6Y2btiULjd4+fnq15PX+nqQDC7Oft7WkwcA==
   dependencies:
     lru-cache "^6.0.0"
 
