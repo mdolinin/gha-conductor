@@ -239,6 +239,10 @@ export class GhaChecks {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             const {headSha, checkName} = this.parseHeadShaFromJobName(workflowJob.name);
+            if (!headSha) {
+                log.error("Failed to parse head sha from pipeline name " + workflowJob.name);
+                return;
+            }
             const sha = knownWorkflowRuns[0].hook === "onBranchMerge" ? knownWorkflowRuns[0].merge_commit_sha : headSha;
             const summary = await this.formatGHCheckSummaryAll(octokit, payload.repository.owner.login, payload.repository.name, knownWorkflowRuns);
             let params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
@@ -279,10 +283,15 @@ export class GhaChecks {
         if (!workflowRun) {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
+            const checkRunId = workflowRun.check_run_id;
+            if (!checkRunId) {
+                log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                return;
+            }
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.check_run_id?.toString(),
+                check_run_id: Number(checkRunId),
                 status: "in_progress",
                 output: {
                     title: "Workflow runs in progress",
@@ -317,10 +326,15 @@ export class GhaChecks {
             const log_max_size = GITHUB_CHECK_TEXT_LIMIT - 2000;
             const workflowJobLog = await this.getWorkflowJobLog(octokit, payload.repository.owner.login, payload.repository.name, workflowJob.id, log_max_size);
             const summary = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", workflowJobLog);
+            const checkRunId = workflowRun.check_run_id;
+            if (!checkRunId) {
+                log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                return;
+            }
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.check_run_id?.toString(),
+                check_run_id: Number(checkRunId),
                 status: "completed",
                 conclusion: payload.workflow_job.conclusion,
                 completed_at: new Date().toISOString(),
@@ -488,10 +502,15 @@ export class GhaChecks {
                 const conclusion = this.getConclusion(allPRWorkflowRuns);
                 const actions = this.getAvailableActions(conclusion);
                 const summary = await this.formatGHCheckSummaryAll(octokit, payload.repository.owner.login, payload.repository.name, allPRWorkflowRuns, "completed");
+                const prCheckId = allPRWorkflowRuns[0].pr_check_id;
+                if (!prCheckId) {
+                    log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                    return;
+                }
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
-                    check_run_id: allPRWorkflowRuns[0].pr_check_id?.toString(),
+                    check_run_id: Number(prCheckId),
                     status: "completed",
                     conclusion: conclusion,
                     completed_at: new Date().toISOString(),
