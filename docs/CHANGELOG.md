@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/mdolinin/gha-conductor/compare/v1.5.0...v1.5.1) (2024-03-31)
+
+
+### Bug Fixes
+
+* **docker:** add workaround to preinstall js-yaml types ([#16](https://github.com/mdolinin/gha-conductor/issues/16)) ([a827853](https://github.com/mdolinin/gha-conductor/commit/a8278539e8bbcd28491439d09b5a954ba36c0153))
+
 # [1.5.0](https://github.com/mdolinin/gha-conductor/compare/v1.4.0...v1.5.0) (2024-03-31)
 
 
