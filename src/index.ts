@@ -112,7 +112,7 @@ export = (app: Probot) => {
         const baseBranch = context.payload.pull_request.base.ref;
         app.log.info("PR base branch is " + baseBranch);
         // if PR is from forked repo then skip all hooks
-        if (pr.head.repo.fork) {
+        if (pr.head.repo && pr.head.repo.fork) {
             app.log.info("PR is from forked repo. No hooks will be triggered");
             // add comment to PR
             const comment = context.issue({

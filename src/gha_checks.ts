@@ -26,6 +26,11 @@ const log = pino(
 );
 
 const GITHUB_CHECK_TEXT_LIMIT = 65535;
+const ansiPattern = [
+    '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+    '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]))'
+].join('|');
+const ansiRegex = new RegExp(ansiPattern, 'g');
 
 export enum PRCheckName {
     PRStatus = "pr-status",
@@ -239,6 +244,10 @@ export class GhaChecks {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             const {headSha, checkName} = this.parseHeadShaFromJobName(workflowJob.name);
+            if (!headSha) {
+                log.error("Failed to parse head sha from pipeline name " + workflowJob.name);
+                return;
+            }
             const sha = knownWorkflowRuns[0].hook === "onBranchMerge" ? knownWorkflowRuns[0].merge_commit_sha : headSha;
             const summary = await this.formatGHCheckSummaryAll(octokit, payload.repository.owner.login, payload.repository.name, knownWorkflowRuns);
             let params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
@@ -279,10 +288,15 @@ export class GhaChecks {
         if (!workflowRun) {
             log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
+            const checkRunId = workflowRun.check_run_id;
+            if (!checkRunId) {
+                log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                return;
+            }
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.check_run_id?.toString(),
+                check_run_id: Number(checkRunId),
                 status: "in_progress",
                 output: {
                     title: "Workflow runs in progress",
@@ -317,10 +331,15 @@ export class GhaChecks {
             const log_max_size = GITHUB_CHECK_TEXT_LIMIT - 2000;
             const workflowJobLog = await this.getWorkflowJobLog(octokit, payload.repository.owner.login, payload.repository.name, workflowJob.id, log_max_size);
             const summary = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", workflowJobLog);
+            const checkRunId = workflowRun.check_run_id;
+            if (!checkRunId) {
+                log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                return;
+            }
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                check_run_id: workflowRun.check_run_id?.toString(),
+                check_run_id: Number(checkRunId),
                 status: "completed",
                 conclusion: payload.workflow_job.conclusion,
                 completed_at: new Date().toISOString(),
@@ -383,6 +402,10 @@ export class GhaChecks {
         }
     }
 
+    private stripAnsi(text: string) {
+        return text.replace(ansiRegex, '');
+    }
+
     private async getWorkflowJobLog(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, jobId: number, log_max_size: number) {
         const workflowJobLogResp = await octokit.actions.downloadJobLogsForWorkflowRun({
             owner: owner,
@@ -397,7 +420,10 @@ export class GhaChecks {
         } else {
             log.warn(`Failed to get workflow job log for ${jobId} with ${JSON.stringify(workflowJobLogResp)}`);
         }
-        return workflowJobLog;
+        if (workflowJobLog === null) {
+            return null;
+        }
+        return this.stripAnsi(workflowJobLog);
     }
 
     private formatGHCheckSummary(workflow: GhaWorkflowRuns, conclusion: string, status: string, log: string | null) {
@@ -488,10 +514,15 @@ export class GhaChecks {
                 const conclusion = this.getConclusion(allPRWorkflowRuns);
                 const actions = this.getAvailableActions(conclusion);
                 const summary = await this.formatGHCheckSummaryAll(octokit, payload.repository.owner.login, payload.repository.name, allPRWorkflowRuns, "completed");
+                const prCheckId = allPRWorkflowRuns[0].pr_check_id;
+                if (!prCheckId) {
+                    log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                    return;
+                }
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
-                    check_run_id: allPRWorkflowRuns[0].pr_check_id?.toString(),
+                    check_run_id: Number(prCheckId),
                     status: "completed",
                     conclusion: conclusion,
                     completed_at: new Date().toISOString(),

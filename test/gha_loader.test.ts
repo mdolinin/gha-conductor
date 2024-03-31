@@ -94,6 +94,7 @@ jest.mock('fs', () => {
         existsSync: jest.fn().mockReturnValue(true),
         rmSync: jest.fn(),
         mkdirSync: jest.fn(),
+        write: jest.requireActual('fs').write,
         writeSync: jest.requireActual('fs').writeSync,
         readFileSync: () => readFileSyncMock(),
         statSync: jest.fn().mockImplementation(() => {
