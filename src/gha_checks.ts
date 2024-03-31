@@ -26,6 +26,11 @@ const log = pino(
 );
 
 const GITHUB_CHECK_TEXT_LIMIT = 65535;
+const ansiPattern = [
+    '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+    '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]))'
+].join('|');
+const ansiRegex = new RegExp(ansiPattern, 'g');
 
 export enum PRCheckName {
     PRStatus = "pr-status",
@@ -397,6 +402,10 @@ export class GhaChecks {
         }
     }
 
+    private stripAnsi(text: string) {
+        return text.replace(ansiRegex, '');
+    }
+
     private async getWorkflowJobLog(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, jobId: number, log_max_size: number) {
         const workflowJobLogResp = await octokit.actions.downloadJobLogsForWorkflowRun({
             owner: owner,
@@ -411,7 +420,10 @@ export class GhaChecks {
         } else {
             log.warn(`Failed to get workflow job log for ${jobId} with ${JSON.stringify(workflowJobLogResp)}`);
         }
-        return workflowJobLog;
+        if (workflowJobLog === null) {
+            return null;
+        }
+        return this.stripAnsi(workflowJobLog);
     }
 
     private formatGHCheckSummary(workflow: GhaWorkflowRuns, conclusion: string, status: string, log: string | null) {
