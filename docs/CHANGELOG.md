@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/mdolinin/gha-conductor/compare/v1.4.0...v1.5.0) (2024-03-31)
+
+
+### Features
+
+* **gha:** add workflow to auto-merge dependabot PRs ([#15](https://github.com/mdolinin/gha-conductor/issues/15)) ([7408197](https://github.com/mdolinin/gha-conductor/commit/74081978596f27827ef0f432f2cfa3ac51c9bc8f))
+
 # [1.4.0](https://github.com/mdolinin/gha-conductor/compare/v1.3.6...v1.4.0) (2024-03-08)
 
 
