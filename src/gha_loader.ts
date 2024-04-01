@@ -29,7 +29,7 @@ export interface GhaHook {
     hook_name: string,
     pipeline_unique_prefix: string,
     pipeline_name: string,
-    pipeline_ref: string | null,
+    pipeline_ref: string | undefined,
     pipeline_params: any,
     shared_params: any
 }
@@ -90,7 +90,7 @@ export class GhaLoader {
                     hook_name: onPR.name,
                     pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPR.name}`,
                     pipeline_name: onPR.pipelineRef.name,
-                    pipeline_ref: null,
+                    pipeline_ref: onPR.pipelineRef.ref,
                     pipeline_params: onPR.pipelineRunValues.params,
                     shared_params: ghaFileYaml.sharedParams
                 }
@@ -110,7 +110,7 @@ export class GhaLoader {
                         hook_name: onBranchMerge.name,
                         pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onBranchMerge.name}`,
                         pipeline_name: onBranchMerge.pipelineRef.name,
-                        pipeline_ref: null,
+                        pipeline_ref: onBranchMerge.pipelineRef.ref,
                         pipeline_params: onBranchMerge.pipelineRunValues.params,
                         shared_params: ghaFileYaml.sharedParams
                     }
@@ -133,7 +133,7 @@ export class GhaLoader {
                     hook_name: onPRClose.name,
                     pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPRClose.name}`,
                     pipeline_name: onPRClose.pipelineRef.name,
-                    pipeline_ref: null,
+                    pipeline_ref: onPRClose.pipelineRef.ref,
                     pipeline_params: onPRClose.pipelineRunValues.params,
                     shared_params: ghaFileYaml.sharedParams
                 }
@@ -174,7 +174,7 @@ export class GhaLoader {
                     hook_name: onPR.name,
                     pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPR.name}`,
                     pipeline_name: onPR.pipelineRef.name,
-                    pipeline_ref: null,
+                    pipeline_ref: onPR.pipelineRef.ref,
                     pipeline_params: onPR.pipelineRunValues.params,
                     shared_params: ghaFileYaml.sharedParams
                 }
@@ -193,7 +193,7 @@ export class GhaLoader {
                         hook_name: onBranchMerge.name,
                         pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onBranchMerge.name}`,
                         pipeline_name: onBranchMerge.pipelineRef.name,
-                        pipeline_ref: null,
+                        pipeline_ref: onBranchMerge.pipelineRef.ref,
                         pipeline_params: onBranchMerge.pipelineRunValues.params,
                         shared_params: ghaFileYaml.sharedParams
                     }
@@ -215,7 +215,7 @@ export class GhaLoader {
                     hook_name: onPRClose.name,
                     pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPRClose.name}`,
                     pipeline_name: onPRClose.pipelineRef.name,
-                    pipeline_ref: null,
+                    pipeline_ref: onPRClose.pipelineRef.ref,
                     pipeline_params: onPRClose.pipelineRunValues.params,
                     shared_params: ghaFileYaml.sharedParams
                 }
