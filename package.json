@@ -38,7 +38,7 @@
     "@semantic-release/npm": "^11.0.2",
     "@types/jest": "^29.5.12",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^18.0.0",
+    "@types/node": "^20.12.4",
     "@types/pino-std-serializers": "^4.0.0",
     "cross-var": "^1.1.0",
     "jest": "^29.0.0",
