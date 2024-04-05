@@ -25,7 +25,7 @@ const privateKey = fs.readFileSync(
     path.join(__dirname, "fixtures/mock-cert.pem"),
     "utf-8"
 );
-import {GhaLoader} from "../src/gha_loader";
+import {GhaHook, GhaLoader} from "../src/gha_loader";
 import {Hooks} from "../src/hooks";
 import {GhaChecks} from "../src/gha_checks";
 
@@ -55,7 +55,7 @@ const loadGhaHooksMock = jest
 const filterTriggeredHooksMock = jest
     .spyOn(Hooks.prototype, 'filterTriggeredHooks')
     .mockImplementation(() => {
-        return Promise.resolve(new Set<string>());
+        return Promise.resolve(new Set<GhaHook>());
     });
 
 let runWorkflowMock = jest

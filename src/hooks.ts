@@ -9,6 +9,7 @@ import db, {gha_hooks} from "./db/database";
 import pino from "pino";
 import {getTransformStream} from "@probot/pino";
 import {GhaHook} from "./gha_loader";
+import {GhaHooks} from "./__generated__";
 
 const transform = getTransformStream();
 transform.pipe(pino.destination(1));
@@ -29,60 +30,63 @@ export interface TriggeredWorkflow {
 
 export class Hooks {
     async filterTriggeredHooks(repo_full_name: string, hookType: HookType,
-                               files_changed: string[], baseBranch: string, hooksChangedInPR: GhaHook[]): Promise<Set<string>> {
+                               files_changed: string[], baseBranch: string, hooksChangedInPR: GhaHook[]): Promise<Set<GhaHook>> {
         log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
-        const triggeredHookNames = new Set<string>();
-        const all_matchers = new Map<string, string>();
+        const triggeredHooks = new Set<GhaHook>();
+        const allHooks = new Map<string, GhaHook>();
         if (hookType === "onBranchMerge") {
-            const main_matchers = await gha_hooks(db).find({
+            const mainHooks = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
                 branch: baseBranch,
                 hook: hookType,
                 destination_branch_matcher: baseBranch
-            }).select('file_changes_matcher', 'pipeline_unique_prefix').all();
-            const pr_matchers = hooksChangedInPR.filter((hook) => hook.hook === hookType &&
-                hook.destination_branch_matcher === baseBranch)
-                .map((hook) => {
-                    return {
-                        file_changes_matcher: hook.file_changes_matcher,
-                        pipeline_unique_prefix: hook.pipeline_unique_prefix
-                    }
-                });
-            for (const matcher of main_matchers) {
-                all_matchers.set(matcher.pipeline_unique_prefix, matcher.file_changes_matcher);
+            }).all()
+            const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType && hook.destination_branch_matcher === baseBranch)
+            for (const hook of mainHooks) {
+                allHooks.set(hook.pipeline_unique_prefix, this.mapToHook(hook));
             }
-            for (const matcher of pr_matchers) {
-                all_matchers.set(matcher.pipeline_unique_prefix, matcher.file_changes_matcher);
+            for (const hook of prHooks) {
+                allHooks.set(hook.pipeline_unique_prefix, hook);
             }
         } else {
-            const main_matchers = await gha_hooks(db).find({
+            const mainHooks = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
                 branch: baseBranch,
                 hook: hookType
-            }).select('file_changes_matcher', 'pipeline_unique_prefix').all();
-            const pr_matchers = hooksChangedInPR.filter((hook) => hook.hook === hookType)
-                .map((hook) => {
-                    return {
-                        file_changes_matcher: hook.file_changes_matcher,
-                        pipeline_unique_prefix: hook.pipeline_unique_prefix
-                    }
-                });
-            for (const matcher of main_matchers) {
-                all_matchers.set(matcher.pipeline_unique_prefix, matcher.file_changes_matcher);
+            }).all();
+            const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType)
+            for (const hook of mainHooks) {
+                allHooks.set(hook.pipeline_unique_prefix, this.mapToHook(hook));
             }
-            for (const matcher of pr_matchers) {
-                all_matchers.set(matcher.pipeline_unique_prefix, matcher.file_changes_matcher);
+            for (const hook of prHooks) {
+                allHooks.set(hook.pipeline_unique_prefix, hook);
             }
         }
         for (const file of files_changed) {
-            all_matchers.forEach((file_changes_matcher, pipeline_unique_prefix) => {
-                if (!file_changes_matcher.startsWith("!") && minimatch(file, file_changes_matcher)) {
-                    log.info(`File ${file} matches matcher ${file_changes_matcher}`);
-                    triggeredHookNames.add(pipeline_unique_prefix);
+            allHooks.forEach((hook) => {
+                if (!hook.file_changes_matcher.startsWith("!") && minimatch(file, hook.file_changes_matcher)) {
+                    log.info(`File ${file} matches matcher ${hook.file_changes_matcher}`);
+                    triggeredHooks.add(hook);
                 }
             });
         }
-        return triggeredHookNames
+        return triggeredHooks
+    }
+
+    private mapToHook(hook: GhaHooks) {
+        return {
+            branch: hook.branch,
+            destination_branch_matcher: hook.destination_branch_matcher,
+            hook_name: hook.hook_name,
+            pipeline_name: hook.pipeline_name,
+            pipeline_params: hook.pipeline_params,
+            pipeline_ref: hook.pipeline_ref ? hook.pipeline_ref : undefined,
+            repo_full_name: hook.repo_full_name,
+            shared_params: hook.shared_params,
+            pipeline_unique_prefix: hook.pipeline_unique_prefix,
+            file_changes_matcher: hook.file_changes_matcher,
+            hook: hook.hook
+        };
     }
 
     async runWorkflow(octokit: InstanceType<typeof ProbotOctokit>,
@@ -118,7 +122,7 @@ export class Hooks {
                           merged_by: null
                       }),
                       action: string,
-                      triggeredHooks: string[], hookType: HookType, merge_commit_sha: string): Promise<TriggeredWorkflow[]> {
+                      triggeredHooks: Set<GhaHook>, merge_commit_sha: string): Promise<TriggeredWorkflow[]> {
         let pr_action = action;
         if (pull_request.merged) {
             pr_action = "merged";
@@ -138,33 +142,16 @@ export class Hooks {
         }
         log.info(`Searching for workflow to run for PR #${pull_request.number} with action ${action}`);
         const triggeredPipelines: TriggeredWorkflow[] = [];
-        for (const pipeline_run_name of triggeredHooks) {
-            let pipelines: any;
-            if (hookType === "onBranchMerge") {
-                pipelines = await gha_hooks(db).findOne({
-                    repo_full_name: pull_request.base.repo.full_name,
-                    branch: pull_request.base.ref,
-                    pipeline_unique_prefix: pipeline_run_name,
-                    hook: hookType,
-                    destination_branch_matcher: pull_request.base.ref
-                });
-            } else {
-                pipelines = await gha_hooks(db).findOne({
-                    repo_full_name: pull_request.base.repo.full_name,
-                    branch: pull_request.base.ref,
-                    pipeline_unique_prefix: pipeline_run_name,
-                    hook: hookType
-                });
-            }
+        for (const hook of triggeredHooks) {
             const owner = pull_request.base.repo.owner.login;
             const repo = pull_request.base.repo.name;
-            const pipeline_ref = pipelines.pipeline_ref ? pipelines.pipeline_ref : pull_request.base.repo.default_branch;
-            const workflow_id = `${pipelines.pipeline_name}.yaml`;
-            const pipeline_name = `${pipeline_run_name}-${pull_request.head.sha}`;
+            const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
+            const workflow_id = `${hook.pipeline_name}.yaml`;
+            const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
             const inputs = {
                 PIPELINE_NAME: pipeline_name,
-                ...pipelines.shared_params,
-                ...pipelines.pipeline_params,
+                ...hook.shared_params,
+                ...hook.pipeline_params,
                 SERIALIZED_VARIABLES: JSON.stringify(common_serialized_variables)
             };
             const workflowDispatch: workflowDispatchEventParameters = {
@@ -175,9 +162,9 @@ export class Hooks {
                 inputs: inputs
             };
             const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-            log.info("Trigger workflow " + pipeline_run_name + " for PR#" + pull_request.number);
+            log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + pull_request.number);
             if (resp.status === 204) {
-                log.info("Workflow " + pipeline_run_name + " triggered successfully");
+                log.info("Workflow " + hook.pipeline_unique_prefix + " triggered successfully");
             }
             triggeredPipelines.push({name: pipeline_name, inputs: inputs});
         }
