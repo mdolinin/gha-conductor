@@ -23,7 +23,8 @@
                 {
                     "name": "build-and-test",
                     "pipelineRef": {
-                        "name": "pipeline-gradle-task"
+                        "name": "pipeline-gradle-task",
+                        "ref": "master"
                     },
                     "pipelineRunValues": {
                         "params": {
@@ -293,7 +294,8 @@
                                 "default": {},
                                 "examples": [
                                     {
-                                        "name": "pipeline-gradle-task"
+                                        "name": "pipeline-gradle-task",
+                                        "ref": "master"
                                     }
                                 ],
                                 "required": [
@@ -308,6 +310,17 @@
                                         "default": "",
                                         "examples": [
                                             "pipeline-gradle-task"
+                                        ]
+                                    },
+                                    "ref": {
+                                        "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRef/properties/ref",
+                                        "type": "string",
+                                        "title": "The ref schema",
+                                        "description": "branch name for pipeline for executing task",
+                                        "default": "",
+                                        "examples": [
+                                            "master",
+                                            "main"
                                         ]
                                     }
                                 },
@@ -432,7 +445,8 @@
                     {
                         "name": "run-sonar",
                         "pipelineRef": {
-                            "name": "pipeline-gradle-task"
+                            "name": "pipeline-gradle-task",
+                            "ref": "master"
                         },
                         "pipelineRunValues": {
                             "params": {
@@ -487,7 +501,8 @@
                             {
                                 "name": "run-sonar",
                                 "pipelineRef": {
-                                    "name": "pipeline-gradle-task"
+                                    "name": "pipeline-gradle-task",
+                                    "ref": "master"
                                 },
                                 "pipelineRunValues": {
                                     "params": {
@@ -548,6 +563,17 @@
                                         "default": "",
                                         "examples": [
                                             "pipeline-gradle-task"
+                                        ]
+                                    },
+                                    "ref": {
+                                        "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRef/properties/ref",
+                                        "type": "string",
+                                        "title": "The ref schema",
+                                        "description": "branch name for pipeline for executing task",
+                                        "default": "",
+                                        "examples": [
+                                            "master",
+                                            "main"
                                         ]
                                     }
                                 },
@@ -704,7 +730,8 @@
                     {
                         "name": "run-clean-up",
                         "pipelineRef": {
-                            "name": "pipeline-gradle-task"
+                            "name": "pipeline-gradle-task",
+                            "ref": "master"
                         },
                         "pipelineRunValues": {
                             "params": {
@@ -735,7 +762,8 @@
                             {
                                 "name": "run-clean-up",
                                 "pipelineRef": {
-                                    "name": "pipeline-gradle-task"
+                                    "name": "pipeline-gradle-task",
+                                    "ref": "master"
                                 },
                                 "pipelineRunValues": {
                                     "params": {
@@ -776,7 +804,8 @@
                                 "default": {},
                                 "examples": [
                                     {
-                                        "name": "pipeline-gradle-task"
+                                        "name": "pipeline-gradle-task",
+                                        "ref": "master"
                                     }
                                 ],
                                 "required": [
@@ -791,6 +820,17 @@
                                         "default": "",
                                         "examples": [
                                             "pipeline-gradle-task"
+                                        ]
+                                    },
+                                    "ref": {
+                                        "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRef/properties/ref",
+                                        "type": "string",
+                                        "title": "The ref schema",
+                                        "description": "branch name for pipeline for executing task",
+                                        "default": "",
+                                        "examples": [
+                                            "master",
+                                            "main"
                                         ]
                                     }
                                 },

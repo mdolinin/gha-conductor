@@ -80,6 +80,9 @@ export = (app: Probot) => {
 
     app.on(["pull_request.opened", "pull_request.reopened", "pull_request.synchronize", "pull_request.closed"], async (context) => {
         const pr = context.payload.pull_request;
+        const pullNumber = context.payload.pull_request.number;
+        const owner = context.payload.repository.owner.login;
+        const repo = context.payload.repository.name;
         app.log.info(`PR handler called for ${pr.number} and action ${context.payload.action}`);
         let mergeable = pr.mergeable;
         let merge_commit_sha = pr.merge_commit_sha;
@@ -90,9 +93,9 @@ export = (app: Probot) => {
                 await new Promise(r => setTimeout(r, 2000));
                 const resp = await context.octokit.pulls.get(
                     {
-                        owner: context.payload.repository.owner.login,
-                        repo: context.payload.repository.name,
-                        pull_number: context.payload.pull_request.number
+                        owner: owner,
+                        repo: repo,
+                        pull_number: pullNumber
                     }
                 );
                 app.log.info("PR mergeability is " + resp.data.mergeable);
@@ -123,7 +126,6 @@ export = (app: Probot) => {
         }
         const numOfChangedFiles = context.payload.pull_request.changed_files;
         if (numOfChangedFiles > 0) {
-            const repo_name = context.payload.repository.name;
             const repo_full_name = context.payload.repository.full_name;
             // if PR is just opened load all gha hooks for base branch
             if (context.payload.action === "opened") {
@@ -132,9 +134,9 @@ export = (app: Probot) => {
                 app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch} done`);
             }
             const changedFilesResp = await context.octokit.pulls.listFiles({
-                owner: context.payload.repository.owner.login,
-                repo: repo_name,
-                pull_number: context.payload.pull_request.number
+                owner: owner,
+                repo: repo,
+                pull_number: pullNumber
             });
             const changedFiles = changedFilesResp.data.map((file) => file.filename);
             app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
@@ -145,7 +147,14 @@ export = (app: Probot) => {
             if (merge_commit_sha === null) {
                 merge_commit_sha = context.payload.pull_request.head.sha;
             }
-            const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, Array.from(triggeredHooks), hookType, merge_commit_sha);
+            const default_branch = context.payload.pull_request.base.repo.default_branch;
+            const hooksWithNotExistingRefs = await hooks.verifyAllHooksRefsExist(context.octokit, owner, repo, default_branch, triggeredHooks);
+            if (hooksWithNotExistingRefs.length > 0) {
+                app.log.info(`There are hooks with non-existing refs. No hooks will be triggered`);
+                await checks.createPRCheckWithNonExistingRefs(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, hooksWithNotExistingRefs);
+                return;
+            }
+            const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha);
             for (const pipelineName of triggeredPipelineNames) {
                 await checks.createNewRun(pipelineName, context.payload.pull_request, hookType, merge_commit_sha);
             }

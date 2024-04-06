@@ -1,4 +1,6 @@
 import {Hooks} from "../src/hooks";
+import {HookType} from "../src/__generated__/_enums";
+import {GhaHook} from "../src/gha_loader";
 
 const findAllMock = jest.fn().mockImplementation(() => {
     return [
@@ -18,19 +20,7 @@ const selectMock = jest.fn().mockImplementation(() => {
 const findMock = jest.fn().mockImplementation(() => {
     return {
         select: selectMock,
-    }
-});
-
-const findOneMock = jest.fn().mockImplementation(() => {
-    return {
-        pipeline_ref: "pipeline_ref",
-        pipeline_name: "pipeline_name",
-        shared_params: {
-            shared_param: "shared_param"
-        },
-        pipeline_params: {
-            pipeline_param: "pipeline_param"
-        }
+        all: findAllMock
     }
 });
 
@@ -39,7 +29,6 @@ jest.mock('../src/db/database', () => {
         gha_hooks: jest.fn(() => {
             return {
                 find: findMock,
-                findOne: findOneMock
             };
         })
     }
@@ -53,22 +42,25 @@ describe('gha hooks', () => {
     });
 
     it('find hooks to trigger, when matched files changed on branch merge', async () => {
-        const triggeredHookNames = await hooks.filterTriggeredHooks("repo_full_name", "onBranchMerge", ["file1", "file2"], "baseBranch", [
-            {
-                repo_full_name: "repo_full_name",
-                branch: "baseBranch",
-                file_changes_matcher: "file1",
-                destination_branch_matcher: "baseBranch",
-                hook: "onBranchMerge",
-                hook_name: "hook_name",
-                pipeline_unique_prefix: "pipeline_unique_prefix",
-                pipeline_name: "pipeline_name",
-                pipeline_ref: "pipeline_ref",
-                pipeline_params: {},
-                shared_params: {}
-            }
-        ]);
-        expect(triggeredHookNames).toEqual(new Set(["pipeline_unique_prefix"]));
+        const hook = {
+            repo_full_name: "repo_full_name",
+            branch: "baseBranch",
+            file_changes_matcher: "file1",
+            destination_branch_matcher: "baseBranch",
+            hook: "onBranchMerge" as HookType,
+            hook_name: "hook_name",
+            pipeline_unique_prefix: "pipeline_unique_prefix",
+            pipeline_name: "pipeline_name",
+            pipeline_ref: "pipeline_ref",
+            pipeline_params: {},
+            shared_params: {}
+        };
+        const triggeredHooks = await hooks.filterTriggeredHooks(
+            "repo_full_name", "onBranchMerge", ["file1", "file2"], "baseBranch",
+            [
+                hook
+            ]);
+        expect(triggeredHooks).toEqual(new Set([hook]));
         expect(findMock).toHaveBeenCalledWith(
             {
                 repo_full_name: "repo_full_name",
@@ -77,27 +69,29 @@ describe('gha hooks', () => {
                 destination_branch_matcher: "baseBranch"
             }
         );
-        expect(selectMock).toHaveBeenCalledWith('file_changes_matcher', 'pipeline_unique_prefix');
         expect(findAllMock).toHaveBeenCalledTimes(1);
     });
 
     it('find hooks to trigger, when matched files changed on pull request open', async () => {
-        const triggeredHookNames = await hooks.filterTriggeredHooks("repo_full_name", "onPullRequest", ["file1", "file2"], "baseBranch", [
-            {
-                repo_full_name: "repo_full_name",
-                branch: "baseBranch",
-                file_changes_matcher: "file1",
-                destination_branch_matcher: "baseBranch",
-                hook: "onPullRequest",
-                hook_name: "hook_name",
-                pipeline_unique_prefix: "pipeline_unique_prefix",
-                pipeline_name: "pipeline_name",
-                pipeline_ref: "pipeline_ref",
-                pipeline_params: {},
-                shared_params: {}
-            }
-        ]);
-        expect(triggeredHookNames).toEqual(new Set(["pipeline_unique_prefix"]));
+        let hook = {
+            repo_full_name: "repo_full_name",
+            branch: "baseBranch",
+            file_changes_matcher: "file1",
+            destination_branch_matcher: "baseBranch",
+            hook: "onPullRequest" as HookType,
+            hook_name: "hook_name",
+            pipeline_unique_prefix: "pipeline_unique_prefix",
+            pipeline_name: "pipeline_name",
+            pipeline_ref: "pipeline_ref",
+            pipeline_params: {},
+            shared_params: {}
+        };
+        const triggeredHookNames = await hooks.filterTriggeredHooks(
+            "repo_full_name", "onPullRequest", ["file1", "file2"], "baseBranch",
+            [
+                hook
+            ]);
+        expect(triggeredHookNames).toEqual(new Set([hook]));
         expect(findMock).toHaveBeenCalledWith(
             {
                 repo_full_name: "repo_full_name",
@@ -105,7 +99,6 @@ describe('gha hooks', () => {
                 hook: "onPullRequest",
             }
         );
-        expect(selectMock).toHaveBeenCalledWith('file_changes_matcher', 'pipeline_unique_prefix');
         expect(findAllMock).toHaveBeenCalledTimes(1);
     });
 
@@ -134,6 +127,7 @@ describe('gha hooks', () => {
                 ref: "base_ref",
                 sha: "base_sha",
                 repo: {
+                    default_branch: "main",
                     name: "repo_name",
                     full_name: "repo_full_name",
                     owner: {
@@ -142,58 +136,124 @@ describe('gha hooks', () => {
                 }
             }
         };
-        // @ts-ignore
-        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", ["hook1", "hook2"], "onPullRequest", merge_commit_sha);
-        expect(findOneMock).toHaveBeenCalledWith({
+        const triggeredHooks = new Set<GhaHook>();
+        const hook1 = {
+            branch: "hookBranch1",
+            destination_branch_matcher: "main",
+            hook_name: "hook1",
+            pipeline_name: "pipeline_name_1",
+            pipeline_params: {
+                pipeline_param: "pipeline_param_1"
+            },
+            pipeline_ref: "feature/1",
             repo_full_name: "repo_full_name",
-            branch: "base_ref",
-            hook: "onPullRequest",
-            pipeline_unique_prefix: "hook1"
-        });
+            shared_params: {
+                shared_param: "shared_param"
+            },
+            pipeline_unique_prefix: "namespace1-module1-hook1",
+            file_changes_matcher: "*.yaml",
+            hook: "onPullRequest" as HookType
+        };
+        const hook2 = {
+            branch: "hookBranch2",
+            destination_branch_matcher: "main",
+            hook_name: "hook2",
+            pipeline_name: "pipeline_name_2",
+            pipeline_params: {
+                pipeline_param: "pipeline_param_2"
+            },
+            pipeline_ref: undefined,
+            repo_full_name: "repo_full_name",
+            shared_params: {
+                shared_param: "shared_param"
+            },
+            pipeline_unique_prefix: "namespace1-module1-hook2",
+            file_changes_matcher: "app/*.js",
+            hook: "onBranchMerge" as HookType
+        };
+        triggeredHooks.add(hook1);
+        triggeredHooks.add(hook2);
+        // @ts-ignore
+        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
-                PIPELINE_NAME: "hook1-head_sha",
+                PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
                 SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                pipeline_param: "pipeline_param",
+                pipeline_param: "pipeline_param_1",
                 shared_param: "shared_param"
             },
             owner: "owner_login",
-            ref: "pipeline_ref",
+            ref: "feature/1",
             repo: "repo_name",
-            workflow_id: "pipeline_name.yaml"
+            workflow_id: "pipeline_name_1.yaml"
         });
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
-                PIPELINE_NAME: "hook2-head_sha",
+                PIPELINE_NAME: "namespace1-module1-hook2-head_sha",
                 SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                pipeline_param: "pipeline_param",
+                pipeline_param: "pipeline_param_2",
                 shared_param: "shared_param"
             },
             owner: "owner_login",
-            ref: "pipeline_ref",
+            ref: "main",
             repo: "repo_name",
-            workflow_id: "pipeline_name.yaml"
+            workflow_id: "pipeline_name_2.yaml"
         });
         expect(triggeredPipelineNames).toEqual([
             {
                 inputs: {
-                    PIPELINE_NAME: "hook1-head_sha",
+                    PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
                     SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                    pipeline_param: "pipeline_param",
+                    pipeline_param: "pipeline_param_1",
                     shared_param: "shared_param"
                 },
-                name: "hook1-head_sha"
+                name: "namespace1-module1-hook1-head_sha"
             },
             {
                 inputs: {
-                    PIPELINE_NAME: "hook2-head_sha",
+                    PIPELINE_NAME: "namespace1-module1-hook2-head_sha",
                     SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                    pipeline_param: "pipeline_param",
+                    pipeline_param: "pipeline_param_2",
                     shared_param: "shared_param"
                 },
-                name: "hook2-head_sha"
+                name: "namespace1-module1-hook2-head_sha"
             }
         ]);
+    });
+
+    it('should verify that all hooks in provided list pointed to existing branch', async () => {
+        const getBranchMock = jest.fn().mockImplementation(() => {
+            throw new Error("Branch not found")
+        });
+        const octokit = {
+            rest: {
+                repos: {
+                    getBranch: getBranchMock
+                }
+            }
+        };
+        const hook1 = {
+            branch: "hookBranch1",
+            destination_branch_matcher: "main",
+            hook_name: "hook1",
+            pipeline_name: "pipeline_name_1",
+            pipeline_params: {
+                pipeline_param: "pipeline_param_1"
+            },
+            pipeline_ref: "feature/1",
+            repo_full_name: "repo_full_name",
+            shared_params: {
+                shared_param: "shared_param"
+            },
+            pipeline_unique_prefix: "namespace1-module1-hook1",
+            file_changes_matcher: "*.yaml",
+            hook: "onPullRequest" as HookType
+        };
+        const hooksList = new Set<GhaHook>();
+        hooksList.add(hook1);
+        // @ts-ignore
+        const hooksWithNotExistingRef = await hooks.verifyAllHooksRefsExist(octokit, "owner", "repo", "main", hooksList);
+        expect(hooksWithNotExistingRef).toEqual([hook1]);
     });
 
 });
