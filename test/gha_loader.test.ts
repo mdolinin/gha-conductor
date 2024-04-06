@@ -42,6 +42,7 @@ onPullRequest:
   - name: build
     pipelineRef:
       name: common-job
+      ref: main
     pipelineRunValues:
       params:
         COMMAND: make build
@@ -169,7 +170,7 @@ describe('gha loader', () => {
             "hook_name": "build",
             "pipeline_name": "common-job",
             "pipeline_params": {"COMMAND": "make build"},
-            "pipeline_ref": null,
+            "pipeline_ref": "main",
             "pipeline_unique_prefix": "domain-b-example-c-build",
             "repo_full_name": "",
             "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
@@ -181,7 +182,7 @@ describe('gha loader', () => {
             "hook_name": "test",
             "pipeline_name": "common-job",
             "pipeline_params": {"COMMAND": "make test"},
-            "pipeline_ref": null,
+            "pipeline_ref": undefined,
             "pipeline_unique_prefix": "domain-b-example-c-test",
             "repo_full_name": "",
             "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
@@ -193,7 +194,7 @@ describe('gha loader', () => {
             "hook_name": "release",
             "pipeline_name": "common-job",
             "pipeline_params": {"COMMAND": "make release"},
-            "pipeline_ref": null,
+            "pipeline_ref": undefined,
             "pipeline_unique_prefix": "domain-b-example-c-release",
             "repo_full_name": "",
             "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
@@ -205,7 +206,7 @@ describe('gha loader', () => {
             "hook_name": "cleanup",
             "pipeline_name": "common-job",
             "pipeline_params": {"COMMAND": "make clean"},
-            "pipeline_ref": null,
+            "pipeline_ref": undefined,
             "pipeline_unique_prefix": "domain-b-example-c-cleanup",
             "repo_full_name": "",
             "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
