@@ -36,6 +36,10 @@ export type TheBuildAndTestSchema = string;
  */
 export type TheNameSchema = string;
 /**
+ * branch name for pipeline for executing task
+ */
+export type TheRefSchema = string;
+/**
  * check and jacocoTestCoverageVerification gradle tasks to run.
  */
 export type TheCOMMANDSchema = string;
@@ -63,6 +67,10 @@ export type TheNameSchema1 = string;
  * Generic pipeline name to run gradle tasks.
  */
 export type TheNameSchema2 = string;
+/**
+ * branch name for pipeline for executing task
+ */
+export type TheRefSchema1 = string;
 /**
  * run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.
  */
@@ -102,6 +110,10 @@ export type TheNameSchema3 = string;
  * Generic pipeline name to run gradle tasks.
  */
 export type TheNameSchema4 = string;
+/**
+ * branch name for pipeline for executing task
+ */
+export type TheRefSchema2 = string;
 /**
  * run clean up task.
  */
@@ -157,6 +169,7 @@ export interface TheFirstAnyOfSchema1 {
  */
 export interface ThePipelineRefSchema {
   name: TheNameSchema;
+  ref?: TheRefSchema;
   [k: string]: unknown;
 }
 /**
@@ -195,6 +208,7 @@ export interface TheFirstAnyOfSchema3 {
  */
 export interface ThePipelineRefSchema1 {
   name: TheNameSchema2;
+  ref?: TheRefSchema1;
   [k: string]: unknown;
 }
 /**
@@ -234,6 +248,7 @@ export interface TheFirstAnyOfSchema6 {
  */
 export interface ThePipelineRefSchema2 {
   name: TheNameSchema4;
+  ref?: TheRefSchema2;
   [k: string]: unknown;
 }
 /**
