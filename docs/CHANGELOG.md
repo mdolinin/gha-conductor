@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/mdolinin/gha-conductor/compare/v1.5.1...v1.6.0) (2024-04-06)
+
+
+### Features
+
+* **gha:** add capability to specify branch name for pipeline ([#22](https://github.com/mdolinin/gha-conductor/issues/22)) ([091a0f1](https://github.com/mdolinin/gha-conductor/commit/091a0f1fe34d90d420dff6717723b0a59d1d391b))
+
 ## [1.5.1](https://github.com/mdolinin/gha-conductor/compare/v1.5.0...v1.5.1) (2024-03-31)
 
 
