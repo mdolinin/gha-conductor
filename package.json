@@ -1,6 +1,6 @@
 {
   "name": "gha-conductor",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "description": "Github Actions for monorepo setup",
   "author": "mdolinin",
@@ -25,9 +25,9 @@
     "@databases/pg": "^5.5.0",
     "@databases/pg-schema-cli": "^4.3.1",
     "@databases/pg-typed": "^4.4.1",
-    "glob": "^10.3.10",
+    "glob": "^10.3.12",
     "js-yaml": "^4.1.0",
-    "json-schema-to-typescript": "^13.1.1",
+    "json-schema-to-typescript": "^13.1.2",
     "probot": "^13.1.2",
     "simple-git": "^3.24.0"
   },
