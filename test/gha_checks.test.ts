@@ -172,7 +172,7 @@ describe('gha_checks', () => {
             head_sha: pullRequestOpenedPayload.pull_request.head.sha,
             name: "pr-status",
             output: {
-                summary: "❌Hooks with non-existing refs:\nnamespace1-module1-hook1, ref: feature/1\n",
+                summary: "❌Hooks with non-existing refs:\nnamespace1-module1-hook1 -> ref: feature/1\n",
                 title: "There are hooks with non-existing refs. No workflows will be triggered"
             },
             owner: "mdolinin",

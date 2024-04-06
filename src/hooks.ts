@@ -194,14 +194,13 @@ export class Hooks {
         const hooksWithNotExistingRef: GhaHook[] = [];
         for (const hook of triggeredHooks) {
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : default_branch;
-            const response = await octokit.rest.repos.getBranch({
-                owner: owner,
-                repo: repo,
-                branch: pipeline_ref
-            });
-            if (response.status === 200) {
-                log.debug(`Ref ${pipeline_ref} exists in repo ${owner}/${repo}`);
-            } else {
+            try {
+                await octokit.rest.repos.getBranch({
+                    owner: owner,
+                    repo: repo,
+                    branch: pipeline_ref
+                });
+            } catch (e) {
                 hook.pipeline_ref = pipeline_ref;
                 hooksWithNotExistingRef.push(hook);
                 log.warn(`Ref ${pipeline_ref} does not exist in repo ${owner}/${repo}`);

@@ -223,9 +223,7 @@ describe('gha hooks', () => {
 
     it('should verify that all hooks in provided list pointed to existing branch', async () => {
         const getBranchMock = jest.fn().mockImplementation(() => {
-            return {
-                status: 404
-            }
+            throw new Error("Branch not found")
         });
         const octokit = {
             rest: {

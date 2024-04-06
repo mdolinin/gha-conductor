@@ -129,7 +129,7 @@ export class GhaChecks {
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
         let summary = "❌Hooks with non-existing refs:\n"
         for (const hook of hooksWithNotExistingRefs) {
-            summary += `${hook.pipeline_unique_prefix}, ref: ${hook.pipeline_ref}\n`;
+            summary += `${hook.pipeline_unique_prefix} -> ref: ${hook.pipeline_ref}\n`;
         }
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
