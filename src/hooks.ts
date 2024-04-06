@@ -123,6 +123,7 @@ export class Hooks {
                       }),
                       action: string,
                       triggeredHooks: Set<GhaHook>, merge_commit_sha: string): Promise<TriggeredWorkflow[]> {
+        const prNumber = pull_request.number;
         let pr_action = action;
         if (pull_request.merged) {
             pr_action = "merged";
@@ -137,10 +138,10 @@ export class Hooks {
             'PR_BASE_REF': pull_request.base.ref,
             'PR_BASE_SHA': pull_request.base.sha,
             'PR_MERGE_SHA': merge_commit_sha,
-            'PR_NUMBER': pull_request.number,
+            'PR_NUMBER': prNumber,
             'PR_ACTION': pr_action,
         }
-        log.info(`Searching for workflow to run for PR #${pull_request.number} with action ${action}`);
+        log.info(`Searching for workflow to run for PR #${prNumber} with action ${action}`);
         const triggeredPipelines: TriggeredWorkflow[] = [];
         for (const hook of triggeredHooks) {
             const owner = pull_request.base.repo.owner.login;
@@ -162,7 +163,7 @@ export class Hooks {
                 inputs: inputs
             };
             const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-            log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + pull_request.number);
+            log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
             if (resp.status === 204) {
                 log.info("Workflow " + hook.pipeline_unique_prefix + " triggered successfully");
             }
@@ -185,5 +186,27 @@ export class Hooks {
             case "synchronize":
                 return "onPullRequest";
         }
+    }
+
+    async verifyAllHooksRefsExist(octokit: InstanceType<typeof ProbotOctokit>,
+                                  owner: string, repo: string, default_branch: string,
+                                  triggeredHooks: Set<GhaHook>): Promise<GhaHook[]> {
+        const hooksWithNotExistingRef: GhaHook[] = [];
+        for (const hook of triggeredHooks) {
+            const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : default_branch;
+            const response = await octokit.rest.repos.getBranch({
+                owner: owner,
+                repo: repo,
+                branch: pipeline_ref
+            });
+            if (response.status === 200) {
+                log.debug(`Ref ${pipeline_ref} exists in repo ${owner}/${repo}`);
+            } else {
+                hook.pipeline_ref = pipeline_ref;
+                hooksWithNotExistingRef.push(hook);
+                log.warn(`Ref ${pipeline_ref} does not exist in repo ${owner}/${repo}`);
+            }
+        }
+        return hooksWithNotExistingRef;
     }
 }

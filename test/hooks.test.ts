@@ -221,4 +221,41 @@ describe('gha hooks', () => {
         ]);
     });
 
+    it('should verify that all hooks in provided list pointed to existing branch', async () => {
+        const getBranchMock = jest.fn().mockImplementation(() => {
+            return {
+                status: 404
+            }
+        });
+        const octokit = {
+            rest: {
+                repos: {
+                    getBranch: getBranchMock
+                }
+            }
+        };
+        const hook1 = {
+            branch: "hookBranch1",
+            destination_branch_matcher: "main",
+            hook_name: "hook1",
+            pipeline_name: "pipeline_name_1",
+            pipeline_params: {
+                pipeline_param: "pipeline_param_1"
+            },
+            pipeline_ref: "feature/1",
+            repo_full_name: "repo_full_name",
+            shared_params: {
+                shared_param: "shared_param"
+            },
+            pipeline_unique_prefix: "namespace1-module1-hook1",
+            file_changes_matcher: "*.yaml",
+            hook: "onPullRequest" as HookType
+        };
+        const hooksList = new Set<GhaHook>();
+        hooksList.add(hook1);
+        // @ts-ignore
+        const hooksWithNotExistingRef = await hooks.verifyAllHooksRefsExist(octokit, "owner", "repo", "main", hooksList);
+        expect(hooksWithNotExistingRef).toEqual([hook1]);
+    });
+
 });

@@ -1,6 +1,3 @@
-// You can import your modules
-// import index from '../src/index'
-
 import nock from "nock";
 // Requiring our app implementation
 import myProbotApp from "../src";
@@ -28,6 +25,7 @@ const privateKey = fs.readFileSync(
 import {GhaHook, GhaLoader} from "../src/gha_loader";
 import {Hooks} from "../src/hooks";
 import {GhaChecks} from "../src/gha_checks";
+import {HookType} from "../src/__generated__/_enums";
 
 const loadAllGhaYamlMock = jest
     .spyOn(GhaLoader.prototype, 'loadAllGhaYaml')
@@ -58,6 +56,12 @@ const filterTriggeredHooksMock = jest
         return Promise.resolve(new Set<GhaHook>());
     });
 
+let verifyAllHooksRefsExistMock = jest
+    .spyOn(Hooks.prototype, 'verifyAllHooksRefsExist')
+    .mockImplementation(() => {
+        return Promise.resolve([]);
+    });
+
 let runWorkflowMock = jest
     .spyOn(Hooks.prototype, 'runWorkflow')
     .mockImplementation(() => {
@@ -66,6 +70,12 @@ let runWorkflowMock = jest
 
 const createNewRunMock = jest
     .spyOn(GhaChecks.prototype, 'createNewRun')
+    .mockImplementation(() => {
+        return Promise.resolve();
+    });
+
+const createPRCheckWithNonExistingRefsMock = jest
+    .spyOn(GhaChecks.prototype, 'createPRCheckWithNonExistingRefs')
     .mockImplementation(() => {
         return Promise.resolve();
     });
@@ -255,6 +265,62 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
+    test("when PR opened with files that match hook and pipeline ref is not exist, create pr-status check with status failed", async () => {
+        verifyAllHooksRefsExistMock = verifyAllHooksRefsExistMock.mockImplementation(() => {
+            return Promise.resolve([{
+                repo_full_name: "repo_full_name",
+                branch: "branch",
+                file_changes_matcher: "file_changes_matcher",
+                destination_branch_matcher: "destination_branch_matcher",
+                hook: "onPullRequest" as HookType,
+                hook_name: "hook_name",
+                pipeline_unique_prefix: "pipeline_unique_prefix",
+                pipeline_name: "pipeline_name",
+                pipeline_ref: "non_existing_ref",
+                pipeline_params: {},
+                shared_params: {}
+            }]);
+        });
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27")
+            .reply(200, {
+                mergeable: true,
+                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                base: {
+                    ref: "main",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ]);
+
+        await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
+        // restore mock implementation
+        verifyAllHooksRefsExistMock = verifyAllHooksRefsExistMock.mockImplementation(() => {
+            return Promise.resolve([]);
+        });
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
+        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(1);
+        expect(runWorkflowMock).toHaveBeenCalledTimes(0);
+        expect(createNewRunMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
     test("when PR opened with files that not match any hook, create pr-status check with status completed", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
@@ -283,6 +349,8 @@ describe("gha-conductor app", () => {
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
+        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createNewRunMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(1);
@@ -321,6 +389,8 @@ describe("gha-conductor app", () => {
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
+        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createNewRunMock).toHaveBeenCalledTimes(1);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);

@@ -6,6 +6,7 @@ import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json"
 import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
 import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
 import {PullRequest} from "@octokit/webhooks-types";
+import {HookType} from "../src/__generated__/_enums";
 
 const insertMock = jest.fn();
 const findAllMock = jest.fn().mockImplementation(() => {
@@ -126,6 +127,57 @@ describe('gha_checks', () => {
             workflow_run_inputs: {},
             pr_number: pullRequestOpened.number,
             hook: 'onPullRequest'
+        });
+    });
+
+    it('should create pr-status check if hook has ref to non existed branch', async () => {
+        const merge_commit_sha = '1234567890';
+        let mock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 1,
+                },
+                status: 201,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: mock
+            }
+        }
+        const hooksWithNotExistingRefs = [
+            {
+                branch: "hookBranch1",
+                destination_branch_matcher: "main",
+                hook_name: "hook1",
+                pipeline_name: "pipeline_name_1",
+                pipeline_params: {
+                    pipeline_param: "pipeline_param_1"
+                },
+                pipeline_ref: "feature/1",
+                repo_full_name: "repo_full_name",
+                shared_params: {
+                    shared_param: "shared_param"
+                },
+                pipeline_unique_prefix: "namespace1-module1-hook1",
+                file_changes_matcher: "*.yaml",
+                hook: "onPullRequest" as HookType
+            }
+        ];
+        // @ts-ignore
+        await checks.createPRCheckWithNonExistingRefs(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha, hooksWithNotExistingRefs);
+        expect(mock).toHaveBeenCalledWith({
+            completed_at: expect.anything(),
+            conclusion: "failure",
+            head_sha: pullRequestOpenedPayload.pull_request.head.sha,
+            name: "pr-status",
+            output: {
+                summary: "❌Hooks with non-existing refs:\nnamespace1-module1-hook1, ref: feature/1\n",
+                title: "There are hooks with non-existing refs. No workflows will be triggered"
+            },
+            owner: "mdolinin",
+            repo: "mono-repo-example",
+            status: "completed",
         });
     });
 
