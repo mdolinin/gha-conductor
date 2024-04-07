@@ -143,11 +143,13 @@ describe('gha hooks', () => {
             hook_name: "hook1",
             pipeline_name: "pipeline_name_1",
             pipeline_params: {
+                COMMAND: "command1",
                 pipeline_param: "pipeline_param_1"
             },
             pipeline_ref: "feature/1",
             repo_full_name: "repo_full_name",
             shared_params: {
+                ROOT_DIR: "root_dir1",
                 shared_param: "shared_param"
             },
             pipeline_unique_prefix: "namespace1-module1-hook1",
@@ -160,11 +162,13 @@ describe('gha hooks', () => {
             hook_name: "hook2",
             pipeline_name: "pipeline_name_2",
             pipeline_params: {
+                COMMAND: "command2",
                 pipeline_param: "pipeline_param_2"
             },
             pipeline_ref: undefined,
             repo_full_name: "repo_full_name",
             shared_params: {
+                ROOT_DIR: "root_dir2",
                 shared_param: "shared_param"
             },
             pipeline_unique_prefix: "namespace1-module1-hook2",
@@ -177,10 +181,10 @@ describe('gha hooks', () => {
         const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
+                COMMAND: "command1",
                 PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
-                SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                pipeline_param: "pipeline_param_1",
-                shared_param: "shared_param"
+                SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\",\"ROOT_DIR\":\"root_dir1\",\"shared_param\":\"shared_param\",\"COMMAND\":\"command1\",\"pipeline_param\":\"pipeline_param_1\"}",
+                ROOT_DIR: "root_dir1",
             },
             owner: "owner_login",
             ref: "feature/1",
@@ -189,10 +193,10 @@ describe('gha hooks', () => {
         });
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
+                COMMAND: "command2",
                 PIPELINE_NAME: "namespace1-module1-hook2-head_sha",
-                SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                pipeline_param: "pipeline_param_2",
-                shared_param: "shared_param"
+                SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\",\"ROOT_DIR\":\"root_dir2\",\"shared_param\":\"shared_param\",\"COMMAND\":\"command2\",\"pipeline_param\":\"pipeline_param_2\"}",
+                ROOT_DIR: "root_dir2",
             },
             owner: "owner_login",
             ref: "main",
@@ -202,19 +206,19 @@ describe('gha hooks', () => {
         expect(triggeredPipelineNames).toEqual([
             {
                 inputs: {
+                    COMMAND: "command1",
                     PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
-                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                    pipeline_param: "pipeline_param_1",
-                    shared_param: "shared_param"
+                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\",\"ROOT_DIR\":\"root_dir1\",\"shared_param\":\"shared_param\",\"COMMAND\":\"command1\",\"pipeline_param\":\"pipeline_param_1\"}",
+                    ROOT_DIR: "root_dir1",
                 },
                 name: "namespace1-module1-hook1-head_sha"
             },
             {
                 inputs: {
+                    COMMAND: "command2",
                     PIPELINE_NAME: "namespace1-module1-hook2-head_sha",
-                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\"}",
-                    pipeline_param: "pipeline_param_2",
-                    shared_param: "shared_param"
+                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdef\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\",\"ROOT_DIR\":\"root_dir2\",\"shared_param\":\"shared_param\",\"COMMAND\":\"command2\",\"pipeline_param\":\"pipeline_param_2\"}",
+                    ROOT_DIR: "root_dir2",
                 },
                 name: "namespace1-module1-hook2-head_sha"
             }
