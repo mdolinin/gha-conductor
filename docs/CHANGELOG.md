@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/mdolinin/gha-conductor/compare/v1.6.0...v1.7.0) (2024-04-07)
+
+
+### Features
+
+* **params:** serialize all pipeline params and shared params into SERIALIZED_VARIABLES to avoid limit of 10 inputs for GHA workflow ([#27](https://github.com/mdolinin/gha-conductor/issues/27)) ([e1b45d1](https://github.com/mdolinin/gha-conductor/commit/e1b45d1d8381c56c7c76496d6df88cdf7e472acf))
+
 # [1.6.0](https://github.com/mdolinin/gha-conductor/compare/v1.5.1...v1.6.0) (2024-04-06)
 
 
