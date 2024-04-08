@@ -7004,10 +7004,10 @@ private@^0.1.6, private@^0.1.8:
   resolved "https://registry.yarnpkg.com/private/-/private-0.1.8.tgz#2381edb3689f7a53d653190060fcf822d2f368ff"
   integrity sha512-VvivMrbvd2nKkiG38qjULzlc+4Vx4wm/whI9pQD35YrARNnhxeiRktSOhSukRLFNlzg6Br/cJPet5J/u19r/mg==
 
-probot@^13.1.2:
-  version "13.1.2"
-  resolved "https://registry.yarnpkg.com/probot/-/probot-13.1.2.tgz#c5f8979bcfadcbb034bfc3a4c27d787a3df30967"
-  integrity sha512-WCeEdn1KMsyz3NsUmkwOGcVyKRhWNKhYmILAo2HaSuFcIe+81Zt8dK06om3gix89MEBT4gQQcEonTAdBxraYmg==
+probot@^13.2.0:
+  version "13.2.0"
+  resolved "https://registry.yarnpkg.com/probot/-/probot-13.2.0.tgz#bb615a8639b0f0a9054b96f44ddb3c733d991e8a"
+  integrity sha512-9fONmImU9aUmcbgEg/JtQwwEvM6IA6ds4ZRlshhjVB2fw5ijKXCH0M26H9kzVFeNZcmRDxK/MvCSc1CnHehxfA==
   dependencies:
     "@octokit/core" "^5.0.2"
     "@octokit/plugin-enterprise-compatibility" "^4.0.1"
