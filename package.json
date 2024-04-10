@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@databases/pg": "^5.5.0",
-    "@databases/pg-schema-cli": "^4.3.1",
+    "@databases/pg-schema-cli": "^4.4.0",
     "@databases/pg-typed": "^4.4.1",
     "glob": "^10.3.12",
     "js-yaml": "^4.1.0",
@@ -35,7 +35,7 @@
     "@databases/pg-migrations": "^5.0.3",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/npm": "^11.0.2",
+    "@semantic-release/npm": "^12.0.0",
     "@types/jest": "^29.5.12",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.12.7",
