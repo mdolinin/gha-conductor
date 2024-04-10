@@ -352,7 +352,7 @@
   resolved "https://registry.yarnpkg.com/@databases/pg-bulk/-/pg-bulk-1.2.0.tgz#88d7ee371e98c3660188556da0acae20e1ae5c2f"
   integrity sha512-GdzwFIllgOtuKbro4r6QBe0+4LipaUwb8+N7+z9QP+wg3XozGLnojnMFQlBrrc70jycw4aCM1O30w4vYtVlR/Q==
 
-"@databases/pg-config@^3.1.1", "@databases/pg-config@^3.2.0":
+"@databases/pg-config@^3.2.0":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@databases/pg-config/-/pg-config-3.2.0.tgz#90d21333114d22b8b69039b92416d938dfbf04a8"
   integrity sha512-hoPAK/F8gLcLgEJ8mLSnNvRlKqShwx5+GglDHIIfQhKF+Zz6M6QceiOefckS4WSjA0x2HClPvpercnXp9i24ag==
@@ -391,32 +391,32 @@
     semver "^7.3.2"
     sucrase "^3.16.0"
 
-"@databases/pg-schema-cli@^4.3.1":
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/@databases/pg-schema-cli/-/pg-schema-cli-4.3.1.tgz#7ddd2cc8ae8835e2d3c59d576db9c55cf1b900d8"
-  integrity sha512-jwvDls0HFEfx6/+1ErTgJhc07IgLZbis9ShiYZxTghJXfuTOGJBRqc+iFrZ8CCWQA/sEl3GkjiYWqjeNSjx56A==
+"@databases/pg-schema-cli@^4.4.0":
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/@databases/pg-schema-cli/-/pg-schema-cli-4.4.0.tgz#01f01c8ded289f267d6bc020f6deec91b7d4b350"
+  integrity sha512-pwLEjFrPl8Gk+7KmSbHHW9kYnUIWN9/V8DCb9Gwee7hXRkZeEZg9thdprG/ngxIdf983MfHyA/8np78IyNyhqg==
   dependencies:
-    "@databases/pg-config" "^3.1.1"
-    "@databases/pg-schema-introspect" "^4.1.0"
-    "@databases/pg-schema-print-types" "^4.4.1"
+    "@databases/pg-config" "^3.2.0"
+    "@databases/pg-schema-introspect" "^4.2.0"
+    "@databases/pg-schema-print-types" "^4.5.0"
     chalk "^4.1.0"
     interrogator "^2.0.0"
     is-interactive "^1.0.0"
     parameter-reducers "^2.0.0"
 
-"@databases/pg-schema-introspect@^4.1.0":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@databases/pg-schema-introspect/-/pg-schema-introspect-4.1.0.tgz#bf05b13bf0f5a8e0dc15ae3cd842859da4c63953"
-  integrity sha512-NuouaIaNikzsoCo7xbFldnAr74oJyGZ4aQO0IzODQTrdvrrZi1Iv+yduhI6bXL4niuehpD3DLgfcM7d8RaPCDw==
+"@databases/pg-schema-introspect@^4.2.0":
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/@databases/pg-schema-introspect/-/pg-schema-introspect-4.2.0.tgz#5a4be21e74af30560b0222bd1bb2f36eb235304a"
+  integrity sha512-WaN79kbMwiQCS78XlCVOPE+Q6Go2gF3FNqatGWUZHnbHn+NR8I/5/1uC7T8HTruC5UfTe3CcCNPUglVad2YoVg==
   dependencies:
-    "@databases/pg" "^5.0.0"
+    "@databases/pg" "^5.5.0"
 
-"@databases/pg-schema-print-types@^4.4.1":
-  version "4.4.1"
-  resolved "https://registry.yarnpkg.com/@databases/pg-schema-print-types/-/pg-schema-print-types-4.4.1.tgz#55b2f72a0ba545b9b812e91db09c8bfc66e6aa60"
-  integrity sha512-N2MefpqLcewSgpYTXatWbaBacEVJtAA7Hw0uphja317p2eGcuySs1eQXPAL9pQk6024rFCjBUKwivE2tt4Jadw==
+"@databases/pg-schema-print-types@^4.5.0":
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/@databases/pg-schema-print-types/-/pg-schema-print-types-4.5.0.tgz#5c6a17a00de27663d6f8a5ed6ca6184ef1ece14f"
+  integrity sha512-HlCHVPuu+qm1oNgkp+v3exdvmeJxflZnDTL6D6eSr3yMSClMQ7JBzCthymazWyZ9s4qsHO6gXfNhgUgjUz6LFw==
   dependencies:
-    "@databases/pg-config" "^3.1.1"
+    "@databases/pg-config" "^3.2.0"
     "@databases/pg-data-type-id" "^3.0.0"
     "@databases/shared-print-types" "^1.2.0"
     assert-never "^1.2.1"
@@ -428,7 +428,7 @@
   dependencies:
     "@databases/pg-bulk" "^1.2.0"
 
-"@databases/pg@^5.0.0", "@databases/pg@^5.5.0":
+"@databases/pg@^5.5.0":
   version "5.5.0"
   resolved "https://registry.yarnpkg.com/@databases/pg/-/pg-5.5.0.tgz#7fd38641cd46985800e29c0cb03fe76699af7b1a"
   integrity sha512-WIojK9AYIlNi5YRfc5YUOow3PQ82ClmwT9HG3nEsKLUERYieoVmHMYDQLS0ry6FjgJx+2yFs7LCw4kZpWu1TBw==

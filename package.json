@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@databases/pg": "^5.5.0",
-    "@databases/pg-schema-cli": "^4.3.1",
+    "@databases/pg-schema-cli": "^4.4.0",
     "@databases/pg-typed": "^4.4.1",
     "glob": "^10.3.12",
     "js-yaml": "^4.1.0",
