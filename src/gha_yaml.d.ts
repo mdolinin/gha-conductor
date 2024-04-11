@@ -13,10 +13,6 @@ export type TheModuleNameSchema = string;
  * teamNamespace must be unique across the whole mono repo
  */
 export type TheTeamNamespaceSchema = string;
-/**
- * Root directory of the namespace.
- */
-export type TheROOT_DIRSchema = string;
 export type PropertiesDefaultFileChangeTriggerItems = TheFirstAnyOfSchema;
 /**
  * List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.
@@ -26,111 +22,99 @@ export type TheFirstAnyOfSchema = string;
  * List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.
  */
 export type TheDefaultFileChangeTriggerSchema = PropertiesDefaultFileChangeTriggerItems[];
-export type PropertiesOnPullRequestItems = TheFirstAnyOfSchema1;
+export type PropertiesOnPullRequestItems = OnPullRequestHookSchema;
 /**
- * Build and test task.
+ * name of the hook, must be unique in the .gha.yaml file
  */
-export type TheBuildAndTestSchema = string;
+export type HookNameSchema = string;
 /**
- * helm name for pipeline for executing gradle task
+ * GHA workflow name to run, w/o file extension
  */
-export type TheNameSchema = string;
+export type GHAWorkflowNameSchema = string;
 /**
- * branch name for pipeline for executing task
+ * branch name for GHA workflow if different from default
  */
 export type TheRefSchema = string;
-/**
- * check and jacocoTestCoverageVerification gradle tasks to run.
- */
-export type TheCOMMANDSchema = string;
 export type PropertiesOnPullRequestItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems =
-  TheFirstAnyOfSchema2;
+  FileChangeMatcherSchema;
 /**
- * Condition for trigger for file changes.
+ * Glob to match files in the PR
  */
-export type TheFirstAnyOfSchema2 = string;
+export type FileChangeMatcherSchema = string;
 /**
- * Condition for trigger for file changes.
+ * List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs
  */
 export type TheFileChangesMatchAnySchema =
   PropertiesOnPullRequestItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems[];
 /**
- * Gradle tasks to run on Github pull request
+ * Workflows to run on Github pull request open, reopened, synchronize events
  */
 export type TheOnPullRequestSchema = PropertiesOnPullRequestItems[];
-export type PropertiesOnBranchMergeItems = TheFirstAnyOfSchema3;
+export type PropertiesOnBranchMergeItems = OnBranchMergeHookSchema;
 /**
- * run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.
+ * name of the hook, must be unique in the .gha.yaml file
  */
-export type TheNameSchema1 = string;
+export type HookNameSchema1 = string;
 /**
- * Generic pipeline name to run gradle tasks.
+ * GHA workflow name to run, w/o file extension
  */
-export type TheNameSchema2 = string;
+export type GHAWorkflowNameSchema1 = string;
 /**
- * branch name for pipeline for executing task
+ * branch name for GHA workflow if different from default
  */
 export type TheRefSchema1 = string;
-/**
- * run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.
- */
-export type TheCOMMANDSchema1 = string;
 export type PropertiesOnBranchMergeItemsAnyOf0PropertiesTriggerConditionsPropertiesDestinationBranchMatchesAnyItems =
-  TheFirstAnyOfSchema4;
+  TargetBranchNameSchema;
 /**
- * Branch name for which changes happened.
+ * Name of the target branch where the changes are merged.
  */
-export type TheFirstAnyOfSchema4 = string;
+export type TargetBranchNameSchema = string;
 /**
- * Branch name for which changes happened.
+ * List of the target branches where the changes are merged.
  */
 export type TheDestinationBranchMatchesAnySchema =
   PropertiesOnBranchMergeItemsAnyOf0PropertiesTriggerConditionsPropertiesDestinationBranchMatchesAnyItems[];
 export type PropertiesOnBranchMergeItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems =
-  TheFirstAnyOfSchema5;
+  FileChangeMatcherSchema1;
 /**
- * list of files that has updates.
+ * Glob to match files in the PR
  */
-export type TheFirstAnyOfSchema5 = string;
+export type FileChangeMatcherSchema1 = string;
 /**
- * list of files that has updates.
+ * List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs
  */
 export type TheFileChangesMatchAnySchema1 =
   PropertiesOnBranchMergeItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems[];
 /**
- * on branch merge github event, triggers gradle taks to publish image to artifactory
+ * Workflow to run on Github branch merge event
  */
 export type TheOnBranchMergeSchema = PropertiesOnBranchMergeItems[];
-export type PropertiesOnPullRequestCloseItems = TheFirstAnyOfSchema6;
+export type PropertiesOnPullRequestCloseItems = OnPullRequestCloseHookSchema;
 /**
- * run clean up task.
+ * name of the hook, must be unique in the .gha.yaml file
  */
-export type TheNameSchema3 = string;
+export type HookNameSchema2 = string;
 /**
- * Generic pipeline name to run gradle tasks.
+ * GHA workflow name to run, w/o file extension
  */
-export type TheNameSchema4 = string;
+export type GHAWorkflowNameSchema2 = string;
 /**
- * branch name for pipeline for executing task
+ * branch name for GHA workflow if different from default
  */
 export type TheRefSchema2 = string;
-/**
- * run clean up task.
- */
-export type TheCOMMANDSchema2 = string;
 export type PropertiesOnPullRequestCloseItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems =
-  TheFirstAnyOfSchema7;
+  FileChangeMatcherSchema2;
 /**
- * list of files that has updates.
+ * Glob to match files in the PR
  */
-export type TheFirstAnyOfSchema7 = string;
+export type FileChangeMatcherSchema2 = string;
 /**
- * list of files that has updates.
+ * List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs
  */
 export type TheFileChangesMatchAnySchema2 =
   PropertiesOnPullRequestCloseItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems[];
 /**
- * on branch merge github event, triggers tasks to clean up resources
+ * Workflows to run on Github pull request close event, but not merged.
  */
 export type TheOnPullRequestCloseSchema = PropertiesOnPullRequestCloseItems[];
 
@@ -148,85 +132,82 @@ export interface TheRootSchema {
   [k: string]: unknown;
 }
 /**
- * Params shared across all the projects with in the namespace
+ * Params shared across all hooks in the .gha.yaml file.
  */
 export interface TheSharedParamsSchema {
-  ROOT_DIR: TheROOT_DIRSchema;
   [k: string]: unknown;
 }
 /**
- * Gradle tasks to run on Github pull request
+ * Workflow to run on Github pull request open, reopened, synchronize events
  */
-export interface TheFirstAnyOfSchema1 {
-  name: TheBuildAndTestSchema;
+export interface OnPullRequestHookSchema {
+  name: HookNameSchema;
   pipelineRef: ThePipelineRefSchema;
   pipelineRunValues: ThePipelineRunValuesSchema;
   triggerConditions: TheTriggerConditionsSchema;
   [k: string]: unknown;
 }
 /**
- * pipeline for executing gradle task.
+ * Reference to the GHA workflow to run
  */
 export interface ThePipelineRefSchema {
-  name: TheNameSchema;
+  name: GHAWorkflowNameSchema;
   ref?: TheRefSchema;
   [k: string]: unknown;
 }
 /**
- * Gradle tasks to run for build and test
+ * Values to pass to the GHA workflow
  */
 export interface ThePipelineRunValuesSchema {
   params: TheParamsSchema;
   [k: string]: unknown;
 }
 /**
- * check and jacocoTestCoverageVerification gradle tasks to run.
+ * Parameters to pass to the GHA workflow
  */
 export interface TheParamsSchema {
-  COMMAND: TheCOMMANDSchema;
   [k: string]: unknown;
 }
 /**
- * Condition for trigger for file changes.
+ * Conditions to trigger the GHA workflow
  */
 export interface TheTriggerConditionsSchema {
   fileChangesMatchAny: TheFileChangesMatchAnySchema;
   [k: string]: unknown;
 }
 /**
- * Runs jacocoTestReport task and sonarqube task for the project “examples:example-a“ via  pipeline-gradle-task pipeline developed for executing a generic gradle task when ever there is a change in the files that are tracked under defaultFileChangeTrigger variable..
+ * Workflow to run on Github branch merge event
  */
-export interface TheFirstAnyOfSchema3 {
-  name: TheNameSchema1;
+export interface OnBranchMergeHookSchema {
+  name: HookNameSchema1;
   pipelineRef: ThePipelineRefSchema1;
   pipelineRunValues: ThePipelineRunValuesSchema1;
   triggerConditions: TheTriggerConditionsSchema1;
   [k: string]: unknown;
 }
 /**
- * Generic pipeline name to run gradle tasks.
+ * Reference to the GHA workflow to run
  */
 export interface ThePipelineRefSchema1 {
-  name: TheNameSchema2;
+  name: GHAWorkflowNameSchema1;
   ref?: TheRefSchema1;
   [k: string]: unknown;
 }
 /**
- * run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.
+ * Values to pass to the GHA workflow
  */
 export interface ThePipelineRunValuesSchema1 {
   params: TheParamsSchema1;
   [k: string]: unknown;
 }
 /**
- * run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.
+ * Parameters to pass to the GHA workflow
  */
 export interface TheParamsSchema1 {
-  COMMAND: TheCOMMANDSchema1;
   [k: string]: unknown;
 }
 /**
- * Trigger condition on file changes.
+ * Conditions to trigger the GHA workflow
  */
 export interface TheTriggerConditionsSchema1 {
   destinationBranchMatchesAny: TheDestinationBranchMatchesAnySchema;
@@ -234,39 +215,38 @@ export interface TheTriggerConditionsSchema1 {
   [k: string]: unknown;
 }
 /**
- * Runs task for the project “examples:example-a“ via  pipeline-gradle-task pipeline developed for executing a generic gradle task when ever there is a change in the files that are tracked under defaultFileChangeTrigger variable..
+ * Workflow to run on Github pull request close event, but not merged.
  */
-export interface TheFirstAnyOfSchema6 {
-  name: TheNameSchema3;
+export interface OnPullRequestCloseHookSchema {
+  name: HookNameSchema2;
   pipelineRef: ThePipelineRefSchema2;
   pipelineRunValues: ThePipelineRunValuesSchema2;
   triggerConditions: TheTriggerConditionsSchema2;
   [k: string]: unknown;
 }
 /**
- * Generic pipeline name to run gradle tasks.
+ * Reference to the GHA workflow to run
  */
 export interface ThePipelineRefSchema2 {
-  name: TheNameSchema4;
+  name: GHAWorkflowNameSchema2;
   ref?: TheRefSchema2;
   [k: string]: unknown;
 }
 /**
- * run clean up task.
+ * Values to pass to the GHA workflow
  */
 export interface ThePipelineRunValuesSchema2 {
   params: TheParamsSchema2;
   [k: string]: unknown;
 }
 /**
- * run clean up task.
+ * Parameters to pass to the GHA workflow
  */
 export interface TheParamsSchema2 {
-  COMMAND: TheCOMMANDSchema2;
   [k: string]: unknown;
 }
 /**
- * Trigger condition on file changes.
+ * Conditions to trigger the GHA workflow
  */
 export interface TheTriggerConditionsSchema2 {
   fileChangesMatchAny: TheFileChangesMatchAnySchema2;
