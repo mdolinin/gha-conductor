@@ -149,8 +149,6 @@ export class Hooks {
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
             const workflow_id = `${hook.pipeline_name}.yaml`;
             const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
-            const root_dir_param = hook.shared_params['ROOT_DIR'] ? hook.shared_params['ROOT_DIR'] : "";
-            const command_param = hook.pipeline_params['COMMAND'] ? hook.pipeline_params['COMMAND'] : "";
             // merge all shared and pipeline params and common_serialized_variables
             const serialized_variables = {
                 ...common_serialized_variables,
@@ -159,8 +157,6 @@ export class Hooks {
             }
             const inputs = {
                 PIPELINE_NAME: pipeline_name,
-                ROOT_DIR: root_dir_param,
-                COMMAND: command_param,
                 SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
             };
             const workflowDispatch: workflowDispatchEventParameters = {
