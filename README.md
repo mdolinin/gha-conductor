@@ -113,11 +113,6 @@ on:
     inputs:
       PIPELINE_NAME: # Required to be able to differentiate between jobs
         required: true
-      ROOT_DIR:
-        required: false
-        default: ""
-      COMMAND:
-        required: true
       SERIALIZED_VARIABLES: # workaround the 10 input limit by serializing the variables into a JSON string
         required: true
 
@@ -149,8 +144,8 @@ jobs:
       - name: Execute Task
         env:
           USER_HOME: ${{ github.workspace }}
-        working-directory: ${{ github.event.inputs.ROOT_DIR }}
-        run: ${{ github.event.inputs.COMMAND }}
+        working-directory: ${{ env.ROOT_DIR }}
+        run: ${{ env.COMMAND }}
 ```
 
 ## Usage

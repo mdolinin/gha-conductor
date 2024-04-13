@@ -13,91 +13,60 @@
                 "ROOT_DIR": "namespaces/domain-a"
             },
             "defaultFileChangeTrigger": [
-                "namespaces/domain-a/projects/examples/example-a/api/**",
-                "namespaces/domain-a/projects/examples/example-a/server/**",
-                "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                "namespaces/domain-a/projects/example-a/**"
             ],
             "onPullRequest": [
                 {
-                    "name": "build-and-test",
+                    "name": "build",
                     "pipelineRef": {
-                        "name": "pipeline-gradle-task",
-                        "ref": "master"
+                        "name": "generic-job",
+                        "ref": "main"
                     },
                     "pipelineRunValues": {
                         "params": {
-                            "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                            "COMMAND": "make build"
                         }
                     },
                     "triggerConditions": {
                         "fileChangesMatchAny": [
-                            "namespaces/domain-a/projects/examples/example-a/api/**",
-                            "namespaces/domain-a/projects/examples/example-a/server/**",
-                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                            "namespaces/domain-a/projects/example-a/**"
                         ]
                     }
                 },
                 {
-                    "name": "test-container",
+                    "name": "test",
                     "pipelineRef": {
-                        "name": "pipeline-gradle-task"
+                        "name": "generic-job"
                     },
                     "pipelineRunValues": {
                         "params": {
-                            "COMMAND": ":projects:examples:example-a:server:testImage"
+                            "COMMAND": "make test"
                         }
                     },
                     "triggerConditions": {
                         "fileChangesMatchAny": [
-                            "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                            "namespaces/domain-a/projects/example-a/tests/**"
                         ]
                     }
                 }
             ],
             "onBranchMerge": [
                 {
-                    "name": "run-sonar",
+                    "name": "release",
                     "pipelineRef": {
-                        "name": "pipeline-gradle-task"
+                        "name": "generic-job"
                     },
                     "pipelineRunValues": {
                         "params": {
-                            "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                            "COMMAND": "make release"
                         }
                     },
                     "triggerConditions": {
                         "destinationBranchMatchesAny": [
-                            "master"
+                            "main"
                         ],
                         "fileChangesMatchAny": [
-                            "namespaces/domain-a/projects/examples/example-a/api/**",
-                            "namespaces/domain-a/projects/examples/example-a/server/**",
-                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
-                        ]
-                    }
-                },
-                {
-                    "name": "publish-container",
-                    "pipelineRef": {
-                        "name": "pipeline-gradle-task"
-                    },
-                    "pipelineRunValues": {
-                        "params": {
-                            "COMMAND": ":projects:examples:example-a:server:jib :projects:examples:example-a:api:artifactoryPublish"
-                        }
-                    },
-                    "triggerConditions": {
-                        "destinationBranchMatchesAny": [
-                            "master"
-                        ],
-                        "fileChangesMatchAny": [
-                            "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                            "namespaces/domain-a/projects/example-a/**"
                         ]
                     }
                 }
@@ -137,28 +106,13 @@
             "$id": "#/properties/sharedParams",
             "type": "object",
             "title": "The sharedParams schema",
-            "description": "Params shared across all the projects with in the namespace",
+            "description": "Params shared across all hooks in the .gha.yaml file.",
             "default": {},
             "examples": [
                 {
                     "ROOT_DIR": "namespaces/domain-a"
                 }
             ],
-            "required": [
-                "ROOT_DIR"
-            ],
-            "properties": {
-                "ROOT_DIR": {
-                    "$id": "#/properties/sharedParams/properties/ROOT_DIR",
-                    "type": "string",
-                    "title": "The ROOT_DIR schema",
-                    "description": "Root directory of the namespace.",
-                    "default": "",
-                    "examples": [
-                        "namespaces/domain-a"
-                    ]
-                }
-            },
             "additionalProperties": true
         },
         "defaultFileChangeTrigger": {
@@ -169,8 +123,7 @@
             "default": [],
             "examples": [
                 [
-                    "namespaces/domain-a/projects/examples/example-a/api/**",
-                    "namespaces/domain-a/projects/examples/example-a/server/**"
+                    "namespaces/domain-a/projects/example-a/**"
                 ]
             ],
             "additionalItems": true,
@@ -184,8 +137,8 @@
                         "description": "List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.",
                         "default": "",
                         "examples": [
-                            "namespaces/domain-a/projects/examples/example-a/api/**",
-                            "namespaces/domain-a/projects/examples/example-a/server/**"
+                            "namespaces/domain-a/projects/example-a/**",
+                            "namespaces/domain-a/projects/example-b/test/test.sh"
                         ]
                     }
                 ]
@@ -195,43 +148,39 @@
             "$id": "#/properties/onPullRequest",
             "type": "array",
             "title": "The onPullRequest schema",
-            "description": "Gradle tasks to run on Github pull request",
+            "description": "Workflows to run on Github pull request open, reopened, synchronize events",
             "default": [],
             "examples": [
                 [
                     {
-                        "name": "build-and-test",
+                        "name": "build",
                         "pipelineRef": {
-                            "name": "pipeline-gradle-task"
+                            "name": "generic-job"
                         },
                         "pipelineRunValues": {
                             "params": {
-                                "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                "COMMAND": "make build"
                             }
                         },
                         "triggerConditions": {
                             "fileChangesMatchAny": [
-                                "namespaces/domain-a/projects/examples/example-a/api/**",
-                                "namespaces/domain-a/projects/examples/example-a/server/**",
-                                "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                                "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                "namespaces/domain-a/projects/example-a/**"
                             ]
                         }
                     },
                     {
-                        "name": "test-container",
+                        "name": "test",
                         "pipelineRef": {
-                            "name": "pipeline-gradle-task"
+                            "name": "generic-job"
                         },
                         "pipelineRunValues": {
                             "params": {
-                                "COMMAND": ":projects:examples:example-a:server:testImage"
+                                "COMMAND": "make test"
                             }
                         },
                         "triggerConditions": {
                             "fileChangesMatchAny": [
-                                "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                                "namespaces/domain-a/projects/example-a/tests/test.sh"
                             ]
                         }
                     }
@@ -244,27 +193,23 @@
                     {
                         "$id": "#/properties/onPullRequest/items/anyOf/0",
                         "type": "object",
-                        "title": "The first anyOf schema",
-                        "description": "Gradle tasks to run on Github pull request",
+                        "title": "On pull request hook schema",
+                        "description": "Workflow to run on Github pull request open, reopened, synchronize events",
                         "default": {},
                         "examples": [
                             {
-                                "name": "build-and-test",
+                                "name": "build",
                                 "pipelineRef": {
-                                    "name": "pipeline-gradle-task"
+                                    "name": "generic-job"
                                 },
                                 "pipelineRunValues": {
                                     "params": {
-                                        "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                        "COMMAND": "make build"
                                     }
                                 },
                                 "triggerConditions": {
                                     "fileChangesMatchAny": [
-                                        "namespaces/domain-a/projects/examples/example-a/api/**",
-                                        "namespaces/domain-a/projects/examples/example-a/server/**",
-                                        "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                                        "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                        "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                        "namespaces/domain-a/projects/example-a/**"
                                     ]
                                 }
                             }
@@ -279,8 +224,8 @@
                             "name": {
                                 "$id": "#/properties/onPullRequest/items/anyOf/0/properties/name",
                                 "type": "string",
-                                "title": "The build-and-test schema",
-                                "description": "Build and test task.",
+                                "title": "Hook name schema",
+                                "description": "name of the hook, must be unique in the .gha.yaml file",
                                 "default": "",
                                 "examples": [
                                     "build-and-test"
@@ -290,12 +235,12 @@
                                 "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRef",
                                 "type": "object",
                                 "title": "The pipelineRef schema",
-                                "description": "pipeline for executing gradle task.",
+                                "description": "Reference to the GHA workflow to run",
                                 "default": {},
                                 "examples": [
                                     {
-                                        "name": "pipeline-gradle-task",
-                                        "ref": "master"
+                                        "name": "generic-job",
+                                        "ref": "main"
                                     }
                                 ],
                                 "required": [
@@ -305,18 +250,18 @@
                                     "name": {
                                         "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRef/properties/name",
                                         "type": "string",
-                                        "title": "The name schema",
-                                        "description": "helm name for pipeline for executing gradle task",
+                                        "title": "GHA workflow name schema",
+                                        "description": "GHA workflow name to run, w/o file extension",
                                         "default": "",
                                         "examples": [
-                                            "pipeline-gradle-task"
+                                            "generic-job"
                                         ]
                                     },
                                     "ref": {
                                         "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRef/properties/ref",
                                         "type": "string",
                                         "title": "The ref schema",
-                                        "description": "branch name for pipeline for executing task",
+                                        "description": "branch name for GHA workflow if different from default",
                                         "default": "",
                                         "examples": [
                                             "master",
@@ -330,12 +275,12 @@
                                 "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRunValues",
                                 "type": "object",
                                 "title": "The pipelineRunValues schema",
-                                "description": "Gradle tasks to run for build and test",
+                                "description": "Values to pass to the GHA workflow",
                                 "default": {},
                                 "examples": [
                                     {
                                         "params": {
-                                            "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                            "COMMAND": "make build"
                                         }
                                     }
                                 ],
@@ -347,28 +292,13 @@
                                         "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRunValues/properties/params",
                                         "type": "object",
                                         "title": "The params schema",
-                                        "description": "check and jacocoTestCoverageVerification gradle tasks to run.",
+                                        "description": "Parameters to pass to the GHA workflow",
                                         "default": {},
                                         "examples": [
                                             {
-                                                "COMMAND": ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
+                                                "COMMAND": "make build"
                                             }
                                         ],
-                                        "required": [
-                                            "COMMAND"
-                                        ],
-                                        "properties": {
-                                            "COMMAND": {
-                                                "$id": "#/properties/onPullRequest/items/anyOf/0/properties/pipelineRunValues/properties/params/properties/COMMAND",
-                                                "type": "string",
-                                                "title": "The COMMAND schema",
-                                                "description": "check and jacocoTestCoverageVerification gradle tasks to run.",
-                                                "default": "",
-                                                "examples": [
-                                                    ":projects:examples:example-a:server:check :projects:examples:example-a:server:jacocoTestCoverageVerification"
-                                                ]
-                                            }
-                                        },
                                         "additionalProperties": true
                                     }
                                 },
@@ -378,16 +308,12 @@
                                 "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions",
                                 "type": "object",
                                 "title": "The triggerConditions schema",
-                                "description": "Condition for trigger for file changes.",
+                                "description": "Conditions to trigger the GHA workflow",
                                 "default": {},
                                 "examples": [
                                     {
                                         "fileChangesMatchAny": [
-                                            "namespaces/domain-a/projects/examples/example-a/api/**",
-                                            "namespaces/domain-a/projects/examples/example-a/server/**",
-                                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                            "namespaces/domain-a/projects/example-a/**"
                                         ]
                                     }
                                 ],
@@ -399,12 +325,11 @@
                                         "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
                                         "type": "array",
                                         "title": "The fileChangesMatchAny schema",
-                                        "description": "Condition for trigger for file changes.",
+                                        "description": "List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs",
                                         "default": [],
                                         "examples": [
                                             [
-                                                "namespaces/domain-a/projects/examples/example-a/api/**",
-                                                "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                "namespaces/domain-a/projects/example-a/**"
                                             ]
                                         ],
                                         "additionalItems": true,
@@ -414,12 +339,11 @@
                                                 {
                                                     "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
                                                     "type": "string",
-                                                    "title": "The first anyOf schema",
-                                                    "description": "Condition for trigger for file changes.",
+                                                    "title": "File change matcher schema",
+                                                    "description": "Glob to match files in the PR",
                                                     "default": "",
                                                     "examples": [
-                                                        "namespaces/domain-a/projects/examples/example-a/api/**",
-                                                        "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                        "namespaces/domain-a/projects/example-a/**"
                                                     ]
                                                 }
                                             ]
@@ -438,50 +362,27 @@
             "$id": "#/properties/onBranchMerge",
             "type": "array",
             "title": "The onBranchMerge schema",
-            "description": "on branch merge github event, triggers gradle taks to publish image to artifactory",
+            "description": "Workflow to run on Github branch merge event",
             "default": [],
             "examples": [
                 [
                     {
-                        "name": "run-sonar",
+                        "name": "release",
                         "pipelineRef": {
-                            "name": "pipeline-gradle-task",
-                            "ref": "master"
+                            "name": "generic-job",
+                            "ref": "main"
                         },
                         "pipelineRunValues": {
                             "params": {
-                                "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                "COMMAND": "make release"
                             }
                         },
                         "triggerConditions": {
                             "destinationBranchMatchesAny": [
-                                "master"
+                                "main"
                             ],
                             "fileChangesMatchAny": [
-                                "namespaces/domain-a/projects/examples/example-a/api/**",
-                                "namespaces/domain-a/projects/examples/example-a/server/**",
-                                "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                                "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "publish-container",
-                        "pipelineRef": {
-                            "name": "pipeline-gradle-task"
-                        },
-                        "pipelineRunValues": {
-                            "params": {
-                                "COMMAND": ":projects:examples:example-a:server:jib :projects:examples:example-a:api:artifactoryPublish"
-                            }
-                        },
-                        "triggerConditions": {
-                            "destinationBranchMatchesAny": [
-                                "master"
-                            ],
-                            "fileChangesMatchAny": [
-                                "namespaces/domain-a/projects/examples/example-a/terraform/published.json"
+                                "namespaces/domain-a/projects/example-a/**"
                             ]
                         }
                     }
@@ -494,31 +395,27 @@
                     {
                         "$id": "#/properties/onBranchMerge/items/anyOf/0",
                         "type": "object",
-                        "title": "The first anyOf schema",
-                        "description": "Runs jacocoTestReport task and sonarqube task for the project “examples:example-a“ via  pipeline-gradle-task pipeline developed for executing a generic gradle task when ever there is a change in the files that are tracked under defaultFileChangeTrigger variable..",
+                        "title": "On branch merge hook schema",
+                        "description": "Workflow to run on Github branch merge event",
                         "default": {},
                         "examples": [
                             {
-                                "name": "run-sonar",
+                                "name": "release",
                                 "pipelineRef": {
-                                    "name": "pipeline-gradle-task",
-                                    "ref": "master"
+                                    "name": "generic-job",
+                                    "ref": "main"
                                 },
                                 "pipelineRunValues": {
                                     "params": {
-                                        "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                        "COMMAND": "make release"
                                     }
                                 },
                                 "triggerConditions": {
                                     "destinationBranchMatchesAny": [
-                                        "master"
+                                        "main"
                                     ],
                                     "fileChangesMatchAny": [
-                                        "namespaces/domain-a/projects/examples/example-a/api/**",
-                                        "namespaces/domain-a/projects/examples/example-a/server/**",
-                                        "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                                        "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                        "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                        "namespaces/domain-a/projects/example-a/**"
                                     ]
                                 }
                             }
@@ -533,22 +430,22 @@
                             "name": {
                                 "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/name",
                                 "type": "string",
-                                "title": "The name schema",
-                                "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
+                                "title": "Hook name schema",
+                                "description": "name of the hook, must be unique in the .gha.yaml file",
                                 "default": "",
                                 "examples": [
-                                    "run-sonar"
+                                    "release"
                                 ]
                             },
                             "pipelineRef": {
                                 "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRef",
                                 "type": "object",
                                 "title": "The pipelineRef schema",
-                                "description": "Generic pipeline name to run gradle tasks.",
+                                "description": "Reference to the GHA workflow to run",
                                 "default": {},
                                 "examples": [
                                     {
-                                        "name": "pipeline-gradle-task"
+                                        "name": "generic-job"
                                     }
                                 ],
                                 "required": [
@@ -558,18 +455,18 @@
                                     "name": {
                                         "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRef/properties/name",
                                         "type": "string",
-                                        "title": "The name schema",
-                                        "description": "Generic pipeline name to run gradle tasks.",
+                                        "title": "GHA workflow name schema",
+                                        "description": "GHA workflow name to run, w/o file extension",
                                         "default": "",
                                         "examples": [
-                                            "pipeline-gradle-task"
+                                            "generic-job"
                                         ]
                                     },
                                     "ref": {
                                         "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRef/properties/ref",
                                         "type": "string",
                                         "title": "The ref schema",
-                                        "description": "branch name for pipeline for executing task",
+                                        "description": "branch name for GHA workflow if different from default",
                                         "default": "",
                                         "examples": [
                                             "master",
@@ -583,12 +480,12 @@
                                 "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRunValues",
                                 "type": "object",
                                 "title": "The pipelineRunValues schema",
-                                "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
+                                "description": "Values to pass to the GHA workflow",
                                 "default": {},
                                 "examples": [
                                     {
                                         "params": {
-                                            "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                            "COMMAND": "make release"
                                         }
                                     }
                                 ],
@@ -600,28 +497,13 @@
                                         "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRunValues/properties/params",
                                         "type": "object",
                                         "title": "The params schema",
-                                        "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
+                                        "description": "Parameters to pass to the GHA workflow",
                                         "default": {},
                                         "examples": [
                                             {
-                                                "COMMAND": ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
+                                                "COMMAND": "make release"
                                             }
                                         ],
-                                        "required": [
-                                            "COMMAND"
-                                        ],
-                                        "properties": {
-                                            "COMMAND": {
-                                                "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/pipelineRunValues/properties/params/properties/COMMAND",
-                                                "type": "string",
-                                                "title": "The COMMAND schema",
-                                                "description": "run sonarqube scanner to detect bugs, vulnerabilities, and code smells in your code.",
-                                                "default": "",
-                                                "examples": [
-                                                    ":projects:examples:example-a:server:jacocoTestReport :projects:examples:example-a:server:sonarqube"
-                                                ]
-                                            }
-                                        },
                                         "additionalProperties": true
                                     }
                                 },
@@ -631,19 +513,15 @@
                                 "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions",
                                 "type": "object",
                                 "title": "The triggerConditions schema",
-                                "description": "Trigger condition on file changes.",
+                                "description": "Conditions to trigger the GHA workflow",
                                 "default": {},
                                 "examples": [
                                     {
                                         "destinationBranchMatchesAny": [
-                                            "master"
+                                            "main"
                                         ],
                                         "fileChangesMatchAny": [
-                                            "namespaces/domain-a/projects/examples/example-a/api/**",
-                                            "namespaces/domain-a/projects/examples/example-a/server/**",
-                                            "namespaces/domain-a/projects/examples/example-a/server-stub/**",
-                                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                            "namespaces/domain-a/projects/example-a/**"
                                         ]
                                     }
                                 ],
@@ -656,10 +534,11 @@
                                         "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/destinationBranchMatchesAny",
                                         "type": "array",
                                         "title": "The destinationBranchMatchesAny schema",
-                                        "description": "Branch name for which changes happened.",
+                                        "description": "List of the target branches where the changes are merged.",
                                         "default": [],
                                         "examples": [
                                             [
+                                                "main",
                                                 "master"
                                             ]
                                         ],
@@ -670,11 +549,11 @@
                                                 {
                                                     "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/destinationBranchMatchesAny/items/anyOf/0",
                                                     "type": "string",
-                                                    "title": "The first anyOf schema",
-                                                    "description": "Branch name for which changes happened.",
+                                                    "title": "Target branch name schema",
+                                                    "description": "Name of the target branch where the changes are merged.",
                                                     "default": "",
                                                     "examples": [
-                                                        "master"
+                                                        "main"
                                                     ]
                                                 }
                                             ]
@@ -684,12 +563,12 @@
                                         "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
                                         "type": "array",
                                         "title": "The fileChangesMatchAny schema",
-                                        "description": "list of files that has updates.",
+                                        "description": "List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs",
                                         "default": [],
                                         "examples": [
                                             [
-                                                "namespaces/domain-a/projects/examples/example-a/api/**",
-                                                "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                "namespaces/domain-a/projects/example-a/**",
+                                                "namespaces/domain-a/projects/example-b/test/test.sh"
                                             ]
                                         ],
                                         "additionalItems": true,
@@ -699,12 +578,11 @@
                                                 {
                                                     "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
                                                     "type": "string",
-                                                    "title": "The first anyOf schema",
-                                                    "description": "list of files that has updates.",
+                                                    "title": "File change matcher schema",
+                                                    "description": "Glob to match files in the PR",
                                                     "default": "",
                                                     "examples": [
-                                                        "namespaces/domain-a/projects/examples/example-a/api/**",
-                                                        "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                        "namespaces/domain-a/projects/example-a/**"
                                                     ]
                                                 }
                                             ]
@@ -723,26 +601,24 @@
             "$id": "#/properties/onPullRequestClose",
             "type": "array",
             "title": "The onPullRequestClose schema",
-            "description": "on branch merge github event, triggers tasks to clean up resources",
+            "description": "Workflows to run on Github pull request close event, but not merged.",
             "default": [],
             "examples": [
                 [
                     {
-                        "name": "run-clean-up",
+                        "name": "cleanup",
                         "pipelineRef": {
-                            "name": "pipeline-gradle-task",
-                            "ref": "master"
+                            "name": "generic-job",
+                            "ref": "main"
                         },
                         "pipelineRunValues": {
                             "params": {
-                                "COMMAND": ":projects:examples:example-a:server:cleanup"
+                                "COMMAND": "make clean"
                             }
                         },
                         "triggerConditions": {
                             "fileChangesMatchAny": [
-                                "namespaces/domain-a/projects/examples/example-a/server/**",
-                                "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                "namespaces/domain-a/projects/example-a/**"
                             ]
                         }
                     }
@@ -755,26 +631,24 @@
                     {
                         "$id": "#/properties/onPullRequestClose/items/anyOf/0",
                         "type": "object",
-                        "title": "The first anyOf schema",
-                        "description": "Runs task for the project “examples:example-a“ via  pipeline-gradle-task pipeline developed for executing a generic gradle task when ever there is a change in the files that are tracked under defaultFileChangeTrigger variable..",
+                        "title": "On pull request close hook schema",
+                        "description": "Workflow to run on Github pull request close event, but not merged.",
                         "default": {},
                         "examples": [
                             {
-                                "name": "run-clean-up",
+                                "name": "cleanup",
                                 "pipelineRef": {
-                                    "name": "pipeline-gradle-task",
-                                    "ref": "master"
+                                    "name": "generic-job",
+                                    "ref": "main"
                                 },
                                 "pipelineRunValues": {
                                     "params": {
-                                        "COMMAND": ":projects:examples:example-a:server:cleanup"
+                                        "COMMAND": "make clean"
                                     }
                                 },
                                 "triggerConditions": {
                                     "fileChangesMatchAny": [
-                                        "namespaces/domain-a/projects/examples/example-a/server/**",
-                                        "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                        "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                        "namespaces/domain-a/projects/example-a/**"
                                     ]
                                 }
                             }
@@ -789,23 +663,23 @@
                             "name": {
                                 "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/name",
                                 "type": "string",
-                                "title": "The name schema",
-                                "description": "run clean up task.",
+                                "title": "Hook name schema",
+                                "description": "name of the hook, must be unique in the .gha.yaml file",
                                 "default": "",
                                 "examples": [
-                                    "run-clean-up"
+                                    "cleanup"
                                 ]
                             },
                             "pipelineRef": {
                                 "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRef",
                                 "type": "object",
                                 "title": "The pipelineRef schema",
-                                "description": "Generic pipeline name to run gradle tasks.",
+                                "description": "Reference to the GHA workflow to run",
                                 "default": {},
                                 "examples": [
                                     {
-                                        "name": "pipeline-gradle-task",
-                                        "ref": "master"
+                                        "name": "generic-job",
+                                        "ref": "main"
                                     }
                                 ],
                                 "required": [
@@ -815,18 +689,18 @@
                                     "name": {
                                         "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRef/properties/name",
                                         "type": "string",
-                                        "title": "The name schema",
-                                        "description": "Generic pipeline name to run gradle tasks.",
+                                        "title": "GHA workflow name schema",
+                                        "description": "GHA workflow name to run, w/o file extension",
                                         "default": "",
                                         "examples": [
-                                            "pipeline-gradle-task"
+                                            "generic-job"
                                         ]
                                     },
                                     "ref": {
                                         "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRef/properties/ref",
                                         "type": "string",
                                         "title": "The ref schema",
-                                        "description": "branch name for pipeline for executing task",
+                                        "description":"branch name for GHA workflow if different from default",
                                         "default": "",
                                         "examples": [
                                             "master",
@@ -840,12 +714,12 @@
                                 "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRunValues",
                                 "type": "object",
                                 "title": "The pipelineRunValues schema",
-                                "description": "run clean up task.",
+                                "description": "Values to pass to the GHA workflow",
                                 "default": {},
                                 "examples": [
                                     {
                                         "params": {
-                                            "COMMAND": ":projects:examples:example-a:server:cleanup"
+                                            "COMMAND": "make clean"
                                         }
                                     }
                                 ],
@@ -857,28 +731,13 @@
                                         "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRunValues/properties/params",
                                         "type": "object",
                                         "title": "The params schema",
-                                        "description": "run clean up task.",
+                                        "description": "Parameters to pass to the GHA workflow",
                                         "default": {},
                                         "examples": [
                                             {
-                                                "COMMAND": ":projects:examples:example-a:server:cleanup"
+                                                "COMMAND": "make clean"
                                             }
                                         ],
-                                        "required": [
-                                            "COMMAND"
-                                        ],
-                                        "properties": {
-                                            "COMMAND": {
-                                                "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/pipelineRunValues/properties/params/properties/COMMAND",
-                                                "type": "string",
-                                                "title": "The COMMAND schema",
-                                                "description": "run clean up task.",
-                                                "default": "",
-                                                "examples": [
-                                                    ":projects:examples:example-a:server:cleanup"
-                                                ]
-                                            }
-                                        },
                                         "additionalProperties": true
                                     }
                                 },
@@ -888,14 +747,12 @@
                                 "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions",
                                 "type": "object",
                                 "title": "The triggerConditions schema",
-                                "description": "Trigger condition on file changes.",
+                                "description": "Conditions to trigger the GHA workflow",
                                 "default": {},
                                 "examples": [
                                     {
                                         "fileChangesMatchAny": [
-                                            "namespaces/domain-a/projects/examples/example-a/server/**",
-                                            "namespaces/domain-a/projects/examples/example-a/build.gradle",
-                                            "namespaces/domain-a/projects/examples/example-a/openapi.v3.yaml"
+                                            "namespaces/domain-a/projects/example-a/**"
                                         ]
                                     }
                                 ],
@@ -907,12 +764,11 @@
                                         "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
                                         "type": "array",
                                         "title": "The fileChangesMatchAny schema",
-                                        "description": "list of files that has updates.",
+                                        "description": "List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs",
                                         "default": [],
                                         "examples": [
                                             [
-                                                "namespaces/domain-a/projects/examples/example-a/api/**",
-                                                "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                "namespaces/domain-a/projects/example-a/**"
                                             ]
                                         ],
                                         "additionalItems": true,
@@ -922,12 +778,11 @@
                                                 {
                                                     "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
                                                     "type": "string",
-                                                    "title": "The first anyOf schema",
-                                                    "description": "list of files that has updates.",
+                                                    "title": "File change matcher schema",
+                                                    "description": "Glob to match files in the PR",
                                                     "default": "",
                                                     "examples": [
-                                                        "namespaces/domain-a/projects/examples/example-a/api/**",
-                                                        "namespaces/domain-a/projects/examples/example-a/server/**"
+                                                        "namespaces/domain-a/projects/example-a/**"
                                                     ]
                                                 }
                                             ]
