@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/mdolinin/gha-conductor/compare/v1.7.0...v1.8.0) (2024-04-13)
+
+
+### Features
+
+* **params:** simplify GHA workflow inputs to require only PIPELINE_NAME and SERIALIZED_VARIABLES ([#38](https://github.com/mdolinin/gha-conductor/issues/38)) ([6f4e183](https://github.com/mdolinin/gha-conductor/commit/6f4e1837ca623b87795608e4f3a75e72af4023ff))
+
 # [1.7.0](https://github.com/mdolinin/gha-conductor/compare/v1.6.0...v1.7.0) (2024-04-07)
 
 
