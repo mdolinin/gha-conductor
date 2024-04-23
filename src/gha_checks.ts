@@ -36,7 +36,8 @@ const ansiRegex = new RegExp(ansiPattern, 'g');
 export enum PRCheckName {
     PRStatus = "pr-status",
     PRMerge = "pr-merge",
-    PRClose = "pr-close"
+    PRClose = "pr-close",
+    PRSlashCommand = "pr-slash-command"
 }
 
 export enum PRCheckAction {
@@ -83,7 +84,7 @@ export class GhaChecks {
         merged_at: null;
         merged: boolean;
         merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string) {
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const {headSha, checkName} = this.parseHeadShaFromJobName(pipeline.name);
         if (headSha) {
             await gha_workflow_runs(db).insert({
@@ -100,7 +101,7 @@ export class GhaChecks {
         }
     }
 
-    private hookToCheckName(hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose") {
+    private hookToCheckName(hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand") {
         switch (hookType) {
             case "onPullRequest":
                 return PRCheckName.PRStatus;
@@ -108,6 +109,8 @@ export class GhaChecks {
                 return PRCheckName.PRMerge;
             case "onPullRequestClose":
                 return PRCheckName.PRClose;
+            case "onSlashCommand":
+                return PRCheckName.PRSlashCommand;
         }
     }
 
@@ -123,7 +126,7 @@ export class GhaChecks {
         merged_at: null;
         active_lock_reason: null;
         merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string, hooksWithNotExistingRefs: GhaHook[]) {
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string, hooksWithNotExistingRefs: GhaHook[]) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
@@ -183,7 +186,7 @@ export class GhaChecks {
         merged_at: null;
         merged: boolean;
         merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string) {
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
@@ -239,7 +242,7 @@ export class GhaChecks {
         merged_at: null;
         merged: boolean;
         merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose", merge_commit_sha: string) {
+    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
