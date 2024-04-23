@@ -142,22 +142,24 @@ export class GhaLoader {
         if (ghaFileYaml.onSlashCommand !== undefined) {
             // iterate over onSlashCommand hooks and store in db
             for (const onSlashCommand of ghaFileYaml.onSlashCommand) {
-                for (const slashCommand of onSlashCommand.triggerConditions.slashCommands) {
-                    const hook = {
-                        repo_full_name: full_name,
-                        branch: branch,
-                        file_changes_matcher: '',
-                        destination_branch_matcher: null,
-                        hook: 'onSlashCommand' as HookType,
-                        hook_name: onSlashCommand.name,
-                        pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onSlashCommand.name}`,
-                        pipeline_name: onSlashCommand.pipelineRef.name,
-                        pipeline_ref: onSlashCommand.pipelineRef.ref,
-                        pipeline_params: onSlashCommand.pipelineRunValues.params,
-                        shared_params: ghaFileYaml.sharedParams,
-                        slash_command: slashCommand
+                for (const fileChangesMatch of onSlashCommand.triggerConditions.fileChangesMatchAny) {
+                    for (const slashCommand of onSlashCommand.triggerConditions.slashCommands) {
+                        const hook = {
+                            repo_full_name: full_name,
+                            branch: branch,
+                            file_changes_matcher: fileChangesMatch,
+                            destination_branch_matcher: null,
+                            hook: 'onSlashCommand' as HookType,
+                            hook_name: onSlashCommand.name,
+                            pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onSlashCommand.name}`,
+                            pipeline_name: onSlashCommand.pipelineRef.name,
+                            pipeline_ref: onSlashCommand.pipelineRef.ref,
+                            pipeline_params: onSlashCommand.pipelineRunValues.params,
+                            shared_params: ghaFileYaml.sharedParams,
+                            slash_command: slashCommand
+                        }
+                        await gha_hooks(db).insert(hook);
                     }
-                    await gha_hooks(db).insert(hook);
                 }
             }
         }

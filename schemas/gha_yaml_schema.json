@@ -819,6 +819,9 @@
                         "triggerConditions": {
                             "slashCommands": [
                                 "validate"
+                            ],
+                            "fileChangesMatchAny": [
+                                "namespaces/domain-a/projects/example-a/**"
                             ]
                         }
                     }
@@ -849,6 +852,9 @@
                                 "triggerConditions": {
                                     "slashCommands": [
                                         "validate"
+                                    ],
+                                    "fileChangesMatchAny": [
+                                        "namespaces/domain-a/projects/example-a/**"
                                     ]
                                 }
                             }
@@ -953,11 +959,15 @@
                                     {
                                         "slashCommands": [
                                             "validate"
+                                        ],
+                                        "fileChangesMatchAny": [
+                                            "namespaces/domain-a/projects/example-a/**"
                                         ]
                                     }
                                 ],
                                 "required": [
-                                    "slashCommands"
+                                    "slashCommands",
+                                    "fileChangesMatchAny"
                                 ],
                                 "properties": {
                                     "slashCommands": {
@@ -983,6 +993,34 @@
                                                     "default": "",
                                                     "examples": [
                                                         "validate"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "fileChangesMatchAny": {
+                                        "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
+                                        "type": "array",
+                                        "title": "The fileChangesMatchAny schema",
+                                        "description": "List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs",
+                                        "default": [],
+                                        "examples": [
+                                            [
+                                                "namespaces/domain-a/projects/example-a/**"
+                                            ]
+                                        ],
+                                        "additionalItems": true,
+                                        "items": {
+                                            "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
+                                            "anyOf": [
+                                                {
+                                                    "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
+                                                    "type": "string",
+                                                    "title": "File change matcher schema",
+                                                    "description": "Glob to match files in the PR",
+                                                    "default": "",
+                                                    "examples": [
+                                                        "namespaces/domain-a/projects/example-a/**"
                                                     ]
                                                 }
                                             ]

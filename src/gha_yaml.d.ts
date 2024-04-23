@@ -141,6 +141,17 @@ export type SlashCommandMatcherSchema = string;
  */
 export type TheSlashCommandsSchema =
   PropertiesOnSlashCommandItemsAnyOf0PropertiesTriggerConditionsPropertiesSlashCommandsItems[];
+export type PropertiesOnSlashCommandItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems =
+  FileChangeMatcherSchema3;
+/**
+ * Glob to match files in the PR
+ */
+export type FileChangeMatcherSchema3 = string;
+/**
+ * List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs
+ */
+export type TheFileChangesMatchAnySchema3 =
+  PropertiesOnSlashCommandItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems[];
 /**
  * Workflows to run on Github slash command comments
  */
@@ -317,5 +328,6 @@ export interface TheParamsSchema3 {
  */
 export interface TheTriggerConditionsSchema3 {
   slashCommands: TheSlashCommandsSchema;
+  fileChangesMatchAny: TheFileChangesMatchAnySchema3;
   [k: string]: unknown;
 }
