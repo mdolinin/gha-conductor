@@ -278,7 +278,8 @@ describe("gha-conductor app", () => {
                 pipeline_name: "pipeline_name",
                 pipeline_ref: "non_existing_ref",
                 pipeline_params: {},
-                shared_params: {}
+                shared_params: {},
+                slash_command: undefined,
             }]);
         });
         const mock = nock("https://api.github.com")

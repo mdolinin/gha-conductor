@@ -11,6 +11,10 @@ import {
 import {
     RestEndpointMethodTypes
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
+import {inspect} from "node:util";
+
+const TOKENISE_REGEX =
+    /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
 
 export = (app: Probot) => {
 
@@ -243,6 +247,124 @@ export = (app: Probot) => {
             }
         }
     });
+
+    function tokeniseCommand(command: string): string[] {
+        let matches
+        const output: string[] = []
+        while ((matches = TOKENISE_REGEX.exec(command))) {
+            output.push(matches[0])
+        }
+        return output
+    }
+
+    app.on(["issue_comment.created", "issue_comment.edited"], async (context) => {
+        app.log.info(`Issue comment created/edited event received for ${context.payload.issue.number}`);
+        const issueComment = context.payload.comment;
+        // check that the comment is not from a bot
+        if (issueComment.user.type === 'Bot') {
+            app.log.debug('The comment is from a bot, ignoring.')
+            return
+        }
+        // check that the comment is on PR and not an issue
+        const isPullRequest = 'pull_request' in context.payload.issue
+        if (!isPullRequest) {
+            app.log.debug('The comment is not on a PR, ignoring.')
+            return
+        }
+        // check that PR is not merged
+        const merged_at = context.payload.issue.pull_request?.merged_at
+        if (merged_at) {
+            app.log.debug('The PR is merged, ignoring.')
+            return
+        }
+        const owner = context.payload.repository.owner.login;
+        const repo = context.payload.repository.name;
+        // check that the comment is from a user with write permissions
+        const permissions = await context.octokit.repos.getCollaboratorPermissionLevel({
+            owner: owner,
+            repo: repo,
+            username: issueComment.user.login
+        })
+        if (permissions.status !== 200) {
+            app.log.error(`Failed to get permissions for ${issueComment.user.login} in ${context.payload.repository.full_name}`)
+            return
+        }
+        app.log.debug(`Permissions for ${issueComment.user.login} in ${context.payload.repository.full_name} are ${permissions.data.permission}`)
+        if (permissions.data.permission !== 'write' && permissions.data.permission !== 'admin') {
+            app.log.debug('The comment is from a user without write permissions, ignoring.')
+            return
+        }
+        // check that is not from forked repo
+        const prNumber = context.payload.issue.number
+        const response = await context.octokit.pulls.get({
+            owner: context.payload.repository.owner.login,
+            repo: context.payload.repository.name,
+            pull_number: prNumber
+        })
+        if (response.status !== 200) {
+            app.log.error(`Failed to get PR ${prNumber} from ${context.payload.repository.full_name}`)
+            return
+        }
+        const pr = response.data
+        if (pr.head.repo && pr.head.repo.fork) {
+            app.log.debug('The comment is from a forked repo, ignoring.')
+            return
+        }
+        // check that the comment is not on a closed PR
+        if (pr.state === 'closed') {
+            app.log.debug('The comment is on a closed PR, ignoring.')
+            return
+        }
+        const commentBody = issueComment.body;
+        // Check if the first line of the comment is a slash command
+        const firstLine = commentBody.split(/\r?\n/)[0].trim()
+        if (firstLine.length < 2 || firstLine.charAt(0) != '/') {
+            app.log.debug('The first line of the comment is not a valid slash command.')
+            return
+        }
+        // Tokenise the first line (minus the leading slash)
+        const commandTokens = tokeniseCommand(firstLine.slice(1))
+        app.log.debug(`Command tokens: ${inspect(commandTokens)}`)
+
+        const numOfChangedFiles = pr.changed_files;
+        if (numOfChangedFiles > 0) {
+            const repo_full_name = context.payload.repository.full_name;
+            const changedFilesResp = await context.octokit.pulls.listFiles({
+                owner: owner,
+                repo: repo,
+                pull_number: prNumber
+            });
+            const changedFiles = changedFilesResp.data.map((file) => file.filename);
+            app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
+            const hookType = "onSlashCommand"
+            const baseBranch = pr.base.ref;
+            const command = commandTokens[0]
+            const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR, command);
+            let merge_commit_sha = pr.merge_commit_sha;
+            if (merge_commit_sha === null) {
+                merge_commit_sha = pr.head.sha;
+            }
+            const default_branch = pr.base.repo.default_branch;
+            const hooksWithNotExistingRefs = await hooks.verifyAllHooksRefsExist(context.octokit, owner, repo, default_branch, triggeredHooks);
+            if (hooksWithNotExistingRefs.length > 0) {
+                app.log.info(`There are hooks with non-existing refs. No hooks will be triggered`);
+                await checks.createPRCheckWithNonExistingRefs(context.octokit, pr, hookType, merge_commit_sha, hooksWithNotExistingRefs);
+                return;
+            }
+            const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
+            for (const pipelineName of triggeredPipelineNames) {
+                await checks.createNewRun(pipelineName, pr, hookType, merge_commit_sha);
+            }
+            if (triggeredPipelineNames.length === 0) {
+                await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
+            } else {
+                await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
+            }
+        } else {
+            app.log.info(`No files changed in PR ${prNumber}. No hooks will be triggered`);
+        }
+   });
     // For more information on building apps:
     // https://probot.github.io/docs/
 

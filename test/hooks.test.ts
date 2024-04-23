@@ -53,7 +53,8 @@ describe('gha hooks', () => {
             pipeline_name: "pipeline_name",
             pipeline_ref: "pipeline_ref",
             pipeline_params: {},
-            shared_params: {}
+            shared_params: {},
+            slash_command: undefined
         };
         const triggeredHooks = await hooks.filterTriggeredHooks(
             "repo_full_name", "onBranchMerge", ["file1", "file2"], "baseBranch",
@@ -84,7 +85,8 @@ describe('gha hooks', () => {
             pipeline_name: "pipeline_name",
             pipeline_ref: "pipeline_ref",
             pipeline_params: {},
-            shared_params: {}
+            shared_params: {},
+            slash_command: undefined
         };
         const triggeredHookNames = await hooks.filterTriggeredHooks(
             "repo_full_name", "onPullRequest", ["file1", "file2"], "baseBranch",
@@ -154,6 +156,7 @@ describe('gha hooks', () => {
             },
             pipeline_unique_prefix: "namespace1-module1-hook1",
             file_changes_matcher: "*.yaml",
+            slash_command: undefined,
             hook: "onPullRequest" as HookType
         };
         const hook2 = {
@@ -173,6 +176,7 @@ describe('gha hooks', () => {
             },
             pipeline_unique_prefix: "namespace1-module1-hook2",
             file_changes_matcher: "app/*.js",
+            slash_command: undefined,
             hook: "onBranchMerge" as HookType
         };
         triggeredHooks.add(hook1);
@@ -243,6 +247,7 @@ describe('gha hooks', () => {
             },
             pipeline_unique_prefix: "namespace1-module1-hook1",
             file_changes_matcher: "*.yaml",
+            slash_command: undefined,
             hook: "onPullRequest" as HookType
         };
         const hooksList = new Set<GhaHook>();

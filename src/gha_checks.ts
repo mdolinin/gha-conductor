@@ -1,6 +1,5 @@
 import {
     CheckRunRerequestedEvent,
-    PullRequest,
     WorkflowJobCompletedEvent,
     WorkflowJobInProgressEvent,
     WorkflowJobQueuedEvent
@@ -54,37 +53,9 @@ export interface ReRunPayload {
 
 export class GhaChecks {
 
-    async createNewRun(pipeline: TriggeredWorkflow, pull_request: (PullRequest & {
-        state: "closed";
-        closed_at: string;
-        merged: boolean
-    }) | PullRequest | (PullRequest & {
-        closed_at: null;
-        merged_at: null;
-        draft: true;
-        merged: false;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        merge_commit_sha: null;
-        active_lock_reason: null;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        draft: false;
-        merged: boolean;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        merged: boolean;
-        merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
+    async createNewRun(pipeline: TriggeredWorkflow, pull_request: {
+        number: number
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const {headSha, checkName} = this.parseHeadShaFromJobName(pipeline.name);
         if (headSha) {
             await gha_workflow_runs(db).insert({
@@ -114,19 +85,15 @@ export class GhaChecks {
         }
     }
 
-    async createPRCheckWithNonExistingRefs(octokit: ProbotOctokit, pull_request: (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        merged: boolean;
-        merged_by: null
-    }) | PullRequest | (PullRequest & { state: "closed"; closed_at: string; merged: boolean }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        active_lock_reason: null;
-        merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string, hooksWithNotExistingRefs: GhaHook[]) {
+    async createPRCheckWithNonExistingRefs(octokit: ProbotOctokit,
+                                           pull_request: {
+                                               base: { repo: { owner: { login: string }, name: string } },
+                                               head: { sha: string },
+                                               number: number
+                                           },
+                                           hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
+                                           merge_commit_sha: string,
+                                           hooksWithNotExistingRefs: GhaHook[]) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
@@ -156,37 +123,16 @@ export class GhaChecks {
         }
     }
 
-    async createPRCheckNoPipelinesTriggered(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
-        state: "closed";
-        closed_at: string;
-        merged: boolean
-    }) | PullRequest | (PullRequest & {
-        closed_at: null;
-        merged_at: null;
-        draft: true;
-        merged: false;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        merge_commit_sha: null;
-        active_lock_reason: null;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        draft: false;
-        merged: boolean;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        merged: boolean;
-        merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
+    async createPRCheckNoPipelinesTriggered(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number,
+        head: { sha: string },
+        base: {
+            repo: {
+                name: string,
+                owner: { login: string }
+            },
+        },
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
@@ -212,37 +158,16 @@ export class GhaChecks {
         }
     }
 
-    async createPRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: (PullRequest & {
-        state: "closed";
-        closed_at: string;
-        merged: boolean
-    }) | PullRequest | (PullRequest & {
-        closed_at: null;
-        merged_at: null;
-        draft: true;
-        merged: false;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        merge_commit_sha: null;
-        active_lock_reason: null;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        draft: false;
-        merged: boolean;
-        merged_by: null
-    }) | (PullRequest & {
-        state: "open";
-        closed_at: null;
-        merged_at: null;
-        merged: boolean;
-        merged_by: null
-    }), hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
+    async createPRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number,
+        head: { sha: string },
+        base: {
+            repo: {
+                name: string,
+                owner: { login: string }
+            },
+        },
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
