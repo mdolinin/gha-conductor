@@ -325,7 +325,14 @@ export = (app: Probot) => {
         // Tokenise the first line (minus the leading slash)
         const commandTokens = tokeniseCommand(firstLine.slice(1))
         app.log.debug(`Command tokens: ${inspect(commandTokens)}`)
-
+        // At this point, we have a valid slash command
+        // Add the "eyes" reaction to the comment
+        await context.octokit.reactions.createForIssueComment({
+            owner: owner,
+            repo: repo,
+            comment_id: issueComment.id,
+            content: 'eyes'
+        })
         const numOfChangedFiles = pr.changed_files;
         if (numOfChangedFiles > 0) {
             const repo_full_name = context.payload.repository.full_name;
@@ -350,6 +357,16 @@ export = (app: Probot) => {
             if (hooksWithNotExistingRefs.length > 0) {
                 app.log.info(`There are hooks with non-existing refs. No hooks will be triggered`);
                 await checks.createPRCheckWithNonExistingRefs(context.octokit, pr, hookType, merge_commit_sha, hooksWithNotExistingRefs);
+                await context.octokit.reactions.createForIssueComment({
+                    owner: owner,
+                    repo: repo,
+                    comment_id: issueComment.id,
+                    content: 'confused'
+                })
+                const comment = context.issue({
+                    body: "There are hooks with non-existing refs. No hooks will be triggered."
+                });
+                await context.octokit.issues.createComment(comment);
                 return;
             }
             const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
@@ -358,11 +375,35 @@ export = (app: Probot) => {
             }
             if (triggeredPipelineNames.length === 0) {
                 await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
+                await context.octokit.reactions.createForIssueComment({
+                    owner: owner,
+                    repo: repo,
+                    comment_id: issueComment.id,
+                    content: 'hooray'
+                })
             } else {
                 await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
+                await context.octokit.reactions.createForIssueComment({
+                    owner: owner,
+                    repo: repo,
+                    comment_id: issueComment.id,
+                    content: 'rocket'
+                })
             }
         } else {
             app.log.info(`No files changed in PR ${prNumber}. No hooks will be triggered`);
+            // update the comment with reaction confused
+            await context.octokit.reactions.createForIssueComment({
+                owner: owner,
+                repo: repo,
+                comment_id: issueComment.id,
+                content: 'confused'
+            })
+            // reply to the comment
+            const comment = context.issue({
+                body: "No files changed in PR. No hooks will be triggered."
+            });
+            await context.octokit.issues.createComment(comment);
         }
    });
     // For more information on building apps:
