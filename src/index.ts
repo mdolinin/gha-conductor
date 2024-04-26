@@ -374,21 +374,33 @@ export = (app: Probot) => {
                 await checks.createNewRun(pipelineName, pr, hookType, merge_commit_sha);
             }
             if (triggeredPipelineNames.length === 0) {
-                await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
+                const checkRunUrl  = await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
                 await context.octokit.reactions.createForIssueComment({
                     owner: owner,
                     repo: repo,
                     comment_id: issueComment.id,
                     content: 'hooray'
                 })
+                // reply to the comment with link to the PR check
+                // link to the PR check
+                const comment = context.issue({
+                    body: `No pipelines triggered. [Check](${checkRunUrl})`
+                });
+                await context.octokit.issues.createComment(comment);
             } else {
-                await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
+                const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
                 await context.octokit.reactions.createForIssueComment({
                     owner: owner,
                     repo: repo,
                     comment_id: issueComment.id,
                     content: 'rocket'
                 })
+                // reply to the comment with link to the PR check
+                // link to the PR check
+                const comment = context.issue({
+                    body: `Pipelines triggered. [Check](${checkRunUrl})`
+                });
+                await context.octokit.issues.createComment(comment);
             }
         } else {
             app.log.info(`No files changed in PR ${prNumber}. No hooks will be triggered`);

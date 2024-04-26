@@ -83,13 +83,13 @@ const createPRCheckWithNonExistingRefsMock = jest
 const createPRCheckNoPipelinesTriggeredMock = jest
     .spyOn(GhaChecks.prototype, 'createPRCheckNoPipelinesTriggered')
     .mockImplementation(() => {
-        return Promise.resolve();
+        return Promise.resolve("");
     });
 
 const createPRCheckForTriggeredPipelinesMock = jest
     .spyOn(GhaChecks.prototype, 'createPRCheckForTriggeredPipelines')
     .mockImplementation(() => {
-        return Promise.resolve();
+        return Promise.resolve("");
     });
 
 const updateWorkflowRunCheckQueuedMock = jest

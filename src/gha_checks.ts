@@ -151,11 +151,13 @@ export class GhaChecks {
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
+        const checkRunUrl = resp.data.html_url;
         if (resp.status === 201) {
             log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } else {
             log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
+        return checkRunUrl;
     }
 
     async createPRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
@@ -191,12 +193,14 @@ export class GhaChecks {
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
+        const checkRunUrl = resp.data.html_url;
         log.info(`Updating ${checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
         if (resp.status === 201) {
             await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null, hook: hookType}, {
                 pr_check_id: checkRunId
             });
         }
+        return checkRunUrl;
     }
 
     private parseHeadShaFromJobName(jobName: string): { headSha: string | undefined, checkName: string } {
