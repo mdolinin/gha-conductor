@@ -1,5 +1,6 @@
 import {Probot} from "probot";
 import {GhaLoader} from "./gha_loader";
+import {GhaReply} from "./gha_reply";
 import {Hooks} from "./hooks";
 import {GhaChecks, PRCheckAction, PRCheckName} from "./gha_checks";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import {inspect} from "node:util";
 
+
 const TOKENISE_REGEX =
     /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
 
@@ -21,6 +23,7 @@ export = (app: Probot) => {
     const ghaLoader = new GhaLoader();
     const hooks = new Hooks();
     const checks = new GhaChecks();
+    const reply = new GhaReply(app.log);
 
     app.on("push", async (context) => {
         // if push was delete branch
@@ -357,16 +360,7 @@ export = (app: Probot) => {
             if (hooksWithNotExistingRefs.length > 0) {
                 app.log.info(`There are hooks with non-existing refs. No hooks will be triggered`);
                 await checks.createPRCheckWithNonExistingRefs(context.octokit, pr, hookType, merge_commit_sha, hooksWithNotExistingRefs);
-                await context.octokit.reactions.createForIssueComment({
-                    owner: owner,
-                    repo: repo,
-                    comment_id: issueComment.id,
-                    content: 'confused'
-                })
-                const comment = context.issue({
-                    body: "There are hooks with non-existing refs. No hooks will be triggered."
-                });
-                await context.octokit.issues.createComment(comment);
+                await reply.replyToCommentWithReactionAndComment(context, "There are hooks with non-existing refs. No hooks will be triggered.", 'confused');
                 return;
             }
             const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
@@ -374,50 +368,17 @@ export = (app: Probot) => {
                 await checks.createNewRun(pipelineName, pr, hookType, merge_commit_sha);
             }
             if (triggeredPipelineNames.length === 0) {
-                const checkRunUrl  = await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
-                await context.octokit.reactions.createForIssueComment({
-                    owner: owner,
-                    repo: repo,
-                    comment_id: issueComment.id,
-                    content: 'hooray'
-                })
-                // reply to the comment with link to the PR check
-                // link to the PR check
-                const comment = context.issue({
-                    body: `No pipelines triggered. [Check](${checkRunUrl})`
-                });
-                await context.octokit.issues.createComment(comment);
+                const checkRunUrl = await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
+                await reply.replyToCommentWithReactionAndComment(context, `No pipelines triggered. [Check](${checkRunUrl})`, '+1');
             } else {
                 const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
-                await context.octokit.reactions.createForIssueComment({
-                    owner: owner,
-                    repo: repo,
-                    comment_id: issueComment.id,
-                    content: 'rocket'
-                })
-                // reply to the comment with link to the PR check
-                // link to the PR check
-                const comment = context.issue({
-                    body: `Pipelines triggered. [Check](${checkRunUrl})`
-                });
-                await context.octokit.issues.createComment(comment);
+                await reply.replyToCommentWithReactionAndComment(context, `Pipelines triggered. [Check](${checkRunUrl})`, 'rocket');
             }
         } else {
             app.log.info(`No files changed in PR ${prNumber}. No hooks will be triggered`);
-            // update the comment with reaction confused
-            await context.octokit.reactions.createForIssueComment({
-                owner: owner,
-                repo: repo,
-                comment_id: issueComment.id,
-                content: 'confused'
-            })
-            // reply to the comment
-            const comment = context.issue({
-                body: "No files changed in PR. No hooks will be triggered."
-            });
-            await context.octokit.issues.createComment(comment);
+            await reply.replyToCommentWithReactionAndComment(context, "No files changed in PR. No hooks will be triggered.", 'confused');
         }
-   });
+    });
     // For more information on building apps:
     // https://probot.github.io/docs/
 
