@@ -13,6 +13,8 @@ This can be achieved by using `paths` filter in the workflow definition, but it 
 - Trigger workflows based on PR open/updated, closed or merged events
 - Trigger workflows based on what files changed in the pull request
 - Trigger workflows based on what branch the pull request is merged into
+- Trigger workflows based on /slash commands in PR comments (e.g. `/validate param=value`)
+![pr-comment-command](./docs/pr-comment-command.png)
 - Reload all hooks from `.gha.yaml` files by adding label `gha-conductor:load` to PR
 - Run multiple workflows in parallel for the same event
 - Report status of the workflow run as GitHub checks
@@ -34,11 +36,12 @@ During the workflow run, the app will create corresponding GitHub checks.
 
 Currently, it supports the following events:
 
-| Event                | GitHub check name | Description                                                                                     |
-|----------------------|-------------------|-------------------------------------------------------------------------------------------------|
-| `onPullRequest`      | `pr-status`       | `opened`, `rereopened`, `synchronize` - when a pull request is opened, reopened or synchronized |
-| `onBranchMerge`      | `pr-merge`        | `merged` - when a branch is merged into another branch                                          |
-| `onPullRequestClose` | `pr-close`        | `closed` - when a pull request is closed and not merged                                         |
+| Event                | GitHub check name  | Description                                                                                              |
+|----------------------|--------------------|----------------------------------------------------------------------------------------------------------|
+| `onPullRequest`      | `pr-status`        | `opened`, `rereopened`, `synchronize` - when a pull request is opened, reopened or synchronized          |
+| `onBranchMerge`      | `pr-merge`         | `merged` - when a branch is merged into another branch                                                   |
+| `onPullRequestClose` | `pr-close`         | `closed` - when a pull request is closed and not merged                                                  |
+| `onSlashCommand`     | `pr-slash-command` | `issue_comment.created`, `issue_comment.edited` - when a comment with slash command is created or edited |
 
 It uses `.gha.yaml` files to define which workflows should be run for each event.
 Json schema for `.gha.yaml` files can be found in `schemas/gha_yaml_schema.json` directory.
@@ -99,6 +102,18 @@ onPullRequestClose:
       destinationBranchMatchesAny:
         - 'main'
       fileChangesMatchAny: *defaultFileChangeTrigger
+
+onSlashCommand:
+   - name: validate-before-merge
+     pipelineRef:
+        name: generic-job
+     pipelineRunValues:
+        params:
+           COMMAND: make ${command} ${args} # ${command} and ${args} will be replaced with values from the comment slash command
+     triggerConditions:
+        slashCommands:
+           - "validate"
+        fileChangesMatchAny: *defaultFileChangeTrigger
 ```
 
 Files can be places in any directory in the repository.
@@ -191,6 +206,13 @@ sequenceDiagram
 - if PR is opened from fork
 - if PR is not mergeable
 - if PR has no files changed
+
+### When app will not trigger workflow on /slash command in PR comment 
+- if comment made by bot
+- if comment made PR is closed
+- if comment made by user that has no write access to the repository
+- if PR is opened from fork
+- if comment does not contain any slash command in the first line
 
 ## Persistence
 App uses PostgreSQL database to store information about which workflows should be triggered for each event and workflow executions that were triggered.
