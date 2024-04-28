@@ -84,6 +84,18 @@ onPullRequestClose:
       destinationBranchMatchesAny:
         - 'main'
       fileChangesMatchAny: *defaultFileChangeTrigger
+
+onSlashCommand:
+   - name: validate-before-merge
+     pipelineRef:
+        name: generic-job
+     pipelineRunValues:
+        params:
+           COMMAND: make \${command} \${args}
+     triggerConditions:
+        slashCommands:
+           - "validate"
+        fileChangesMatchAny: *defaultFileChangeTrigger
 `;
 
 const readFileSyncMock = jest.fn().mockImplementation(() => {
@@ -140,7 +152,7 @@ describe('gha loader', () => {
         expect(globMock).toHaveBeenCalled();
         expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
-        expect(insertMock).toHaveBeenCalledTimes(8);
+        expect(insertMock).toHaveBeenCalledTimes(10);
     });
 
     it('should load all hooks, when one of gha yaml changes in the PR', async () => {
@@ -173,7 +185,8 @@ describe('gha loader', () => {
             "pipeline_ref": "main",
             "pipeline_unique_prefix": "domain-b-example-c-build",
             "repo_full_name": "",
-            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+            "slash_command": undefined
         }, {
             "branch": "",
             "destination_branch_matcher": null,
@@ -185,7 +198,8 @@ describe('gha loader', () => {
             "pipeline_ref": undefined,
             "pipeline_unique_prefix": "domain-b-example-c-test",
             "repo_full_name": "",
-            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+            "slash_command": undefined
         }, {
             "branch": "",
             "destination_branch_matcher": "main",
@@ -197,7 +211,8 @@ describe('gha loader', () => {
             "pipeline_ref": undefined,
             "pipeline_unique_prefix": "domain-b-example-c-release",
             "repo_full_name": "",
-            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+            "slash_command": undefined
         }, {
             "branch": "",
             "destination_branch_matcher": null,
@@ -209,7 +224,25 @@ describe('gha loader', () => {
             "pipeline_ref": undefined,
             "pipeline_unique_prefix": "domain-b-example-c-cleanup",
             "repo_full_name": "",
-            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"}
+            "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+            "slash_command": undefined
+        },
+        {
+            "branch": "",
+            "destination_branch_matcher": null,
+            "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+            "hook": "onSlashCommand",
+            "hook_name": "validate-before-merge",
+            "pipeline_name": "generic-job",
+            "pipeline_params": {
+                "COMMAND": "make ${command} ${args}"
+            },
+            "pipeline_unique_prefix": "domain-b-example-c-validate-before-merge",
+            "repo_full_name": "",
+            "shared_params": {
+                "ROOT_DIR": "namespaces/domain-b/projects/example-c"
+            },
+            "slash_command": "validate"
         }]);
         expect(octokit.request).toHaveBeenCalledWith("contents_url");
     });
@@ -232,7 +265,7 @@ describe('gha loader', () => {
         expect(globMock).toHaveBeenCalled();
         expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
-        expect(insertMock).toHaveBeenCalledTimes(8);
+        expect(insertMock).toHaveBeenCalledTimes(10);
     });
 
     it('should delete all hooks from db, when branch is deleted', async () => {

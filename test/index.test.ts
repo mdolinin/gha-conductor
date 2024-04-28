@@ -14,6 +14,7 @@ import checkRunRequestedActionPayload from "./fixtures/check_run.requested_actio
 import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
 import prStatuscheckRunReRequestedPayload from "./fixtures/pr_status.check_run.rerequested.json";
 import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json";
+import slashCommandIssueCommentPayload from "./fixtures/slash_command.issue_comment.created.json";
 
 import fs from "fs";
 import path from "path";
@@ -83,13 +84,13 @@ const createPRCheckWithNonExistingRefsMock = jest
 const createPRCheckNoPipelinesTriggeredMock = jest
     .spyOn(GhaChecks.prototype, 'createPRCheckNoPipelinesTriggered')
     .mockImplementation(() => {
-        return Promise.resolve();
+        return Promise.resolve("");
     });
 
 const createPRCheckForTriggeredPipelinesMock = jest
     .spyOn(GhaChecks.prototype, 'createPRCheckForTriggeredPipelines')
     .mockImplementation(() => {
-        return Promise.resolve();
+        return Promise.resolve("");
     });
 
 const updateWorkflowRunCheckQueuedMock = jest
@@ -278,7 +279,8 @@ describe("gha-conductor app", () => {
                 pipeline_name: "pipeline_name",
                 pipeline_ref: "non_existing_ref",
                 pipeline_params: {},
-                shared_params: {}
+                shared_params: {},
+                slash_command: undefined,
             }]);
         });
         const mock = nock("https://api.github.com")
@@ -466,6 +468,76 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "check_suite", payload: checkSuiteRerequestedPayload});
         expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
+    test("when comment with slash command received, trigger workflow", async () => {
+        runWorkflowMock = runWorkflowMock.mockImplementation(() => {
+            return Promise.resolve([{name: "test", inputs: {}}]);
+        });
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    issue_comments: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/collaborators/mdolinin/permission")
+            .reply(200, {
+                permission: "write",
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/10")
+            .reply(200, {
+                mergeable: true,
+                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                base: {
+                    ref: "main",
+                    repo: {
+                        branch: "main",
+                    }
+                },
+                head: {
+                    repo: {
+                        fork: false,
+                    }
+                },
+                changed_files: 1
+            })
+            .post("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions", {content: 'eyes'})
+            .reply(200)
+            .get("/repos/mdolinin/mono-repo-example/pulls/10/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ])
+            .get("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions")
+            .reply(200, [
+                {
+                    id: 1,
+                    content: "eyes",
+                }
+            ])
+            .delete("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions/1")
+            .reply(200)
+            .post("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions", {content: 'rocket'})
+            .reply(200)
+            .post("/repos/mdolinin/mono-repo-example/issues/10/comments", (body: any) => {
+                expect(body).toMatchObject({body: "Pipelines triggered. [Check]()"});
+                return true;
+            })
+            .reply(200);
+
+        await probot.receive({name: "issue_comment", payload: slashCommandIssueCommentPayload});
+        expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
+        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(0);
+        expect(runWorkflowMock).toHaveBeenCalledTimes(1);
+        expect(createNewRunMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 

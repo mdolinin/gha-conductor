@@ -1,0 +1,3 @@
+ALTER TYPE hook_type ADD VALUE IF NOT EXISTS 'onSlashCommand';
+
+ALTER TABLE gha_hooks ADD COLUMN IF NOT EXISTS slash_command TEXT NULL;

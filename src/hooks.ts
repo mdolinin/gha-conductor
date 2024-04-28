@@ -1,6 +1,5 @@
 import {minimatch} from "minimatch";
 import {ProbotOctokit} from "probot";
-import {PullRequest} from "@octokit/webhooks-types";
 import {
     RestEndpointMethodTypes
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
@@ -30,7 +29,9 @@ export interface TriggeredWorkflow {
 
 export class Hooks {
     async filterTriggeredHooks(repo_full_name: string, hookType: HookType,
-                               files_changed: string[], baseBranch: string, hooksChangedInPR: GhaHook[]): Promise<Set<GhaHook>> {
+                               files_changed: string[], baseBranch: string, hooksChangedInPR: GhaHook[],
+                               slashCommand?: string | undefined
+    ): Promise<Set<GhaHook>> {
         log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
         const triggeredHooks = new Set<GhaHook>();
         const allHooks = new Map<string, GhaHook>();
@@ -42,6 +43,24 @@ export class Hooks {
                 destination_branch_matcher: baseBranch
             }).all()
             const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType && hook.destination_branch_matcher === baseBranch)
+            for (const hook of mainHooks) {
+                allHooks.set(hook.pipeline_unique_prefix, this.mapToHook(hook));
+            }
+            for (const hook of prHooks) {
+                allHooks.set(hook.pipeline_unique_prefix, hook);
+            }
+        } else if (hookType === "onSlashCommand") {
+            if (!slashCommand) {
+                log.error("Slash command hook type requires a slash command");
+                return triggeredHooks;
+            }
+            const mainHooks = await gha_hooks(db).find({
+                repo_full_name: repo_full_name,
+                branch: baseBranch,
+                hook: hookType,
+                slash_command: slashCommand
+            }).all();
+            const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType && hook.slash_command === slashCommand)
             for (const hook of mainHooks) {
                 allHooks.set(hook.pipeline_unique_prefix, this.mapToHook(hook));
             }
@@ -85,44 +104,30 @@ export class Hooks {
             shared_params: hook.shared_params,
             pipeline_unique_prefix: hook.pipeline_unique_prefix,
             file_changes_matcher: hook.file_changes_matcher,
+            slash_command: hook.slash_command ? hook.slash_command : undefined,
             hook: hook.hook
         };
     }
 
     async runWorkflow(octokit: InstanceType<typeof ProbotOctokit>,
-                      pull_request: (PullRequest & {
-                          state: "closed";
-                          closed_at: string;
-                          merged: boolean
-                      }) | PullRequest | (PullRequest & {
-                          closed_at: null;
-                          merged_at: null;
-                          draft: true;
-                          merged: false;
-                          merged_by: null
-                      }) | (PullRequest & {
-                          state: "open";
-                          closed_at: null;
-                          merged_at: null;
-                          merge_commit_sha: null;
-                          active_lock_reason: null;
-                          merged_by: null
-                      }) | (PullRequest & {
-                          state: "open";
-                          closed_at: null;
-                          merged_at: null;
-                          draft: false;
-                          merged: boolean;
-                          merged_by: null
-                      }) | (PullRequest & {
-                          state: "open";
-                          closed_at: null;
-                          merged_at: null;
-                          merged: boolean;
-                          merged_by: null
-                      }),
+                      pull_request: {
+                          number: number,
+                          head: { ref: string, sha: string },
+                          base: {
+                              ref: string,
+                              repo: {
+                                  default_branch: string,
+                                  name: string,
+                                  owner: { login: string }
+                              },
+                              sha: string
+                          },
+                          merged: boolean | null
+                      },
                       action: string,
-                      triggeredHooks: Set<GhaHook>, merge_commit_sha: string): Promise<TriggeredWorkflow[]> {
+                      triggeredHooks: Set<GhaHook>, merge_commit_sha: string,
+                      commandTokens?: string[] | undefined
+    ): Promise<TriggeredWorkflow[]> {
         const prNumber = pull_request.number;
         let pr_action = action;
         if (pull_request.merged) {
@@ -149,11 +154,29 @@ export class Hooks {
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
             const workflow_id = `${hook.pipeline_name}.yaml`;
             const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
+            let sharedParams = hook.shared_params;
+            let pipelineParams = hook.pipeline_params;
+            if (hook.hook === "onSlashCommand") {
+                if (!commandTokens) {
+                    log.error("Slash command hook type requires a slash command");
+                    continue;
+                } else {
+                    const command = commandTokens[0];
+                    if (hook.slash_command !== command) {
+                        log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
+                        continue;
+                    }
+                    const args = commandTokens.slice(1);
+                    // substitute ${command} and ${args} if defined in shared and pipeline params that is json string
+                    sharedParams = JSON.parse(JSON.stringify(sharedParams).replace("${command}", command).replace("${args}", args.join(" ")));
+                    pipelineParams = JSON.parse(JSON.stringify(pipelineParams).replace("${command}", command).replace("${args}", args.join(" ")));
+                }
+            }
             // merge all shared and pipeline params and common_serialized_variables
             const serialized_variables = {
                 ...common_serialized_variables,
-                ...hook.shared_params,
-                ...hook.pipeline_params
+                ...sharedParams,
+                ...pipelineParams
             }
             const inputs = {
                 PIPELINE_NAME: pipeline_name,

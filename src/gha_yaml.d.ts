@@ -117,6 +117,45 @@ export type TheFileChangesMatchAnySchema2 =
  * Workflows to run on Github pull request close event, but not merged.
  */
 export type TheOnPullRequestCloseSchema = PropertiesOnPullRequestCloseItems[];
+export type PropertiesOnSlashCommandItems = OnSlashCommandHookSchema;
+/**
+ * name of the hook, must be unique in the .gha.yaml file
+ */
+export type HookNameSchema3 = string;
+/**
+ * GHA workflow name to run, w/o file extension
+ */
+export type GHAWorkflowNameSchema3 = string;
+/**
+ * branch name for GHA workflow if different from default
+ */
+export type TheRefSchema3 = string;
+export type PropertiesOnSlashCommandItemsAnyOf0PropertiesTriggerConditionsPropertiesSlashCommandsItems =
+  SlashCommandMatcherSchema;
+/**
+ * Slash command to match in the PR comment
+ */
+export type SlashCommandMatcherSchema = string;
+/**
+ * List of slash commands that will trigger the GHA workflow, if the PR comment matches any of these commands.
+ */
+export type TheSlashCommandsSchema =
+  PropertiesOnSlashCommandItemsAnyOf0PropertiesTriggerConditionsPropertiesSlashCommandsItems[];
+export type PropertiesOnSlashCommandItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems =
+  FileChangeMatcherSchema3;
+/**
+ * Glob to match files in the PR
+ */
+export type FileChangeMatcherSchema3 = string;
+/**
+ * List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs
+ */
+export type TheFileChangesMatchAnySchema3 =
+  PropertiesOnSlashCommandItemsAnyOf0PropertiesTriggerConditionsPropertiesFileChangesMatchAnyItems[];
+/**
+ * Workflows to run on Github slash command comments
+ */
+export type TheOnSlashCommandSchema = PropertiesOnSlashCommandItems[];
 
 /**
  * The root schema comprises the entire JSON document.
@@ -129,6 +168,7 @@ export interface TheRootSchema {
   onPullRequest: TheOnPullRequestSchema;
   onBranchMerge: TheOnBranchMergeSchema;
   onPullRequestClose?: TheOnPullRequestCloseSchema;
+  onSlashCommand?: TheOnSlashCommandSchema;
   [k: string]: unknown;
 }
 /**
@@ -250,5 +290,44 @@ export interface TheParamsSchema2 {
  */
 export interface TheTriggerConditionsSchema2 {
   fileChangesMatchAny: TheFileChangesMatchAnySchema2;
+  [k: string]: unknown;
+}
+/**
+ * Workflow to run when a slash command is issued on a PR
+ */
+export interface OnSlashCommandHookSchema {
+  name: HookNameSchema3;
+  pipelineRef: ThePipelineRefSchema3;
+  pipelineRunValues: ThePipelineRunValuesSchema3;
+  triggerConditions: TheTriggerConditionsSchema3;
+  [k: string]: unknown;
+}
+/**
+ * Reference to the GHA workflow to run
+ */
+export interface ThePipelineRefSchema3 {
+  name: GHAWorkflowNameSchema3;
+  ref?: TheRefSchema3;
+  [k: string]: unknown;
+}
+/**
+ * Values to pass to the GHA workflow
+ */
+export interface ThePipelineRunValuesSchema3 {
+  params: TheParamsSchema3;
+  [k: string]: unknown;
+}
+/**
+ * Parameters to pass to the GHA workflow
+ */
+export interface TheParamsSchema3 {
+  [k: string]: unknown;
+}
+/**
+ * Conditions to trigger the GHA workflow
+ */
+export interface TheTriggerConditionsSchema3 {
+  slashCommands: TheSlashCommandsSchema;
+  fileChangesMatchAny: TheFileChangesMatchAnySchema3;
   [k: string]: unknown;
 }

@@ -796,6 +796,244 @@
                     }
                 ]
             }
+        },
+        "onSlashCommand": {
+            "$id": "#/properties/onSlashCommand",
+            "type": "array",
+            "title": "The onSlashCommand schema",
+            "description": "Workflows to run on Github slash command comments",
+            "default": [],
+            "examples": [
+                [
+                    {
+                        "name": "validate-before-merge",
+                        "pipelineRef": {
+                            "name": "generic-job",
+                            "ref": "main"
+                        },
+                        "pipelineRunValues": {
+                            "params": {
+                                "COMMAND": "make ${command} ${args}"
+                            }
+                        },
+                        "triggerConditions": {
+                            "slashCommands": [
+                                "validate"
+                            ],
+                            "fileChangesMatchAny": [
+                                "namespaces/domain-a/projects/example-a/**"
+                            ]
+                        }
+                    }
+                ]
+            ],
+            "additionalItems": true,
+            "items": {
+                "$id": "#/properties/onSlashCommand/items",
+                "anyOf": [
+                    {
+                        "$id": "#/properties/onSlashCommand/items/anyOf/0",
+                        "type": "object",
+                        "title": "On slash command hook schema",
+                        "description": "Workflow to run when a slash command is issued on a PR",
+                        "default": {},
+                        "examples": [
+                            {
+                                "name": "validate-before-merge",
+                                "pipelineRef": {
+                                    "name": "generic-job",
+                                    "ref": "main"
+                                },
+                                "pipelineRunValues": {
+                                    "params": {
+                                        "COMMAND": "make ${command} ${args}"
+                                    }
+                                },
+                                "triggerConditions": {
+                                    "slashCommands": [
+                                        "validate"
+                                    ],
+                                    "fileChangesMatchAny": [
+                                        "namespaces/domain-a/projects/example-a/**"
+                                    ]
+                                }
+                            }
+                        ],
+                        "required": [
+                            "name",
+                            "pipelineRef",
+                            "pipelineRunValues",
+                            "triggerConditions"
+                        ],
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/name",
+                                "type": "string",
+                                "title": "Hook name schema",
+                                "description": "name of the hook, must be unique in the .gha.yaml file",
+                                "default": "",
+                                "examples": [
+                                    "validate-before-merge"
+                                ]
+                            },
+                            "pipelineRef": {
+                                "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/pipelineRef",
+                                "type": "object",
+                                "title": "The pipelineRef schema",
+                                "description": "Reference to the GHA workflow to run",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "name": "generic-job",
+                                        "ref": "main"
+                                    }
+                                ],
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/pipelineRef/properties/name",
+                                        "type": "string",
+                                        "title": "GHA workflow name schema",
+                                        "description": "GHA workflow name to run, w/o file extension",
+                                        "default": "",
+                                        "examples": [
+                                            "generic-job"
+                                        ]
+                                    },
+                                    "ref": {
+                                        "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/pipelineRef/properties/ref",
+                                        "type": "string",
+                                        "title": "The ref schema",
+                                        "description":"branch name for GHA workflow if different from default",
+                                        "default": "",
+                                        "examples": [
+                                            "master",
+                                            "main"
+                                        ]
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "pipelineRunValues": {
+                                "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/pipelineRunValues",
+                                "type": "object",
+                                "title": "The pipelineRunValues schema",
+                                "description": "Values to pass to the GHA workflow",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "params": {
+                                            "COMMAND": "make ${command} ${args}"
+                                        }
+                                    }
+                                ],
+                                "required": [
+                                    "params"
+                                ],
+                                "properties": {
+                                    "params": {
+                                        "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/pipelineRunValues/properties/params",
+                                        "type": "object",
+                                        "title": "The params schema",
+                                        "description": "Parameters to pass to the GHA workflow",
+                                        "default": {},
+                                        "examples": [
+                                            {
+                                                "COMMAND": "make ${command} ${args}"
+                                            }
+                                        ],
+                                        "additionalProperties": true
+                                    }
+                                },
+                                "additionalProperties": true
+                            },
+                            "triggerConditions": {
+                                "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions",
+                                "type": "object",
+                                "title": "The triggerConditions schema",
+                                "description": "Conditions to trigger the GHA workflow",
+                                "default": {},
+                                "examples": [
+                                    {
+                                        "slashCommands": [
+                                            "validate"
+                                        ],
+                                        "fileChangesMatchAny": [
+                                            "namespaces/domain-a/projects/example-a/**"
+                                        ]
+                                    }
+                                ],
+                                "required": [
+                                    "slashCommands",
+                                    "fileChangesMatchAny"
+                                ],
+                                "properties": {
+                                    "slashCommands": {
+                                        "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/slashCommands",
+                                        "type": "array",
+                                        "title": "The slashCommands schema",
+                                        "description": "List of slash commands that will trigger the GHA workflow, if the PR comment matches any of these commands.",
+                                        "default": [],
+                                        "examples": [
+                                            [
+                                                "validate"
+                                            ]
+                                        ],
+                                        "additionalItems": true,
+                                        "items": {
+                                            "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/slashCommands/items",
+                                            "anyOf": [
+                                                {
+                                                    "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
+                                                    "type": "string",
+                                                    "title": "Slash command matcher schema",
+                                                    "description": "Slash command to match in the PR comment",
+                                                    "default": "",
+                                                    "examples": [
+                                                        "validate"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "fileChangesMatchAny": {
+                                        "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny",
+                                        "type": "array",
+                                        "title": "The fileChangesMatchAny schema",
+                                        "description": "List of globs that will trigger the GHA workflow, if files change in the PR match any of these globs",
+                                        "default": [],
+                                        "examples": [
+                                            [
+                                                "namespaces/domain-a/projects/example-a/**"
+                                            ]
+                                        ],
+                                        "additionalItems": true,
+                                        "items": {
+                                            "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
+                                            "anyOf": [
+                                                {
+                                                    "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
+                                                    "type": "string",
+                                                    "title": "File change matcher schema",
+                                                    "description": "Glob to match files in the PR",
+                                                    "default": "",
+                                                    "examples": [
+                                                        "namespaces/domain-a/projects/example-a/**"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                ]
+            }
         }
     },
     "additionalProperties": true
