@@ -150,7 +150,7 @@ jobs:
               echo "$line" >> $GITHUB_ENV
           done <<< "$variables"
       - name: Check out Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # We need to fetch all history so that we can checkout the PR merge commit
           # We check out github.event.pull_request.merge_commit_sha
