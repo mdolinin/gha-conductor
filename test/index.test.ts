@@ -513,7 +513,14 @@ describe("gha-conductor app", () => {
                 },
             ])
             .get("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions")
-            .reply(200, [])
+            .reply(200, [
+                {
+                    id: 1,
+                    content: "eyes",
+                }
+            ])
+            .delete("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions/1")
+            .reply(200)
             .post("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions", {content: 'rocket'})
             .reply(200)
             .post("/repos/mdolinin/mono-repo-example/issues/10/comments", (body: any) => {
