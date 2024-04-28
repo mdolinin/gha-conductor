@@ -569,6 +569,85 @@ describe('gha_checks', () => {
         });
     });
 
+    it('should trigger re-run of only failed workflows, when re-run-failed button clicked', async () => {
+        const reRunPayload: ReRunPayload = {
+            check_run_id: checkRunRequestedActionPayload.check_run.id,
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            requested_action_identifier: PRCheckAction.ReRunFailed,
+        };
+        const createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 21439086479,
+                    status: 'queued',
+                    details_url: ''
+                },
+                status: 201,
+            }
+        });
+        const reRunWorkflowMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 21439086478,
+                    status: 'queued',
+                    details_url: ''
+                },
+                status: 201,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock,
+            },
+            actions: {
+                reRunWorkflow: reRunWorkflowMock
+            }
+        };
+        // @ts-ignore
+        await checks.triggerReRunPRCheck(octokit, reRunPayload);
+        expect(findMock).toHaveBeenCalledWith({
+            conclusion: expect.objectContaining({
+                "__query": expect.anything(),
+                "__special": undefined
+            }),
+            pr_check_id: reRunPayload.check_run_id,
+            pr_conclusion: expect.objectContaining({
+                "__query": expect.anything(),
+                "__special": {
+                    query: null,
+                    type: "not",
+                }
+            })
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(updateMock).toHaveBeenCalledWith({
+            workflow_run_id: 5,
+        }, {
+            workflow_job_id: null,
+            conclusion: null,
+            pr_conclusion: null,
+        });
+        expect(createCheckMock).toHaveBeenCalledWith({
+            head_sha: '1234567890',
+            name: 'pr-status',
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            status: 'queued',
+            started_at: expect.anything(),
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pr_check_id: reRunPayload.check_run_id,
+        }, {
+            pr_check_id: 21439086479,
+        });
+        expect(reRunWorkflowMock).toHaveBeenCalledWith({
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            run_id: 5,
+        });
+    });
+
     it('should trigger re-run of all workflows, when re-all link clicked', async () => {
         const createCheckMock = jest.fn().mockImplementation(() => {
             return {
@@ -636,5 +715,85 @@ describe('gha_checks', () => {
             repo: checkRunRequestedActionPayload.repository.name,
             run_id: 5,
         });
+    });
+
+    it('create pr-close check when PR closed hook triggered', async () => {
+        const merge_commit_sha = '1234567890';
+        const expectedCheckRunUrl = 'https://github.com/mdolinin/mono-repo-example/runs/24321595896';
+        const createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 1,
+                    html_url: expectedCheckRunUrl,
+                },
+                status: 201,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        }
+        // @ts-ignore
+        const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequestClose', merge_commit_sha);
+        expect(checkRunUrl).toBe(expectedCheckRunUrl);
+        expect(findMock).toHaveBeenCalledWith({
+            pr_number: pullRequestOpenedPayload.pull_request.number,
+            pr_check_id: null,
+            hook: 'onPullRequestClose'
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(createCheckMock).toHaveBeenCalledTimes(1);
+        expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
+        expect(updateMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('create pr-slash-command check when slash command hook triggered', async () => {
+        const merge_commit_sha = '1234567890';
+        const expectedCheckRunUrl = 'https://github.com/mdolinin/mono-repo-example/runs/24321595897';
+        const createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 1,
+                    html_url: expectedCheckRunUrl,
+                },
+                status: 201,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        }
+        // @ts-ignore
+        const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onSlashCommand', merge_commit_sha);
+        expect(checkRunUrl).toBe(expectedCheckRunUrl);
+        expect(findMock).toHaveBeenCalledWith({
+            pr_number: pullRequestOpenedPayload.pull_request.number,
+            pr_check_id: null,
+            hook: 'onSlashCommand'
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(createCheckMock).toHaveBeenCalledTimes(1);
+        expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
+        expect(updateMock).toHaveBeenCalledTimes(1);
     });
 });
