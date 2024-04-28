@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/mdolinin/gha-conductor/compare/v1.8.0...v1.9.0) (2024-04-28)
+
+
+### Features
+
+* **slash-command:** provide ability to define and trigger GHA workflows using PR comment with /command ([#42](https://github.com/mdolinin/gha-conductor/issues/42)) ([196bc01](https://github.com/mdolinin/gha-conductor/commit/196bc011146896f8c443d2e4ed5daf0cf233062e))
+
 # [1.8.0](https://github.com/mdolinin/gha-conductor/compare/v1.7.0...v1.8.0) (2024-04-13)
 
 
