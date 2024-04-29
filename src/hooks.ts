@@ -25,6 +25,7 @@ type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["creat
 export interface TriggeredWorkflow {
     name: string,
     inputs: any
+    error?: string
 }
 
 export class Hooks {
@@ -154,16 +155,60 @@ export class Hooks {
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
             const workflow_id = `${hook.pipeline_name}.yaml`;
             const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
+            // verify workflow exists and is active
+            try {
+                const resp = await octokit.rest.actions.getWorkflow({
+                    owner: owner,
+                    repo: repo,
+                    workflow_id: workflow_id
+                });
+                if (resp.status !== 200) {
+                    log.warn(`Workflow ${workflow_id} does not exist in repo ${owner}/${repo}`);
+                    triggeredPipelines.push({
+                        name: pipeline_name,
+                        inputs: {},
+                        error: `Workflow ${workflow_id} does not exist`
+                    });
+                    continue;
+                }
+                if (resp.data.state !== "active") {
+                    log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
+                    triggeredPipelines.push({
+                        name: pipeline_name,
+                        inputs: {},
+                        error: `Workflow ${workflow_id} is not active`
+                    });
+                    continue;
+                }
+            } catch (e) {
+                log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
+                triggeredPipelines.push({
+                    name: pipeline_name,
+                    inputs: {},
+                    error: `Failed to get workflow ${workflow_id}, probably does not exist in repo ${owner}/${repo}`
+                });
+                continue;
+            }
             let sharedParams = hook.shared_params;
             let pipelineParams = hook.pipeline_params;
             if (hook.hook === "onSlashCommand") {
                 if (!commandTokens) {
                     log.error("Slash command hook type requires a slash command");
+                    triggeredPipelines.push({
+                        name: pipeline_name,
+                        inputs: {},
+                        error: `Slash command hook type requires a slash command`
+                    });
                     continue;
                 } else {
                     const command = commandTokens[0];
                     if (hook.slash_command !== command) {
                         log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
+                        triggeredPipelines.push({
+                            name: pipeline_name,
+                            inputs: {},
+                            error: `Slash command ${command} does not match hook slash command ${hook.slash_command}`
+                        });
                         continue;
                     }
                     const args = commandTokens.slice(1);
@@ -193,8 +238,15 @@ export class Hooks {
             log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
             if (resp.status === 204) {
                 log.info("Workflow " + hook.pipeline_unique_prefix + " triggered successfully");
+                triggeredPipelines.push({name: pipeline_name, inputs: inputs});
+            } else {
+                log.error("Failed to trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
+                triggeredPipelines.push({
+                    name: pipeline_name,
+                    inputs: inputs,
+                    error: `Failed to trigger workflow ${workflow_id} for PR#${prNumber}, with status ${resp.status} and error ${resp.data}`
+                });
             }
-            triggeredPipelines.push({name: pipeline_name, inputs: inputs});
         }
         return triggeredPipelines;
     }

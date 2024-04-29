@@ -143,10 +143,19 @@ describe('gha hooks', () => {
                 status: 204
             }
         });
+        const getWorkflowMock = jest.fn().mockImplementation(() => {
+            return {
+                status: 200,
+                data: {
+                    state: "active"
+                }
+            }
+        });
         const octokit = {
             rest: {
                 actions: {
-                    createWorkflowDispatch: workflowDispatchMock
+                    createWorkflowDispatch: workflowDispatchMock,
+                    getWorkflow: getWorkflowMock
                 }
             }
         };
@@ -215,6 +224,17 @@ describe('gha hooks', () => {
         triggeredHooks.add(hook2);
         // @ts-ignore
         const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
+        expect(getWorkflowMock).toHaveBeenCalledWith({
+            owner: "owner_login",
+            repo: "repo_name",
+            workflow_id: "pipeline_name_1.yaml"
+        });
+        expect(getWorkflowMock).toHaveBeenCalledWith({
+            owner: "owner_login",
+            repo: "repo_name",
+            workflow_id: "pipeline_name_2.yaml"
+        });
+        expect(getWorkflowMock).toHaveBeenCalledTimes(2);
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
                 PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
@@ -260,10 +280,19 @@ describe('gha hooks', () => {
                 status: 204
             }
         });
+        const getWorkflowMock = jest.fn().mockImplementation(() => {
+            return {
+                status: 200,
+                data: {
+                    state: "active"
+                }
+            }
+        });
         const octokit = {
             rest: {
                 actions: {
-                    createWorkflowDispatch: workflowDispatchMock
+                    createWorkflowDispatch: workflowDispatchMock,
+                    getWorkflow: getWorkflowMock
                 }
             }
         };
@@ -311,6 +340,12 @@ describe('gha hooks', () => {
         triggeredHooks.add(hook1);
         // @ts-ignore
         const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha, ['validate', 'arg1', 'arg2']);
+        expect(getWorkflowMock).toHaveBeenCalledWith({
+            owner: "owner_login",
+            repo: "repo_name",
+            workflow_id: "pipeline_name_1.yaml"
+        });
+        expect(workflowDispatchMock).toHaveBeenCalledTimes(1);
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
                 PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
