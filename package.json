@@ -28,7 +28,7 @@
     "glob": "^10.3.12",
     "js-yaml": "^4.1.0",
     "json-schema-to-typescript": "^14.0.0",
-    "probot": "^13.2.0",
+    "probot": "^13.2.1",
     "simple-git": "^3.24.0"
   },
   "devDependencies": {
