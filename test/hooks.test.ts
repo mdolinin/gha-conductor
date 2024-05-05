@@ -1,6 +1,7 @@
 import {Hooks} from "../src/hooks";
 import {HookType} from "../src/__generated__/_enums";
 import {GhaHook} from "../src/gha_loader";
+import {Logger} from "probot";
 
 const findAllMock = jest.fn().mockImplementation(() => {
     return [
@@ -34,8 +35,13 @@ jest.mock('../src/db/database', () => {
     }
 });
 
+const logMock = {
+    info: jest.fn(),
+    warn: jest.fn(),
+};
+
 describe('gha hooks', () => {
-    const hooks = new Hooks();
+    const hooks = new Hooks(logMock as unknown as Logger);
 
     afterEach(() => {
         jest.clearAllMocks();

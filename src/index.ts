@@ -21,7 +21,7 @@ const TOKENISE_REGEX =
 export = (app: Probot) => {
 
     const ghaLoader = new GhaLoader();
-    const hooks = new Hooks();
+    const hooks = new Hooks(app.log);
     const checks = new GhaChecks();
     const reply = new GhaReply(app.log);
 

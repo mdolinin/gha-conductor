@@ -1,23 +1,12 @@
 import {minimatch} from "minimatch";
-import {ProbotOctokit} from "probot";
+import {Logger, ProbotOctokit} from "probot";
 import {
     RestEndpointMethodTypes
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import {HookType} from "./__generated__/_enums";
 import db, {gha_hooks} from "./db/database";
-import pino from "pino";
-import {getTransformStream} from "@probot/pino";
 import {GhaHook} from "./gha_loader";
 import {GhaHooks} from "./__generated__";
-
-const transform = getTransformStream();
-transform.pipe(pino.destination(1));
-const log = pino(
-    {
-        name: "gha-hooks",
-    },
-    transform
-);
 
 type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["createWorkflowDispatch"]["parameters"];
 
@@ -29,11 +18,18 @@ export interface TriggeredWorkflow {
 }
 
 export class Hooks {
+
+    log: Logger;
+
+    constructor(log: Logger) {
+        this.log = log;
+    }
+
     async filterTriggeredHooks(repo_full_name: string, hookType: HookType,
                                files_changed: string[], baseBranch: string, hooksChangedInPR: GhaHook[],
                                slashCommand?: string | undefined
     ): Promise<Set<GhaHook>> {
-        log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
+        this.log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
         const triggeredHooks = new Set<GhaHook>();
         const allHooks = new Map<string, GhaHook>();
         if (hookType === "onBranchMerge") {
@@ -52,7 +48,7 @@ export class Hooks {
             }
         } else if (hookType === "onSlashCommand") {
             if (!slashCommand) {
-                log.error("Slash command hook type requires a slash command");
+                this.log.error("Slash command hook type requires a slash command");
                 return triggeredHooks;
             }
             const mainHooks = await gha_hooks(db).find({
@@ -85,7 +81,7 @@ export class Hooks {
         for (const file of files_changed) {
             allHooks.forEach((hook) => {
                 if (!hook.file_changes_matcher.startsWith("!") && minimatch(file, hook.file_changes_matcher)) {
-                    log.info(`File ${file} matches matcher ${hook.file_changes_matcher}`);
+                    this.log.info(`File ${file} matches matcher ${hook.file_changes_matcher}`);
                     triggeredHooks.add(hook);
                 }
             });
@@ -147,7 +143,7 @@ export class Hooks {
             'PR_NUMBER': prNumber,
             'PR_ACTION': pr_action,
         }
-        log.info(`Searching for workflow to run for PR #${prNumber} with action ${action}`);
+        this.log.info(`Searching for workflow to run for PR #${prNumber} with action ${action}`);
         const triggeredPipelines: TriggeredWorkflow[] = [];
         for (const hook of triggeredHooks) {
             const owner = pull_request.base.repo.owner.login;
@@ -163,7 +159,7 @@ export class Hooks {
                     workflow_id: workflow_id
                 });
                 if (resp.status !== 200) {
-                    log.warn(`Workflow ${workflow_id} does not exist in repo ${owner}/${repo}`);
+                    this.log.warn(`Workflow ${workflow_id} does not exist in repo ${owner}/${repo}`);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: {},
@@ -172,7 +168,7 @@ export class Hooks {
                     continue;
                 }
                 if (resp.data.state !== "active") {
-                    log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
+                    this.log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: {},
@@ -181,7 +177,7 @@ export class Hooks {
                     continue;
                 }
             } catch (e) {
-                log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
+                this.log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: {},
@@ -193,7 +189,7 @@ export class Hooks {
             let pipelineParams = hook.pipeline_params;
             if (hook.hook === "onSlashCommand") {
                 if (!commandTokens) {
-                    log.error("Slash command hook type requires a slash command");
+                    this.log.error("Slash command hook type requires a slash command");
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: {},
@@ -203,7 +199,7 @@ export class Hooks {
                 } else {
                     const command = commandTokens[0];
                     if (hook.slash_command !== command) {
-                        log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
+                        this.log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
                         triggeredPipelines.push({
                             name: pipeline_name,
                             inputs: {},
@@ -235,12 +231,12 @@ export class Hooks {
                 inputs: inputs
             };
             const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-            log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
+            this.log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
             if (resp.status === 204) {
-                log.info("Workflow " + hook.pipeline_unique_prefix + " triggered successfully");
+                this.log.info("Workflow " + hook.pipeline_unique_prefix + " triggered successfully");
                 triggeredPipelines.push({name: pipeline_name, inputs: inputs});
             } else {
-                log.error("Failed to trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
+                this.log.error("Failed to trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: inputs,
@@ -282,7 +278,7 @@ export class Hooks {
             } catch (e) {
                 hook.pipeline_ref = pipeline_ref;
                 hooksWithNotExistingRef.push(hook);
-                log.warn(`Ref ${pipeline_ref} does not exist in repo ${owner}/${repo}`);
+                this.log.warn(`Ref ${pipeline_ref} does not exist in repo ${owner}/${repo}`);
             }
         }
         return hooksWithNotExistingRef;
