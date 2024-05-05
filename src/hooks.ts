@@ -158,15 +158,6 @@ export class Hooks {
                     repo: repo,
                     workflow_id: workflow_id
                 });
-                if (resp.status !== 200) {
-                    this.log.warn(`Workflow ${workflow_id} does not exist in repo ${owner}/${repo}`);
-                    triggeredPipelines.push({
-                        name: pipeline_name,
-                        inputs: {},
-                        error: `Workflow ${workflow_id} does not exist`
-                    });
-                    continue;
-                }
                 if (resp.data.state !== "active") {
                     this.log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
                     triggeredPipelines.push({
