@@ -363,13 +363,20 @@ export = (app: Probot) => {
                 await reply.replyToCommentWithReactionAndComment(context, "There are hooks with non-existing refs. No hooks will be triggered.", 'confused');
                 return;
             }
-            const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
-            for (const pipelineName of triggeredPipelineNames) {
-                await checks.createNewRun(pipelineName, pr, hookType, merge_commit_sha);
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
+            for (const triggeredWorkflow of triggeredWorkflows) {
+                await checks.createNewRun(triggeredWorkflow, pr, hookType, merge_commit_sha);
+                if (triggeredWorkflow.error) {
+                    await checks.createWorkflowRunCheckErrored(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflow);
+                }
             }
-            if (triggeredPipelineNames.length === 0) {
+            const allTriggeredHasError = triggeredWorkflows.every(workflow => workflow.error);
+            if (triggeredWorkflows.length === 0) {
                 const checkRunUrl = await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
                 await reply.replyToCommentWithReactionAndComment(context, `No pipelines triggered. [Check](${checkRunUrl})`, '+1');
+            } else if (allTriggeredHasError) {
+                const checkRunUrl = await checks.createPRCheckForAllErroredPipelines(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflows);
+                await reply.replyToCommentWithReactionAndComment(context, `All pipelines errored. [Check](${checkRunUrl})`, 'confused');
             } else {
                 const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
                 await reply.replyToCommentWithReactionAndComment(context, `Pipelines triggered. [Check](${checkRunUrl})`, 'rocket');

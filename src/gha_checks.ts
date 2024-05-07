@@ -53,22 +53,29 @@ export interface ReRunPayload {
 
 export class GhaChecks {
 
-    async createNewRun(pipeline: TriggeredWorkflow, pull_request: {
+    async createNewRun(triggeredWorkflow: TriggeredWorkflow, pull_request: {
         number: number
     }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
-        const {headSha, checkName} = this.parseHeadShaFromJobName(pipeline.name);
+        const {headSha, checkName} = this.parseHeadShaFromJobName(triggeredWorkflow.name);
         if (headSha) {
-            await gha_workflow_runs(db).insert({
+            let workflowRun = {
                 name: checkName,
                 head_sha: headSha,
                 merge_commit_sha: merge_commit_sha,
-                pipeline_run_name: pipeline.name,
-                workflow_run_inputs: pipeline.inputs,
+                pipeline_run_name: triggeredWorkflow.name,
+                workflow_run_inputs: triggeredWorkflow.inputs,
                 pr_number: pull_request.number,
                 hook: hookType,
-            });
+            }
+            if (triggeredWorkflow.error) {
+                workflowRun = Object.assign(workflowRun, {
+                    status: "completed",
+                    conclusion: "failure"
+                });
+            }
+            await gha_workflow_runs(db).insert(workflowRun);
         } else {
-            log.error("Failed to parse head sha from pipeline name " + pipeline);
+            log.error("Failed to parse head sha from triggeredWorkflow name " + triggeredWorkflow);
         }
     }
 
@@ -82,6 +89,61 @@ export class GhaChecks {
                 return PRCheckName.PRClose;
             case "onSlashCommand":
                 return PRCheckName.PRSlashCommand;
+        }
+    }
+
+    async createWorkflowRunCheckErrored(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number;
+        head: { sha: string };
+        base: { repo: { name: string; owner: { login: string } } }
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string, erroredWorkflow: TriggeredWorkflow) {
+        const {checkName} = this.parseHeadShaFromJobName(erroredWorkflow.name);
+        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
+        const summary = `<details><summary>❌: ${erroredWorkflow.name}</summary><p>\n` +
+            `\n` +
+            `\n` +
+            `### Error\n` +
+            `\n` +
+            `\`\`\`console\n` +
+            `${erroredWorkflow.error}\n` +
+            `\`\`\`\n` +
+            `\n` +
+            `\n` +
+            `### Workflow run arguments\n` +
+            `\n` +
+            `\`\`\`json\n` +
+            `\n` +
+            `${JSON.stringify(erroredWorkflow.inputs, null, 2)} \n` +
+            `\n` +
+            `\`\`\`\n` +
+            `\n` +
+            `</p>\n` +
+            `</details>`;
+        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+            owner: pull_request.base.repo.owner.login,
+            repo: pull_request.base.repo.name,
+            name: checkName,
+            head_sha: sha,
+            status: "completed",
+            conclusion: "failure",
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "Workflow run errored",
+                summary: summary
+            }
+        };
+        const resp = await octokit.checks.create(params);
+        if (resp.status === 201) {
+            const check = resp.data;
+            // update workflow run in db
+            await gha_workflow_runs(db).update({pipeline_run_name: erroredWorkflow.name, workflow_job_id: null}, {
+                status: check.status,
+                check_run_id: check.id,
+                workflow_run_url: check.details_url
+            });
+        } else {
+            log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
     }
 
@@ -154,6 +216,47 @@ export class GhaChecks {
         const checkRunUrl = resp.data.html_url;
         if (resp.status === 201) {
             log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+        } else {
+            log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
+        }
+        return checkRunUrl;
+    }
+
+
+    async createPRCheckForAllErroredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number;
+        head: { sha: string };
+        base: { repo: { name: string; owner: { login: string } } }
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string, erroredWorkflows: TriggeredWorkflow[]) {
+        const checkName = this.hookToCheckName(hookType);
+        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
+        let summary = "❌Errored workflows:\n"
+        for (const triggeredWorkflow of erroredWorkflows) {
+            summary += `${triggeredWorkflow.name} -> error: ${triggeredWorkflow.error}\n`;
+        }
+        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+            owner: pull_request.base.repo.owner.login,
+            repo: pull_request.base.repo.name,
+            name: checkName,
+            head_sha: sha,
+            status: "completed",
+            conclusion: "failure",
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "All workflows errored. Nothing to do",
+                summary: summary
+            }
+        };
+        const resp = await octokit.checks.create(params);
+        const checkRunId = resp.data.id;
+        const checkRunUrl = resp.data.html_url;
+        if (resp.status === 201) {
+            log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+            await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null, hook: hookType}, {
+                pr_check_id: checkRunId,
+                pr_conclusion: "failure"
+            });
         } else {
             log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
@@ -622,27 +725,37 @@ export class GhaChecks {
 
     private async triggerReRunFor(workflowRuns: GhaWorkflowRuns[], octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string) {
         for (const workflowRun of workflowRuns) {
-            const params: RestEndpointMethodTypes["actions"]["reRunWorkflow"]["parameters"] = {
-                owner: owner,
-                repo: repo,
-                run_id: Number(workflowRun.workflow_run_id)
-            };
-            const resp = await octokit.actions.reRunWorkflow(params);
-            if (resp.status === 201) {
-                log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
-            } else {
-                log.error(`Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`);
+            if (workflowRun.workflow_run_id === null) {
+                log.warn(`Workflow run ${workflowRun.pipeline_run_name} does not have workflow_run_id`);
+                continue;
+            }
+            try {
+                const params: RestEndpointMethodTypes["actions"]["reRunWorkflow"]["parameters"] = {
+                    owner: owner,
+                    repo: repo,
+                    run_id: Number(workflowRun.workflow_run_id)
+                };
+                const resp = await octokit.actions.reRunWorkflow(params);
+                if (resp.status === 201) {
+                    log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
+                }
+            } catch (e) {
+                log.error(`Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} with error ${e}`);
             }
         }
     }
 
     private async cleanupPreviousResultFor(workflowRuns: GhaWorkflowRuns[]) {
         for (const workflowRun of workflowRuns) {
-            await gha_workflow_runs(db).update({workflow_run_id: workflowRun.workflow_run_id}, {
-                workflow_job_id: null,
-                conclusion: null,
-                pr_conclusion: null,
-            });
+            if (workflowRun.workflow_run_id !== null) {
+                await gha_workflow_runs(db).update({workflow_run_id: workflowRun.workflow_run_id}, {
+                    workflow_job_id: null,
+                    conclusion: null,
+                    pr_conclusion: null,
+                });
+            } else {
+                log.warn(`Workflow run ${workflowRun.pipeline_run_name} does not have workflow_run_id`);
+            }
         }
     }
 
