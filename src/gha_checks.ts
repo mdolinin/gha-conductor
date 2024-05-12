@@ -100,7 +100,7 @@ export class GhaChecks {
         const {checkName} = this.parseHeadShaFromJobName(erroredWorkflow.name);
         log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
-        const summary = `<details><summary>❌: ${erroredWorkflow.name}</summary><p>\n` +
+        const summary = `<details><summary>❌: ${checkName}</summary><p>\n` +
             `\n` +
             `\n` +
             `### Error\n` +
@@ -140,7 +140,7 @@ export class GhaChecks {
             await gha_workflow_runs(db).update({pipeline_run_name: erroredWorkflow.name, workflow_job_id: null}, {
                 status: check.status,
                 check_run_id: check.id,
-                workflow_run_url: check.details_url
+                workflow_run_url: `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${check.id}`
             });
         } else {
             log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
@@ -233,7 +233,26 @@ export class GhaChecks {
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
         let summary = "❌Errored workflows:\n"
         for (const triggeredWorkflow of erroredWorkflows) {
-            summary += `${triggeredWorkflow.name} -> error: ${triggeredWorkflow.error}\n`;
+            summary += `## ${triggeredWorkflow.name}\n` +
+                '\n' +
+                '\n' +
+                `### Error\n` +
+                `\n` +
+                `\`\`\`console\n` +
+                `${triggeredWorkflow.error}\n` +
+                `\`\`\`\n` +
+                `\n` +
+                `\n` +
+                `### Workflow run arguments\n` +
+                `\n` +
+                `\`\`\`json\n` +
+                `\n` +
+                `${JSON.stringify(triggeredWorkflow.inputs, null, 2)} \n` +
+                `\n` +
+                `\`\`\`\n` +
+                `\n` +
+                `\n`;
+
         }
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,

@@ -376,7 +376,7 @@ export = (app: Probot) => {
                 await reply.replyToCommentWithReactionAndComment(context, `No pipelines triggered. [Check](${checkRunUrl})`, '+1');
             } else if (allTriggeredHasError) {
                 const checkRunUrl = await checks.createPRCheckForAllErroredPipelines(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflows);
-                await reply.replyToCommentWithReactionAndComment(context, `All pipelines errored. [Check](${checkRunUrl})`, 'confused');
+                await reply.replyToCommentWithReactionAndComment(context, `❌ All pipelines errored. [Check](${checkRunUrl})`, 'confused');
             } else {
                 const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
                 await reply.replyToCommentWithReactionAndComment(context, `Pipelines triggered. [Check](${checkRunUrl})`, 'rocket');
