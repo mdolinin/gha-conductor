@@ -446,7 +446,10 @@ describe('gha hooks', () => {
         expect(triggeredPipelineNames).toEqual([
             {
                 error: "Failed to get workflow pipeline_name_1.yaml, probably does not exist in repo owner_login/repo_name",
-                inputs: {},
+                inputs: {
+                    PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
+                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdej\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\",\"ROOT_DIR\":\"root_dir1\",\"shared_param\":\"shared_param\",\"COMMAND\":\"command1\",\"pipeline_param\":\"pipeline_param_1\"}",
+                },
                 name: "namespace1-module1-hook1-head_sha"
             }
         ]);

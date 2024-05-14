@@ -213,7 +213,7 @@ export class GhaChecks {
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
-        const checkRunUrl = resp.data.html_url;
+        const checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${checkRunId}`
         if (resp.status === 201) {
             log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } else {
@@ -269,7 +269,7 @@ export class GhaChecks {
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
-        const checkRunUrl = resp.data.html_url;
+        const checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${checkRunId}`
         if (resp.status === 201) {
             log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
             await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null, hook: hookType}, {
@@ -315,7 +315,7 @@ export class GhaChecks {
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
-        const checkRunUrl = resp.data.html_url;
+        const checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${checkRunId}`
         log.info(`Updating ${checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
         if (resp.status === 201) {
             await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null, hook: hookType}, {

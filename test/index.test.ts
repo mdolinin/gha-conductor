@@ -524,7 +524,7 @@ describe("gha-conductor app", () => {
             .post("/repos/mdolinin/mono-repo-example/issues/comments/2080272675/reactions", {content: 'rocket'})
             .reply(200)
             .post("/repos/mdolinin/mono-repo-example/issues/10/comments", (body: any) => {
-                expect(body).toMatchObject({body: "Pipelines triggered. [Check]()"});
+                expect(body).toMatchObject({body: "🏁Pipelines triggered. [Check]()"});
                 return true;
             })
             .reply(200);
@@ -532,7 +532,7 @@ describe("gha-conductor app", () => {
         await probot.receive({name: "issue_comment", payload: slashCommandIssueCommentPayload});
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
-        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
+        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createNewRunMock).toHaveBeenCalledTimes(1);

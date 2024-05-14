@@ -151,6 +151,18 @@ export class Hooks {
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
             const workflow_id = `${hook.pipeline_name}.yaml`;
             const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
+            let sharedParams = hook.shared_params;
+            let pipelineParams = hook.pipeline_params;
+            // merge all shared and pipeline params and common_serialized_variables
+            let serialized_variables = {
+                ...common_serialized_variables,
+                ...sharedParams,
+                ...pipelineParams
+            }
+            let inputs = {
+                PIPELINE_NAME: pipeline_name,
+                SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
+            };
             // verify workflow exists and is active
             try {
                 const resp = await octokit.rest.actions.getWorkflow({
@@ -162,7 +174,7 @@ export class Hooks {
                     this.log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
                     triggeredPipelines.push({
                         name: pipeline_name,
-                        inputs: {},
+                        inputs: inputs,
                         error: `Workflow ${workflow_id} is not active`
                     });
                     continue;
@@ -171,19 +183,17 @@ export class Hooks {
                 this.log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
                 triggeredPipelines.push({
                     name: pipeline_name,
-                    inputs: {},
+                    inputs: inputs,
                     error: `Failed to get workflow ${workflow_id}, probably does not exist in repo ${owner}/${repo}`
                 });
                 continue;
             }
-            let sharedParams = hook.shared_params;
-            let pipelineParams = hook.pipeline_params;
             if (hook.hook === "onSlashCommand") {
                 if (!commandTokens) {
                     this.log.error("Slash command hook type requires a slash command");
                     triggeredPipelines.push({
                         name: pipeline_name,
-                        inputs: {},
+                        inputs: inputs,
                         error: `Slash command hook type requires a slash command`
                     });
                     continue;
@@ -193,7 +203,7 @@ export class Hooks {
                         this.log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
                         triggeredPipelines.push({
                             name: pipeline_name,
-                            inputs: {},
+                            inputs: inputs,
                             error: `Slash command ${command} does not match hook slash command ${hook.slash_command}`
                         });
                         continue;
@@ -202,18 +212,17 @@ export class Hooks {
                     // substitute ${command} and ${args} if defined in shared and pipeline params that is json string
                     sharedParams = JSON.parse(JSON.stringify(sharedParams).replace("${command}", command).replace("${args}", args.join(" ")));
                     pipelineParams = JSON.parse(JSON.stringify(pipelineParams).replace("${command}", command).replace("${args}", args.join(" ")));
+                    serialized_variables = {
+                        ...common_serialized_variables,
+                        ...sharedParams,
+                        ...pipelineParams
+                    }
+                    inputs = {
+                        PIPELINE_NAME: pipeline_name,
+                        SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
+                    }
                 }
             }
-            // merge all shared and pipeline params and common_serialized_variables
-            const serialized_variables = {
-                ...common_serialized_variables,
-                ...sharedParams,
-                ...pipelineParams
-            }
-            const inputs = {
-                PIPELINE_NAME: pipeline_name,
-                SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
-            };
             const workflowDispatch: workflowDispatchEventParameters = {
                 owner: owner,
                 repo: repo,
@@ -221,17 +230,16 @@ export class Hooks {
                 ref: pipeline_ref,
                 inputs: inputs
             };
-            const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-            this.log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
-            if (resp.status === 204) {
-                this.log.info("Workflow " + hook.pipeline_unique_prefix + " triggered successfully");
+            try {
+                await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
+                this.log.info(`Workflow ${hook.pipeline_unique_prefix} triggered successfully for PR#${prNumber}`);
                 triggeredPipelines.push({name: pipeline_name, inputs: inputs});
-            } else {
+            } catch (e) {
                 this.log.error("Failed to trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: inputs,
-                    error: `Failed to trigger workflow ${workflow_id} for PR#${prNumber}, with status ${resp.status} and error ${resp.data}`
+                    error: `Failed to trigger workflow ${workflow_id} for ref ${pipeline_ref}, with error ${e}`
                 });
             }
         }

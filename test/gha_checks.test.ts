@@ -719,12 +719,10 @@ describe('gha_checks', () => {
 
     it('create pr-close check when PR closed hook triggered', async () => {
         const merge_commit_sha = '1234567890';
-        const expectedCheckRunUrl = 'https://github.com/mdolinin/mono-repo-example/runs/24321595896';
         const createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 1,
-                    html_url: expectedCheckRunUrl,
                 },
                 status: 201,
             }
@@ -745,7 +743,7 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequestClose', merge_commit_sha);
-        expect(checkRunUrl).toBe(expectedCheckRunUrl);
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
             pr_check_id: null,
@@ -759,12 +757,10 @@ describe('gha_checks', () => {
 
     it('create pr-slash-command check when slash command hook triggered', async () => {
         const merge_commit_sha = '1234567890';
-        const expectedCheckRunUrl = 'https://github.com/mdolinin/mono-repo-example/runs/24321595897';
         const createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 1,
-                    html_url: expectedCheckRunUrl,
+                    id: 2,
                 },
                 status: 201,
             }
@@ -785,7 +781,7 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onSlashCommand', merge_commit_sha);
-        expect(checkRunUrl).toBe(expectedCheckRunUrl);
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=2');
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
             pr_check_id: null,
