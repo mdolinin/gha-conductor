@@ -1,4 +1,5 @@
 import {GhaLoader} from "../src/gha_loader";
+import {Logger} from "probot";
 
 const cloneMock = jest.fn().mockReturnValue(Promise.resolve(""));
 const cwdMock = jest.fn();
@@ -119,8 +120,15 @@ jest.mock('fs', () => {
     }
 });
 
+const logMock = {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+};
+
 describe('gha loader', () => {
-    const ghaLoader = new GhaLoader();
+    const ghaLoader = new GhaLoader(logMock as unknown as Logger);
 
     beforeEach(() => {
         // @ts-ignore
