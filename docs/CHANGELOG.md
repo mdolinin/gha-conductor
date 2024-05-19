@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/mdolinin/gha-conductor/compare/v1.9.1...v1.9.2) (2024-05-19)
+
+
+### Bug Fixes
+
+* **loader:** use logger from probot app instead of create new one ([#67](https://github.com/mdolinin/gha-conductor/issues/67)) ([1043aea](https://github.com/mdolinin/gha-conductor/commit/1043aea4996a3d0416ec0c3964ca2c0970072c87))
+
 ## [1.9.1](https://github.com/mdolinin/gha-conductor/compare/v1.9.0...v1.9.1) (2024-05-19)
 
 
