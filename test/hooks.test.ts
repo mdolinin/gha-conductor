@@ -1,6 +1,7 @@
 import {Hooks} from "../src/hooks";
 import {HookType} from "../src/__generated__/_enums";
 import {GhaHook} from "../src/gha_loader";
+import {Logger} from "probot";
 
 const findAllMock = jest.fn().mockImplementation(() => {
     return [
@@ -34,8 +35,13 @@ jest.mock('../src/db/database', () => {
     }
 });
 
+const logMock = {
+    info: jest.fn(),
+    warn: jest.fn(),
+};
+
 describe('gha hooks', () => {
-    const hooks = new Hooks();
+    const hooks = new Hooks(logMock as unknown as Logger);
 
     afterEach(() => {
         jest.clearAllMocks();
@@ -143,10 +149,19 @@ describe('gha hooks', () => {
                 status: 204
             }
         });
+        const getWorkflowMock = jest.fn().mockImplementation(() => {
+            return {
+                status: 200,
+                data: {
+                    state: "active"
+                }
+            }
+        });
         const octokit = {
             rest: {
                 actions: {
-                    createWorkflowDispatch: workflowDispatchMock
+                    createWorkflowDispatch: workflowDispatchMock,
+                    getWorkflow: getWorkflowMock
                 }
             }
         };
@@ -215,6 +230,17 @@ describe('gha hooks', () => {
         triggeredHooks.add(hook2);
         // @ts-ignore
         const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
+        expect(getWorkflowMock).toHaveBeenCalledWith({
+            owner: "owner_login",
+            repo: "repo_name",
+            workflow_id: "pipeline_name_1.yaml"
+        });
+        expect(getWorkflowMock).toHaveBeenCalledWith({
+            owner: "owner_login",
+            repo: "repo_name",
+            workflow_id: "pipeline_name_2.yaml"
+        });
+        expect(getWorkflowMock).toHaveBeenCalledTimes(2);
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
                 PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
@@ -260,10 +286,19 @@ describe('gha hooks', () => {
                 status: 204
             }
         });
+        const getWorkflowMock = jest.fn().mockImplementation(() => {
+            return {
+                status: 200,
+                data: {
+                    state: "active"
+                }
+            }
+        });
         const octokit = {
             rest: {
                 actions: {
-                    createWorkflowDispatch: workflowDispatchMock
+                    createWorkflowDispatch: workflowDispatchMock,
+                    getWorkflow: getWorkflowMock
                 }
             }
         };
@@ -311,6 +346,12 @@ describe('gha hooks', () => {
         triggeredHooks.add(hook1);
         // @ts-ignore
         const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha, ['validate', 'arg1', 'arg2']);
+        expect(getWorkflowMock).toHaveBeenCalledWith({
+            owner: "owner_login",
+            repo: "repo_name",
+            workflow_id: "pipeline_name_1.yaml"
+        });
+        expect(workflowDispatchMock).toHaveBeenCalledTimes(1);
         expect(workflowDispatchMock).toHaveBeenCalledWith({
             inputs: {
                 PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
@@ -333,28 +374,58 @@ describe('gha hooks', () => {
         ]);
     });
 
-    it('should verify that all hooks in provided list pointed to existing branch', async () => {
-        const getBranchMock = jest.fn().mockImplementation(() => {
-            throw new Error("Branch not found")
+    it('should not trigger workflow, when workflow is not exist or inactive', async () => {
+        const merge_commit_sha = "0123456789abcdej";
+        const workflowDispatchMock = jest.fn().mockImplementation(() => {
+            return {
+                status: 204
+            }
+        });
+        const getWorkflowMock = jest.fn().mockImplementation(() => {
+            throw new Error("Workflow not found")
         });
         const octokit = {
             rest: {
-                repos: {
-                    getBranch: getBranchMock
+                actions: {
+                    createWorkflowDispatch: workflowDispatchMock,
+                    getWorkflow: getWorkflowMock
                 }
             }
         };
+        const pull_request = {
+            merged: false,
+            number: 1,
+            head: {
+                ref: "head_ref",
+                sha: "head_sha"
+            },
+            base: {
+                ref: "base_ref",
+                sha: "base_sha",
+                repo: {
+                    default_branch: "main",
+                    name: "repo_name",
+                    full_name: "repo_full_name",
+                    owner: {
+                        login: "owner_login"
+                    }
+                }
+            }
+        };
+        const triggeredHooks = new Set<GhaHook>();
         const hook1 = {
             branch: "hookBranch1",
             destination_branch_matcher: "main",
             hook_name: "hook1",
             pipeline_name: "pipeline_name_1",
             pipeline_params: {
+                COMMAND: "command1",
                 pipeline_param: "pipeline_param_1"
             },
             pipeline_ref: "feature/1",
             repo_full_name: "repo_full_name",
             shared_params: {
+                ROOT_DIR: "root_dir1",
                 shared_param: "shared_param"
             },
             pipeline_unique_prefix: "namespace1-module1-hook1",
@@ -362,11 +433,26 @@ describe('gha hooks', () => {
             slash_command: undefined,
             hook: "onPullRequest" as HookType
         };
-        const hooksList = new Set<GhaHook>();
-        hooksList.add(hook1);
+        triggeredHooks.add(hook1);
         // @ts-ignore
-        const hooksWithNotExistingRef = await hooks.verifyAllHooksRefsExist(octokit, "owner", "repo", "main", hooksList);
-        expect(hooksWithNotExistingRef).toEqual([hook1]);
+        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
+        expect(getWorkflowMock).toHaveBeenCalledWith({
+            owner: "owner_login",
+            repo: "repo_name",
+            workflow_id: "pipeline_name_1.yaml"
+        });
+        expect(getWorkflowMock).toHaveBeenCalledTimes(1);
+        expect(workflowDispatchMock).not.toHaveBeenCalled();
+        expect(triggeredPipelineNames).toEqual([
+            {
+                error: "Failed to get workflow pipeline_name_1.yaml, probably does not exist in repo owner_login/repo_name",
+                inputs: {
+                    PIPELINE_NAME: "namespace1-module1-hook1-head_sha",
+                    SERIALIZED_VARIABLES: "{\"PR_HEAD_REF\":\"head_ref\",\"PR_HEAD_SHA\":\"head_sha\",\"PR_BASE_REF\":\"base_ref\",\"PR_BASE_SHA\":\"base_sha\",\"PR_MERGE_SHA\":\"0123456789abcdej\",\"PR_NUMBER\":1,\"PR_ACTION\":\"opened\",\"ROOT_DIR\":\"root_dir1\",\"shared_param\":\"shared_param\",\"COMMAND\":\"command1\",\"pipeline_param\":\"pipeline_param_1\"}",
+                },
+                name: "namespace1-module1-hook1-head_sha"
+            }
+        ]);
     });
 
 });

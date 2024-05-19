@@ -21,8 +21,8 @@ const TOKENISE_REGEX =
 export = (app: Probot) => {
 
     const ghaLoader = new GhaLoader();
-    const hooks = new Hooks();
-    const checks = new GhaChecks();
+    const hooks = new Hooks(app.log);
+    const checks = new GhaChecks(app.log);
     const reply = new GhaReply(app.log);
 
     app.on("push", async (context) => {
@@ -154,19 +154,18 @@ export = (app: Probot) => {
             if (merge_commit_sha === null) {
                 merge_commit_sha = context.payload.pull_request.head.sha;
             }
-            const default_branch = context.payload.pull_request.base.repo.default_branch;
-            const hooksWithNotExistingRefs = await hooks.verifyAllHooksRefsExist(context.octokit, owner, repo, default_branch, triggeredHooks);
-            if (hooksWithNotExistingRefs.length > 0) {
-                app.log.info(`There are hooks with non-existing refs. No hooks will be triggered`);
-                await checks.createPRCheckWithNonExistingRefs(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, hooksWithNotExistingRefs);
-                return;
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha);
+            for (const triggeredWorkflow of triggeredWorkflows) {
+                await checks.createNewRun(triggeredWorkflow, context.payload.pull_request, hookType, merge_commit_sha);
+                if (triggeredWorkflow.error) {
+                    await checks.createWorkflowRunCheckErrored(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, triggeredWorkflow);
+                }
             }
-            const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha);
-            for (const pipelineName of triggeredPipelineNames) {
-                await checks.createNewRun(pipelineName, context.payload.pull_request, hookType, merge_commit_sha);
-            }
-            if (triggeredPipelineNames.length === 0) {
+            const allTriggeredHasError = triggeredWorkflows.every(workflow => workflow.error);
+            if (triggeredWorkflows.length === 0) {
                 await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request, hookType, merge_commit_sha);
+            } else if (allTriggeredHasError) {
+                await checks.createPRCheckForAllErroredPipelines(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, triggeredWorkflows);
             } else {
                 await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, hookType, merge_commit_sha);
             }
@@ -355,24 +354,23 @@ export = (app: Probot) => {
             if (merge_commit_sha === null) {
                 merge_commit_sha = pr.head.sha;
             }
-            const default_branch = pr.base.repo.default_branch;
-            const hooksWithNotExistingRefs = await hooks.verifyAllHooksRefsExist(context.octokit, owner, repo, default_branch, triggeredHooks);
-            if (hooksWithNotExistingRefs.length > 0) {
-                app.log.info(`There are hooks with non-existing refs. No hooks will be triggered`);
-                await checks.createPRCheckWithNonExistingRefs(context.octokit, pr, hookType, merge_commit_sha, hooksWithNotExistingRefs);
-                await reply.replyToCommentWithReactionAndComment(context, "There are hooks with non-existing refs. No hooks will be triggered.", 'confused');
-                return;
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
+            for (const triggeredWorkflow of triggeredWorkflows) {
+                await checks.createNewRun(triggeredWorkflow, pr, hookType, merge_commit_sha);
+                if (triggeredWorkflow.error) {
+                    await checks.createWorkflowRunCheckErrored(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflow);
+                }
             }
-            const triggeredPipelineNames = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
-            for (const pipelineName of triggeredPipelineNames) {
-                await checks.createNewRun(pipelineName, pr, hookType, merge_commit_sha);
-            }
-            if (triggeredPipelineNames.length === 0) {
+            const allTriggeredHasError = triggeredWorkflows.every(workflow => workflow.error);
+            if (triggeredWorkflows.length === 0) {
                 const checkRunUrl = await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
-                await reply.replyToCommentWithReactionAndComment(context, `No pipelines triggered. [Check](${checkRunUrl})`, '+1');
+                await reply.replyToCommentWithReactionAndComment(context, `🫤No pipelines triggered. [Check](${checkRunUrl})`, '+1');
+            } else if (allTriggeredHasError) {
+                const checkRunUrl = await checks.createPRCheckForAllErroredPipelines(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflows);
+                await reply.replyToCommentWithReactionAndComment(context, `❌All pipelines errored. [Check](${checkRunUrl})`, 'confused');
             } else {
                 const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
-                await reply.replyToCommentWithReactionAndComment(context, `Pipelines triggered. [Check](${checkRunUrl})`, 'rocket');
+                await reply.replyToCommentWithReactionAndComment(context, `🏁Pipelines triggered. [Check](${checkRunUrl})`, 'rocket');
             }
         } else {
             app.log.info(`No files changed in PR ${prNumber}. No hooks will be triggered`);

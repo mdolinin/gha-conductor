@@ -1,23 +1,12 @@
 import {minimatch} from "minimatch";
-import {ProbotOctokit} from "probot";
+import {Logger, ProbotOctokit} from "probot";
 import {
     RestEndpointMethodTypes
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import {HookType} from "./__generated__/_enums";
 import db, {gha_hooks} from "./db/database";
-import pino from "pino";
-import {getTransformStream} from "@probot/pino";
 import {GhaHook} from "./gha_loader";
 import {GhaHooks} from "./__generated__";
-
-const transform = getTransformStream();
-transform.pipe(pino.destination(1));
-const log = pino(
-    {
-        name: "gha-hooks",
-    },
-    transform
-);
 
 type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["createWorkflowDispatch"]["parameters"];
 
@@ -25,14 +14,22 @@ type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["creat
 export interface TriggeredWorkflow {
     name: string,
     inputs: any
+    error?: string
 }
 
 export class Hooks {
+
+    log: Logger;
+
+    constructor(log: Logger) {
+        this.log = log;
+    }
+
     async filterTriggeredHooks(repo_full_name: string, hookType: HookType,
                                files_changed: string[], baseBranch: string, hooksChangedInPR: GhaHook[],
                                slashCommand?: string | undefined
     ): Promise<Set<GhaHook>> {
-        log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
+        this.log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
         const triggeredHooks = new Set<GhaHook>();
         const allHooks = new Map<string, GhaHook>();
         if (hookType === "onBranchMerge") {
@@ -51,7 +48,7 @@ export class Hooks {
             }
         } else if (hookType === "onSlashCommand") {
             if (!slashCommand) {
-                log.error("Slash command hook type requires a slash command");
+                this.log.error("Slash command hook type requires a slash command");
                 return triggeredHooks;
             }
             const mainHooks = await gha_hooks(db).find({
@@ -84,7 +81,7 @@ export class Hooks {
         for (const file of files_changed) {
             allHooks.forEach((hook) => {
                 if (!hook.file_changes_matcher.startsWith("!") && minimatch(file, hook.file_changes_matcher)) {
-                    log.info(`File ${file} matches matcher ${hook.file_changes_matcher}`);
+                    this.log.info(`File ${file} matches matcher ${hook.file_changes_matcher}`);
                     triggeredHooks.add(hook);
                 }
             });
@@ -146,7 +143,7 @@ export class Hooks {
             'PR_NUMBER': prNumber,
             'PR_ACTION': pr_action,
         }
-        log.info(`Searching for workflow to run for PR #${prNumber} with action ${action}`);
+        this.log.info(`Searching for workflow to run for PR #${prNumber} with action ${action}`);
         const triggeredPipelines: TriggeredWorkflow[] = [];
         for (const hook of triggeredHooks) {
             const owner = pull_request.base.repo.owner.login;
@@ -156,32 +153,76 @@ export class Hooks {
             const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
             let sharedParams = hook.shared_params;
             let pipelineParams = hook.pipeline_params;
+            // merge all shared and pipeline params and common_serialized_variables
+            let serialized_variables = {
+                ...common_serialized_variables,
+                ...sharedParams,
+                ...pipelineParams
+            }
+            let inputs = {
+                PIPELINE_NAME: pipeline_name,
+                SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
+            };
+            // verify workflow exists and is active
+            try {
+                const resp = await octokit.rest.actions.getWorkflow({
+                    owner: owner,
+                    repo: repo,
+                    workflow_id: workflow_id
+                });
+                if (resp.data.state !== "active") {
+                    this.log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
+                    triggeredPipelines.push({
+                        name: pipeline_name,
+                        inputs: inputs,
+                        error: `Workflow ${workflow_id} is not active`
+                    });
+                    continue;
+                }
+            } catch (e) {
+                this.log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
+                triggeredPipelines.push({
+                    name: pipeline_name,
+                    inputs: inputs,
+                    error: `Failed to get workflow ${workflow_id}, probably does not exist in repo ${owner}/${repo}`
+                });
+                continue;
+            }
             if (hook.hook === "onSlashCommand") {
                 if (!commandTokens) {
-                    log.error("Slash command hook type requires a slash command");
+                    this.log.error("Slash command hook type requires a slash command");
+                    triggeredPipelines.push({
+                        name: pipeline_name,
+                        inputs: inputs,
+                        error: `Slash command hook type requires a slash command`
+                    });
                     continue;
                 } else {
                     const command = commandTokens[0];
                     if (hook.slash_command !== command) {
-                        log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
+                        this.log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
+                        triggeredPipelines.push({
+                            name: pipeline_name,
+                            inputs: inputs,
+                            error: `Slash command ${command} does not match hook slash command ${hook.slash_command}`
+                        });
                         continue;
                     }
                     const args = commandTokens.slice(1);
                     // substitute ${command} and ${args} if defined in shared and pipeline params that is json string
                     sharedParams = JSON.parse(JSON.stringify(sharedParams).replace("${command}", command).replace("${args}", args.join(" ")));
                     pipelineParams = JSON.parse(JSON.stringify(pipelineParams).replace("${command}", command).replace("${args}", args.join(" ")));
+                    serialized_variables = {
+                        ...common_serialized_variables,
+                        ...sharedParams,
+                        ...pipelineParams
+                    }
+                    inputs = {
+                        PIPELINE_NAME: pipeline_name,
+                        SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
+                    }
                 }
             }
-            // merge all shared and pipeline params and common_serialized_variables
-            const serialized_variables = {
-                ...common_serialized_variables,
-                ...sharedParams,
-                ...pipelineParams
-            }
-            const inputs = {
-                PIPELINE_NAME: pipeline_name,
-                SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
-            };
             const workflowDispatch: workflowDispatchEventParameters = {
                 owner: owner,
                 repo: repo,
@@ -189,12 +230,18 @@ export class Hooks {
                 ref: pipeline_ref,
                 inputs: inputs
             };
-            const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-            log.info("Trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
-            if (resp.status === 204) {
-                log.info("Workflow " + hook.pipeline_unique_prefix + " triggered successfully");
+            try {
+                await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
+                this.log.info(`Workflow ${hook.pipeline_unique_prefix} triggered successfully for PR#${prNumber}`);
+                triggeredPipelines.push({name: pipeline_name, inputs: inputs});
+            } catch (e) {
+                this.log.error("Failed to trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
+                triggeredPipelines.push({
+                    name: pipeline_name,
+                    inputs: inputs,
+                    error: `Failed to trigger workflow ${workflow_id} for ref ${pipeline_ref}, with error ${e}`
+                });
             }
-            triggeredPipelines.push({name: pipeline_name, inputs: inputs});
         }
         return triggeredPipelines;
     }
@@ -213,26 +260,5 @@ export class Hooks {
             case "synchronize":
                 return "onPullRequest";
         }
-    }
-
-    async verifyAllHooksRefsExist(octokit: InstanceType<typeof ProbotOctokit>,
-                                  owner: string, repo: string, default_branch: string,
-                                  triggeredHooks: Set<GhaHook>): Promise<GhaHook[]> {
-        const hooksWithNotExistingRef: GhaHook[] = [];
-        for (const hook of triggeredHooks) {
-            const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : default_branch;
-            try {
-                await octokit.rest.repos.getBranch({
-                    owner: owner,
-                    repo: repo,
-                    branch: pipeline_ref
-                });
-            } catch (e) {
-                hook.pipeline_ref = pipeline_ref;
-                hooksWithNotExistingRef.push(hook);
-                log.warn(`Ref ${pipeline_ref} does not exist in repo ${owner}/${repo}`);
-            }
-        }
-        return hooksWithNotExistingRef;
     }
 }

@@ -6,7 +6,8 @@ import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json"
 import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
 import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
 import {PullRequest} from "@octokit/webhooks-types";
-import {HookType} from "../src/__generated__/_enums";
+import {TriggeredWorkflow} from "../src/hooks";
+import {Logger} from "probot";
 
 const insertMock = jest.fn();
 const findAllMock = jest.fn().mockImplementation(() => {
@@ -61,15 +62,21 @@ jest.mock('../src/db/database', () => {
     }
 });
 
+const logMock = {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+};
+
 describe('gha_checks', () => {
-    const checks = new GhaChecks();
+    const checks = new GhaChecks(logMock as unknown as Logger);
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    it('store new run into db', async () => {
-        const pipeline = {name: 'gha-checks-1234567890', inputs: {}};
+    it('store new run into db, including errors', async () => {
+        const pipeline = {name: 'gha-checks-1234567890', inputs: {}, error: "ref not exist"};
         const pullRequestOpened: PullRequest & {
             state: "open";
             closed_at: null;
@@ -126,16 +133,19 @@ describe('gha_checks', () => {
             pipeline_run_name: pipeline.name,
             workflow_run_inputs: {},
             pr_number: pullRequestOpened.number,
-            hook: 'onPullRequest'
+            hook: 'onPullRequest',
+            status: 'completed',
+            conclusion: 'failure',
         });
     });
 
-    it('should create pr-status check if hook has ref to non existed branch', async () => {
+    it('should create check if workflow run got error on attempt to trigger', async () => {
         const merge_commit_sha = '1234567890';
         let mock = jest.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 1,
+                    status: 'completed',
                 },
                 status: 201,
             }
@@ -145,45 +155,42 @@ describe('gha_checks', () => {
                 create: mock
             }
         }
-        const hooksWithNotExistingRefs = [
+        const erroredWorkflow: TriggeredWorkflow =
             {
-                branch: "hookBranch1",
-                destination_branch_matcher: "main",
-                hook_name: "hook1",
-                pipeline_name: "pipeline_name_1",
-                pipeline_params: {
-                    pipeline_param: "pipeline_param_1"
+                name: "namespace1-module1-hook1-b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                inputs: {
+                    "PIPELINE_NAME": "namespace1-module1-hook1",
                 },
-                pipeline_ref: "feature/1",
-                repo_full_name: "repo_full_name",
-                shared_params: {
-                    shared_param: "shared_param"
-                },
-                pipeline_unique_prefix: "namespace1-module1-hook1",
-                file_changes_matcher: "*.yaml",
-                hook: "onPullRequest" as HookType
-            }
-        ];
+                error: "ref feature/1 is not exist"
+            };
         // @ts-ignore
-        await checks.createPRCheckWithNonExistingRefs(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha, hooksWithNotExistingRefs);
+        await checks.createWorkflowRunCheckErrored(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha, erroredWorkflow);
         expect(mock).toHaveBeenCalledWith({
             completed_at: expect.anything(),
             conclusion: "failure",
             head_sha: pullRequestOpenedPayload.pull_request.head.sha,
-            name: "pr-status",
+            name: "namespace1-module1-hook1",
             output: {
-                summary: "❌Hooks with non-existing refs:\nnamespace1-module1-hook1 -> ref: feature/1\n",
-                title: "There are hooks with non-existing refs. No workflows will be triggered"
+                summary: expect.stringContaining("ref feature/1 is not exist"),
+                title: "Workflow run errored"
             },
             owner: "mdolinin",
             repo: "mono-repo-example",
             status: "completed",
         });
+        expect(updateMock).toHaveBeenCalledWith({
+            pipeline_run_name: erroredWorkflow.name,
+            workflow_job_id: null
+        }, {
+            status: "completed",
+            check_run_id: 1,
+            workflow_run_url: "https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1"
+        });
     });
 
     it('create pr-status check if no pipelines triggered', async () => {
         const merge_commit_sha = '1234567890';
-        let mock = jest.fn().mockImplementation(() => {
+        let createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 1,
@@ -193,12 +200,70 @@ describe('gha_checks', () => {
         });
         const octokit = {
             checks: {
-                create: mock
+                create: createCheckMock
             }
         }
         // @ts-ignore
-        await checks.createPRCheckNoPipelinesTriggered(octokit, pullRequestOpenedPayload.pull_request, 'onBranchMerge', merge_commit_sha);
-        expect(mock).toHaveBeenCalled();
+        const checkRunUrl = await checks.createPRCheckNoPipelinesTriggered(octokit, pullRequestOpenedPayload.pull_request, 'onBranchMerge', merge_commit_sha);
+        expect(createCheckMock).toHaveBeenCalled();
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
+    });
+
+    it('create pr-status check when all pipelines failed to start', async () => {
+        const merge_commit_sha = '1234567890';
+        const createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 2,
+                },
+                status: 201,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        }
+        const erroredWorkflows: TriggeredWorkflow[] = [{
+            name: "namespace2-module2-hook2-1234567890",
+            inputs: {
+                "PIPELINE_NAME": "namespace2-module2-hook2-1234567890",
+            },
+            error: "ref feature/2 is not exist"
+        }];
+        // @ts-ignore
+        const checkRunUrl = await checks.createPRCheckForAllErroredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha, erroredWorkflows);
+        expect(createCheckMock).toHaveBeenCalledWith({
+            completed_at: expect.anything(),
+            conclusion: "failure",
+            head_sha: pullRequestOpenedPayload.pull_request.head.sha,
+            name: "pr-status",
+            output: {
+                summary: expect.stringContaining("ref feature/2 is not exist"),
+                title: "All workflows errored. Nothing to do"
+            },
+            owner: "mdolinin",
+            repo: "mono-repo-example",
+            status: "completed",
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            hook: 'onPullRequest',
+            pr_check_id: null,
+            pr_number: pullRequestOpenedPayload.pull_request.number,
+        }, {
+            pr_check_id: 2,
+            pr_conclusion: "failure",
+        });
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=2');
     });
 
     it('create pr-status check for triggered pipelines', async () => {
@@ -206,7 +271,7 @@ describe('gha_checks', () => {
         const createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 1,
+                    id: 3,
                 },
                 status: 201,
             }
@@ -226,7 +291,7 @@ describe('gha_checks', () => {
             }
         }
         // @ts-ignore
-        await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha);
+        const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha);
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
             pr_check_id: null,
@@ -236,6 +301,7 @@ describe('gha_checks', () => {
         expect(createCheckMock).toHaveBeenCalledTimes(1);
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
         expect(updateMock).toHaveBeenCalledTimes(1);
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=3');
     });
 
     it('should update check, when workflow run queued', async () => {
@@ -719,12 +785,10 @@ describe('gha_checks', () => {
 
     it('create pr-close check when PR closed hook triggered', async () => {
         const merge_commit_sha = '1234567890';
-        const expectedCheckRunUrl = 'https://github.com/mdolinin/mono-repo-example/runs/24321595896';
         const createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 1,
-                    html_url: expectedCheckRunUrl,
                 },
                 status: 201,
             }
@@ -745,7 +809,7 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequestClose', merge_commit_sha);
-        expect(checkRunUrl).toBe(expectedCheckRunUrl);
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
             pr_check_id: null,
@@ -759,12 +823,10 @@ describe('gha_checks', () => {
 
     it('create pr-slash-command check when slash command hook triggered', async () => {
         const merge_commit_sha = '1234567890';
-        const expectedCheckRunUrl = 'https://github.com/mdolinin/mono-repo-example/runs/24321595897';
         const createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 1,
-                    html_url: expectedCheckRunUrl,
+                    id: 2,
                 },
                 status: 201,
             }
@@ -785,7 +847,7 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onSlashCommand', merge_commit_sha);
-        expect(checkRunUrl).toBe(expectedCheckRunUrl);
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=2');
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
             pr_check_id: null,

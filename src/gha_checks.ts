@@ -4,26 +4,14 @@ import {
     WorkflowJobInProgressEvent,
     WorkflowJobQueuedEvent
 } from "@octokit/webhooks-types";
-import {ProbotOctokit} from "probot";
+import {Logger, ProbotOctokit} from "probot";
 import {
     RestEndpointMethodTypes
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import db, {gha_workflow_runs} from "./db/database";
 import {GhaWorkflowRuns} from "./__generated__";
-import pino from "pino";
-import {getTransformStream} from "@probot/pino";
 import {anyOf, not} from "@databases/pg-typed";
 import {TriggeredWorkflow} from "./hooks";
-import {GhaHook} from "./gha_loader";
-
-const transform = getTransformStream();
-transform.pipe(pino.destination(1));
-const log = pino(
-    {
-        name: "gha-checks",
-    },
-    transform
-);
 
 const GITHUB_CHECK_TEXT_LIMIT = 65535;
 const ansiPattern = [
@@ -53,22 +41,35 @@ export interface ReRunPayload {
 
 export class GhaChecks {
 
-    async createNewRun(pipeline: TriggeredWorkflow, pull_request: {
+    log: Logger;
+
+    constructor(log: Logger) {
+        this.log = log;
+    }
+
+    async createNewRun(triggeredWorkflow: TriggeredWorkflow, pull_request: {
         number: number
     }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
-        const {headSha, checkName} = this.parseHeadShaFromJobName(pipeline.name);
+        const {headSha, checkName} = this.parseHeadShaFromJobName(triggeredWorkflow.name);
         if (headSha) {
-            await gha_workflow_runs(db).insert({
+            let workflowRun = {
                 name: checkName,
                 head_sha: headSha,
                 merge_commit_sha: merge_commit_sha,
-                pipeline_run_name: pipeline.name,
-                workflow_run_inputs: pipeline.inputs,
+                pipeline_run_name: triggeredWorkflow.name,
+                workflow_run_inputs: triggeredWorkflow.inputs,
                 pr_number: pull_request.number,
                 hook: hookType,
-            });
+            }
+            if (triggeredWorkflow.error) {
+                workflowRun = Object.assign(workflowRun, {
+                    status: "completed",
+                    conclusion: "failure"
+                });
+            }
+            await gha_workflow_runs(db).insert(workflowRun);
         } else {
-            log.error("Failed to parse head sha from pipeline name " + pipeline);
+            this.log.error("Failed to parse head sha from triggeredWorkflow name " + triggeredWorkflow);
         }
     }
 
@@ -85,22 +86,34 @@ export class GhaChecks {
         }
     }
 
-    async createPRCheckWithNonExistingRefs(octokit: ProbotOctokit,
-                                           pull_request: {
-                                               base: { repo: { owner: { login: string }, name: string } },
-                                               head: { sha: string },
-                                               number: number
-                                           },
-                                           hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
-                                           merge_commit_sha: string,
-                                           hooksWithNotExistingRefs: GhaHook[]) {
-        const checkName = this.hookToCheckName(hookType);
-        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+    async createWorkflowRunCheckErrored(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number;
+        head: { sha: string };
+        base: { repo: { name: string; owner: { login: string } } }
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string, erroredWorkflow: TriggeredWorkflow) {
+        const {checkName} = this.parseHeadShaFromJobName(erroredWorkflow.name);
+        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
-        let summary = "❌Hooks with non-existing refs:\n"
-        for (const hook of hooksWithNotExistingRefs) {
-            summary += `${hook.pipeline_unique_prefix} -> ref: ${hook.pipeline_ref}\n`;
-        }
+        const summary = `<details><summary>❌: ${checkName}</summary><p>\n` +
+            `\n` +
+            `\n` +
+            `### Error\n` +
+            `\n` +
+            `\`\`\`console\n` +
+            `${erroredWorkflow.error}\n` +
+            `\`\`\`\n` +
+            `\n` +
+            `\n` +
+            `### Workflow run arguments\n` +
+            `\n` +
+            `\`\`\`json\n` +
+            `\n` +
+            `${JSON.stringify(erroredWorkflow.inputs, null, 2)} \n` +
+            `\n` +
+            `\`\`\`\n` +
+            `\n` +
+            `</p>\n` +
+            `</details>`;
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
@@ -110,16 +123,21 @@ export class GhaChecks {
             conclusion: "failure",
             completed_at: new Date().toISOString(),
             output: {
-                title: "There are hooks with non-existing refs. No workflows will be triggered",
+                title: "Workflow run errored",
                 summary: summary
             }
         };
         const resp = await octokit.checks.create(params);
-        const checkRunId = resp.data.id;
         if (resp.status === 201) {
-            log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+            const check = resp.data;
+            // update workflow run in db
+            await gha_workflow_runs(db).update({pipeline_run_name: erroredWorkflow.name, workflow_job_id: null}, {
+                status: check.status,
+                check_run_id: check.id,
+                workflow_run_url: `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${check.id}`
+            });
         } else {
-            log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
+            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
     }
 
@@ -134,7 +152,7 @@ export class GhaChecks {
         },
     }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
-        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
@@ -151,11 +169,71 @@ export class GhaChecks {
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
-        const checkRunUrl = resp.data.html_url;
+        const checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${checkRunId}`
         if (resp.status === 201) {
-            log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+            this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } else {
-            log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
+            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
+        }
+        return checkRunUrl;
+    }
+
+
+    async createPRCheckForAllErroredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number;
+        head: { sha: string };
+        base: { repo: { name: string; owner: { login: string } } }
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string, erroredWorkflows: TriggeredWorkflow[]) {
+        const checkName = this.hookToCheckName(hookType);
+        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
+        let summary = "❌Errored workflows:\n"
+        for (const triggeredWorkflow of erroredWorkflows) {
+            summary += `## ${triggeredWorkflow.name}\n` +
+                '\n' +
+                '\n' +
+                `### Error\n` +
+                `\n` +
+                `\`\`\`console\n` +
+                `${triggeredWorkflow.error}\n` +
+                `\`\`\`\n` +
+                `\n` +
+                `\n` +
+                `### Workflow run arguments\n` +
+                `\n` +
+                `\`\`\`json\n` +
+                `\n` +
+                `${JSON.stringify(triggeredWorkflow.inputs, null, 2)} \n` +
+                `\n` +
+                `\`\`\`\n` +
+                `\n` +
+                `\n`;
+
+        }
+        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+            owner: pull_request.base.repo.owner.login,
+            repo: pull_request.base.repo.name,
+            name: checkName,
+            head_sha: sha,
+            status: "completed",
+            conclusion: "failure",
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "All workflows errored. Nothing to do",
+                summary: summary
+            }
+        };
+        const resp = await octokit.checks.create(params);
+        const checkRunId = resp.data.id;
+        const checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${checkRunId}`
+        if (resp.status === 201) {
+            this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+            await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null, hook: hookType}, {
+                pr_check_id: checkRunId,
+                pr_conclusion: "failure"
+            });
+        } else {
+            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
         return checkRunUrl;
     }
@@ -171,7 +249,7 @@ export class GhaChecks {
         },
     }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
         const checkName = this.hookToCheckName(hookType);
-        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
         const workflowRuns = await gha_workflow_runs(db).find({
             pr_number: pull_request.number,
@@ -193,8 +271,8 @@ export class GhaChecks {
         };
         const resp = await octokit.checks.create(params);
         const checkRunId = resp.data.id;
-        const checkRunUrl = resp.data.html_url;
-        log.info(`Updating ${checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
+        const checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${checkRunId}`
+        this.log.info(`Updating ${checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
         if (resp.status === 201) {
             await gha_workflow_runs(db).update({pr_number: pull_request.number, pr_check_id: null, hook: hookType}, {
                 pr_check_id: checkRunId
@@ -216,11 +294,11 @@ export class GhaChecks {
         const workflowJob = payload.workflow_job;
         const knownWorkflowRuns = await gha_workflow_runs(db).find({pipeline_run_name: workflowJob.name}).all();
         if (knownWorkflowRuns.length === 0) {
-            log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
+            this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             const {headSha, checkName} = this.parseHeadShaFromJobName(workflowJob.name);
             if (!headSha) {
-                log.error("Failed to parse head sha from pipeline name " + workflowJob.name);
+                this.log.error("Failed to parse head sha from pipeline name " + workflowJob.name);
                 return;
             }
             const sha = knownWorkflowRuns[0].hook === "onBranchMerge" ? knownWorkflowRuns[0].merge_commit_sha : headSha;
@@ -261,11 +339,11 @@ export class GhaChecks {
             conclusion: null
         });
         if (!workflowRun) {
-            log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
+            this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             const checkRunId = workflowRun.check_run_id;
             if (!checkRunId) {
-                log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                this.log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
                 return;
             }
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
@@ -301,14 +379,14 @@ export class GhaChecks {
             conclusion: null
         });
         if (!workflowRun) {
-            log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
+            this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             const log_max_size = GITHUB_CHECK_TEXT_LIMIT - 2000;
             const workflowJobLog = await this.getWorkflowJobLog(octokit, payload.repository.owner.login, payload.repository.name, workflowJob.id, log_max_size);
             const summary = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", workflowJobLog);
             const checkRunId = workflowRun.check_run_id;
             if (!checkRunId) {
-                log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                this.log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
                 return;
             }
             const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
@@ -349,7 +427,7 @@ export class GhaChecks {
         });
         // update pr_status check run
         if (!workflowRun) {
-            log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
+            this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             const allPRWorkflowRuns = await gha_workflow_runs(db).find({
                 pr_number: workflowRun.pr_number,
@@ -370,9 +448,9 @@ export class GhaChecks {
             };
             const resp = await octokit.checks.update(params);
             if (resp.status === 200) {
-                log.info(`Updating pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number}` + " in progress");
+                this.log.info(`Updating pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number}` + " in progress");
             } else {
-                log.error("Failed to update pr-status check with id " + workflowRun.pr_check_id + " for PR #" + workflowRun.pr_number + " in progress");
+                this.log.error("Failed to update pr-status check with id " + workflowRun.pr_check_id + " for PR #" + workflowRun.pr_number + " in progress");
             }
         }
     }
@@ -393,7 +471,7 @@ export class GhaChecks {
             const data = String(workflowJobLogResp.data);
             workflowJobLog = data.slice(-log_max_size);
         } else {
-            log.warn(`Failed to get workflow job log for ${jobId} with ${JSON.stringify(workflowJobLogResp)}`);
+            this.log.warn(`Failed to get workflow job log for ${jobId} with ${JSON.stringify(workflowJobLogResp)}`);
         }
         if (workflowJobLog === null) {
             return null;
@@ -462,17 +540,17 @@ export class GhaChecks {
             pr_conclusion: null
         });
         if (!workflowRun) {
-            log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
+            this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
             return;
         }
         const prNumber = workflowRun.pr_number;
         const prCheckId = workflowRun.pr_check_id;
         if (prNumber === null) {
-            log.warn(`Workflow run ${workflowJob.name} does not have pr_number`);
+            this.log.warn(`Workflow run ${workflowJob.name} does not have pr_number`);
             return;
         }
         if (prCheckId === null) {
-            log.warn(`Workflow run ${workflowJob.name} does not have pr_check_id`);
+            this.log.warn(`Workflow run ${workflowJob.name} does not have pr_check_id`);
             return;
         }
         const allPRWorkflowRuns = await gha_workflow_runs(db).find({
@@ -481,17 +559,17 @@ export class GhaChecks {
             pr_conclusion: null
         }).all();
         if (allPRWorkflowRuns.length === 0) {
-            log.warn(`No workflow runs for ${payload.repository.full_name} pr #${prNumber} found with pr_check_id ${prCheckId} and pr_status_conclusion is null in db`);
+            this.log.warn(`No workflow runs for ${payload.repository.full_name} pr #${prNumber} found with pr_check_id ${prCheckId} and pr_status_conclusion is null in db`);
         } else {
             const finished = allPRWorkflowRuns.every((run) => run.status === "completed");
             if (finished) {
-                log.info("All jobs finished for pr #" + allPRWorkflowRuns[0].pr_number);
+                this.log.info("All jobs finished for pr #" + allPRWorkflowRuns[0].pr_number);
                 const conclusion = this.getConclusion(allPRWorkflowRuns);
                 const actions = this.getAvailableActions(conclusion);
                 const summary = await this.formatGHCheckSummaryAll(octokit, payload.repository.owner.login, payload.repository.name, allPRWorkflowRuns, "completed");
                 const prCheckId = allPRWorkflowRuns[0].pr_check_id;
                 if (!prCheckId) {
-                    log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
+                    this.log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
                     return;
                 }
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
@@ -509,15 +587,15 @@ export class GhaChecks {
                 };
                 const resp = await octokit.checks.update(params);
                 if (resp.status === 200) {
-                    log.info(`Updating pr-status check with id ${allPRWorkflowRuns[0].pr_check_id} for PR #${allPRWorkflowRuns[0].pr_number}` + " completed");
+                    this.log.info(`Updating pr-status check with id ${allPRWorkflowRuns[0].pr_check_id} for PR #${allPRWorkflowRuns[0].pr_number}` + " completed");
                     await gha_workflow_runs(db).update({pr_check_id: allPRWorkflowRuns[0].pr_check_id}, {
                         pr_conclusion: conclusion,
                     });
                 } else {
-                    log.error("Failed to update pr-status check with id " + allPRWorkflowRuns[0].pr_check_id + " for PR #" + allPRWorkflowRuns[0].pr_number + " completed");
+                    this.log.error("Failed to update pr-status check with id " + allPRWorkflowRuns[0].pr_check_id + " for PR #" + allPRWorkflowRuns[0].pr_number + " completed");
                 }
             } else {
-                log.info("Some jobs not finished for pr #" + allPRWorkflowRuns[0].pr_number);
+                this.log.info("Some jobs not finished for pr #" + allPRWorkflowRuns[0].pr_number);
             }
         }
     }
@@ -573,13 +651,13 @@ export class GhaChecks {
         const actionIdentifier = payload.requested_action_identifier;
         const checkId = payload.check_run_id;
         if (actionIdentifier === PRCheckAction.ReRun) {
-            log.info(`Find all workflow runs that match check id ${checkId}`);
+            this.log.info(`Find all workflow runs that match check id ${checkId}`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
                 pr_check_id: checkId,
                 pr_conclusion: not(null),
             }).all();
         } else if (actionIdentifier === PRCheckAction.ReRunFailed) {
-            log.info(`Find all workflow runs that match check id ${checkId} and conclusion is not success`);
+            this.log.info(`Find all workflow runs that match check id ${checkId} and conclusion is not success`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
                 pr_check_id: checkId,
                 pr_conclusion: not(null),
@@ -588,7 +666,7 @@ export class GhaChecks {
         }
         // find all workflow runs for this with same pr_check_id
         if (prRelatedWorkflowRuns.length === 0) {
-            log.warn(`No workflow runs for check id ${checkId} found in db`);
+            this.log.warn(`No workflow runs for check id ${checkId} found in db`);
         } else {
             await this.cleanupPreviousResultFor(prRelatedWorkflowRuns);
             await this.reCreatePrCheck(prRelatedWorkflowRuns[0], octokit, checkId, payload.owner, payload.repo);
@@ -598,7 +676,7 @@ export class GhaChecks {
 
     private async reCreatePrCheck(prRelatedWorkflowRun: GhaWorkflowRuns, octokit: InstanceType<typeof ProbotOctokit>, pr_check_id: number, owner: string, repo: string) {
         const checkName = this.hookToCheckName(prRelatedWorkflowRun.hook);
-        log.info(`Re-creating ${checkName} check for ${owner}/${repo}#${prRelatedWorkflowRun.pr_number}`);
+        this.log.info(`Re-creating ${checkName} check for ${owner}/${repo}#${prRelatedWorkflowRun.pr_number}`);
         const sha = prRelatedWorkflowRun.hook === "onBranchMerge" ? prRelatedWorkflowRun.merge_commit_sha : prRelatedWorkflowRun.head_sha;
         const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
             owner: owner,
@@ -611,38 +689,48 @@ export class GhaChecks {
         const resp = await octokit.checks.create(params);
         const newPRcheckRunId = resp.data.id;
         if (resp.status === 201) {
-            log.info(`${checkName} check with id ${newPRcheckRunId} for PR #${prRelatedWorkflowRun.pr_number} created`);
+            this.log.info(`${checkName} check with id ${newPRcheckRunId} for PR #${prRelatedWorkflowRun.pr_number} created`);
             await gha_workflow_runs(db).update({pr_check_id: pr_check_id}, {
                 pr_check_id: newPRcheckRunId
             });
         } else {
-            log.error(`Failed to create ${checkName} check for PR #${prRelatedWorkflowRun.pr_number}`);
+            this.log.error(`Failed to create ${checkName} check for PR #${prRelatedWorkflowRun.pr_number}`);
         }
     }
 
     private async triggerReRunFor(workflowRuns: GhaWorkflowRuns[], octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string) {
         for (const workflowRun of workflowRuns) {
-            const params: RestEndpointMethodTypes["actions"]["reRunWorkflow"]["parameters"] = {
-                owner: owner,
-                repo: repo,
-                run_id: Number(workflowRun.workflow_run_id)
-            };
-            const resp = await octokit.actions.reRunWorkflow(params);
-            if (resp.status === 201) {
-                log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
-            } else {
-                log.error(`Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`);
+            if (workflowRun.workflow_run_id === null) {
+                this.log.warn(`Workflow run ${workflowRun.pipeline_run_name} does not have workflow_run_id`);
+                continue;
+            }
+            try {
+                const params: RestEndpointMethodTypes["actions"]["reRunWorkflow"]["parameters"] = {
+                    owner: owner,
+                    repo: repo,
+                    run_id: Number(workflowRun.workflow_run_id)
+                };
+                const resp = await octokit.actions.reRunWorkflow(params);
+                if (resp.status === 201) {
+                    this.log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
+                }
+            } catch (e) {
+                this.log.error(`Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} with error ${e}`);
             }
         }
     }
 
     private async cleanupPreviousResultFor(workflowRuns: GhaWorkflowRuns[]) {
         for (const workflowRun of workflowRuns) {
-            await gha_workflow_runs(db).update({workflow_run_id: workflowRun.workflow_run_id}, {
-                workflow_job_id: null,
-                conclusion: null,
-                pr_conclusion: null,
-            });
+            if (workflowRun.workflow_run_id !== null) {
+                await gha_workflow_runs(db).update({workflow_run_id: workflowRun.workflow_run_id}, {
+                    workflow_job_id: null,
+                    conclusion: null,
+                    pr_conclusion: null,
+                });
+            } else {
+                this.log.warn(`Workflow run ${workflowRun.pipeline_run_name} does not have workflow_run_id`);
+            }
         }
     }
 
@@ -654,13 +742,13 @@ export class GhaChecks {
             pr_conclusion: not(null)
         }).all();
         if (checkRelatedWorkflowRuns.length === 0) {
-            log.warn(`No workflow runs for check id ${checkId} and pr_conclusion is not null found in db`);
+            this.log.warn(`No workflow runs for check id ${checkId} and pr_conclusion is not null found in db`);
         } else {
             // create new pr check run
             const checkRelatedWorkflowRun = checkRelatedWorkflowRuns[0];
             const pr_check_id = checkRelatedWorkflowRun.pr_check_id;
             if (pr_check_id === null) {
-                log.warn(`Workflow run ${checkRelatedWorkflowRun.pipeline_run_name} does not have pr_check_id`);
+                this.log.warn(`Workflow run ${checkRelatedWorkflowRun.pipeline_run_name} does not have pr_check_id`);
                 return;
             }
             await this.cleanupPreviousResultFor(checkRelatedWorkflowRuns);
