@@ -22,7 +22,7 @@ export = (app: Probot) => {
 
     const ghaLoader = new GhaLoader();
     const hooks = new Hooks(app.log);
-    const checks = new GhaChecks();
+    const checks = new GhaChecks(app.log);
     const reply = new GhaReply(app.log);
 
     app.on("push", async (context) => {

@@ -7,6 +7,7 @@ import checkRunRequestedActionPayload from "./fixtures/check_run.requested_actio
 import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
 import {PullRequest} from "@octokit/webhooks-types";
 import {TriggeredWorkflow} from "../src/hooks";
+import {Logger} from "probot";
 
 const insertMock = jest.fn();
 const findAllMock = jest.fn().mockImplementation(() => {
@@ -61,8 +62,14 @@ jest.mock('../src/db/database', () => {
     }
 });
 
+const logMock = {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+};
+
 describe('gha_checks', () => {
-    const checks = new GhaChecks();
+    const checks = new GhaChecks(logMock as unknown as Logger);
 
     afterEach(() => {
         jest.clearAllMocks();
