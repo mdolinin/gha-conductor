@@ -26,7 +26,6 @@ const privateKey = fs.readFileSync(
 import {GhaHook, GhaLoader} from "../src/gha_loader";
 import {Hooks} from "../src/hooks";
 import {GhaChecks} from "../src/gha_checks";
-import {HookType} from "../src/__generated__/_enums";
 
 const loadAllGhaYamlMock = jest
     .spyOn(GhaLoader.prototype, 'loadAllGhaYaml')
@@ -57,12 +56,6 @@ const filterTriggeredHooksMock = jest
         return Promise.resolve(new Set<GhaHook>());
     });
 
-let verifyAllHooksRefsExistMock = jest
-    .spyOn(Hooks.prototype, 'verifyAllHooksRefsExist')
-    .mockImplementation(() => {
-        return Promise.resolve([]);
-    });
-
 let runWorkflowMock = jest
     .spyOn(Hooks.prototype, 'runWorkflow')
     .mockImplementation(() => {
@@ -75,14 +68,20 @@ const createNewRunMock = jest
         return Promise.resolve();
     });
 
-const createPRCheckWithNonExistingRefsMock = jest
-    .spyOn(GhaChecks.prototype, 'createPRCheckWithNonExistingRefs')
+const createWorkflowRunCheckErroredMock = jest
+    .spyOn(GhaChecks.prototype, 'createWorkflowRunCheckErrored')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
 const createPRCheckNoPipelinesTriggeredMock = jest
     .spyOn(GhaChecks.prototype, 'createPRCheckNoPipelinesTriggered')
+    .mockImplementation(() => {
+        return Promise.resolve("");
+    });
+
+const createPRCheckForAllErroredPipelinesMock = jest
+    .spyOn(GhaChecks.prototype, 'createPRCheckForAllErroredPipelines')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
@@ -267,21 +266,8 @@ describe("gha-conductor app", () => {
     });
 
     test("when PR opened with files that match hook and pipeline ref is not exist, create pr-status check with status failed", async () => {
-        verifyAllHooksRefsExistMock = verifyAllHooksRefsExistMock.mockImplementation(() => {
-            return Promise.resolve([{
-                repo_full_name: "repo_full_name",
-                branch: "branch",
-                file_changes_matcher: "file_changes_matcher",
-                destination_branch_matcher: "destination_branch_matcher",
-                hook: "onPullRequest" as HookType,
-                hook_name: "hook_name",
-                pipeline_unique_prefix: "pipeline_unique_prefix",
-                pipeline_name: "pipeline_name",
-                pipeline_ref: "non_existing_ref",
-                pipeline_params: {},
-                shared_params: {},
-                slash_command: undefined,
-            }]);
+        runWorkflowMock = runWorkflowMock.mockImplementation(() => {
+            return Promise.resolve([{name: "test", inputs: {}, error: "ref not found"}]);
         });
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
@@ -308,17 +294,17 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
         // restore mock implementation
-        verifyAllHooksRefsExistMock = verifyAllHooksRefsExistMock.mockImplementation(() => {
+        runWorkflowMock = runWorkflowMock.mockImplementation(() => {
             return Promise.resolve([]);
         });
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
-        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(1);
-        expect(runWorkflowMock).toHaveBeenCalledTimes(0);
-        expect(createNewRunMock).toHaveBeenCalledTimes(0);
+        expect(runWorkflowMock).toHaveBeenCalledTimes(1);
+        expect(createNewRunMock).toHaveBeenCalledTimes(1);
+        expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(1);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
@@ -351,11 +337,11 @@ describe("gha-conductor app", () => {
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
-        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createNewRunMock).toHaveBeenCalledTimes(0);
+        expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
@@ -391,11 +377,11 @@ describe("gha-conductor app", () => {
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
-        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createNewRunMock).toHaveBeenCalledTimes(1);
+        expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
@@ -532,11 +518,11 @@ describe("gha-conductor app", () => {
         await probot.receive({name: "issue_comment", payload: slashCommandIssueCommentPayload});
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
-        expect(verifyAllHooksRefsExistMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckWithNonExistingRefsMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createNewRunMock).toHaveBeenCalledTimes(1);
+        expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });

@@ -261,25 +261,4 @@ export class Hooks {
                 return "onPullRequest";
         }
     }
-
-    async verifyAllHooksRefsExist(octokit: InstanceType<typeof ProbotOctokit>,
-                                  owner: string, repo: string, default_branch: string,
-                                  triggeredHooks: Set<GhaHook>): Promise<GhaHook[]> {
-        const hooksWithNotExistingRef: GhaHook[] = [];
-        for (const hook of triggeredHooks) {
-            const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : default_branch;
-            try {
-                await octokit.rest.repos.getBranch({
-                    owner: owner,
-                    repo: repo,
-                    branch: pipeline_ref
-                });
-            } catch (e) {
-                hook.pipeline_ref = pipeline_ref;
-                hooksWithNotExistingRef.push(hook);
-                this.log.warn(`Ref ${pipeline_ref} does not exist in repo ${owner}/${repo}`);
-            }
-        }
-        return hooksWithNotExistingRef;
-    }
 }

@@ -14,7 +14,6 @@ import pino from "pino";
 import {getTransformStream} from "@probot/pino";
 import {anyOf, not} from "@databases/pg-typed";
 import {TriggeredWorkflow} from "./hooks";
-import {GhaHook} from "./gha_loader";
 
 const transform = getTransformStream();
 transform.pipe(pino.destination(1));
@@ -142,44 +141,6 @@ export class GhaChecks {
                 check_run_id: check.id,
                 workflow_run_url: `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${check.id}`
             });
-        } else {
-            log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
-        }
-    }
-
-    async createPRCheckWithNonExistingRefs(octokit: ProbotOctokit,
-                                           pull_request: {
-                                               base: { repo: { owner: { login: string }, name: string } },
-                                               head: { sha: string },
-                                               number: number
-                                           },
-                                           hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
-                                           merge_commit_sha: string,
-                                           hooksWithNotExistingRefs: GhaHook[]) {
-        const checkName = this.hookToCheckName(hookType);
-        log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
-        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
-        let summary = "❌Hooks with non-existing refs:\n"
-        for (const hook of hooksWithNotExistingRefs) {
-            summary += `${hook.pipeline_unique_prefix} -> ref: ${hook.pipeline_ref}\n`;
-        }
-        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
-            owner: pull_request.base.repo.owner.login,
-            repo: pull_request.base.repo.name,
-            name: checkName,
-            head_sha: sha,
-            status: "completed",
-            conclusion: "failure",
-            completed_at: new Date().toISOString(),
-            output: {
-                title: "There are hooks with non-existing refs. No workflows will be triggered",
-                summary: summary
-            }
-        };
-        const resp = await octokit.checks.create(params);
-        const checkRunId = resp.data.id;
-        if (resp.status === 201) {
-            log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } else {
             log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
