@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/mdolinin/gha-conductor/compare/v1.9.0...v1.9.1) (2024-05-19)
+
+
+### Bug Fixes
+
+* **workflow:** verify workflow exist and active before trigger ([#45](https://github.com/mdolinin/gha-conductor/issues/45)) ([ef18ce7](https://github.com/mdolinin/gha-conductor/commit/ef18ce7bc61d57459196bee9b526c55acd06f08b))
+
 # [1.9.0](https://github.com/mdolinin/gha-conductor/compare/v1.8.0...v1.9.0) (2024-04-28)
 
 
