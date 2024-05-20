@@ -123,6 +123,7 @@ GitHub Actions workflows should be defined in `.github/workflows` directory and 
 Example of GitHub Actions workflow:
 ```yaml
 name: "Common job"
+run-name: "${{ inputs.PIPELINE_NAME }}"
 on:
   workflow_dispatch: # This is required to be able to trigger the workflow from the app
     inputs:
