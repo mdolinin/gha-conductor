@@ -627,6 +627,7 @@ describe('gha_checks', () => {
             pr_check_id: reRunPayload.check_run_id,
         }, {
             pr_check_id: 21439086478,
+            pr_conclusion: null,
         });
         expect(reRunWorkflowMock).toHaveBeenCalledWith({
             owner: checkRunRequestedActionPayload.repository.owner.login,
@@ -706,6 +707,7 @@ describe('gha_checks', () => {
             pr_check_id: reRunPayload.check_run_id,
         }, {
             pr_check_id: 21439086479,
+            pr_conclusion: null,
         });
         expect(reRunWorkflowMock).toHaveBeenCalledWith({
             owner: checkRunRequestedActionPayload.repository.owner.login,
@@ -775,6 +777,7 @@ describe('gha_checks', () => {
             pr_check_id: 4,
         }, {
             pr_check_id: 21439086478,
+            pr_conclusion: null,
         });
         expect(reRunWorkflowMock).toHaveBeenCalledWith({
             owner: checkRunRequestedActionPayload.repository.owner.login,
