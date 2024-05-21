@@ -668,6 +668,11 @@ export class GhaChecks {
         if (prRelatedWorkflowRuns.length === 0) {
             this.log.warn(`No workflow runs for check id ${checkId} found in db`);
         } else {
+            const nothingToReRun = prRelatedWorkflowRuns.every((run) => run.workflow_run_id === null);
+            if (nothingToReRun) {
+                this.log.warn(`All workflow runs for check id ${checkId} does not have workflow_run_id, nothing to re-run`);
+                return;
+            }
             await this.cleanupPreviousResultFor(prRelatedWorkflowRuns);
             await this.reCreatePrCheck(prRelatedWorkflowRuns[0], octokit, checkId, payload.owner, payload.repo);
             await this.triggerReRunFor(prRelatedWorkflowRuns, octokit, payload.owner, payload.repo);
