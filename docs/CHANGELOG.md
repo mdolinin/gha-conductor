@@ -1,3 +1,10 @@
+## [1.9.3](https://github.com/mdolinin/gha-conductor/compare/v1.9.2...v1.9.3) (2024-05-22)
+
+
+### Bug Fixes
+
+* **checks:** skip re-run if workflow fails to start first time and include successful workflow run results into pr-check, when re-run only failed ([#69](https://github.com/mdolinin/gha-conductor/issues/69)) ([73b269b](https://github.com/mdolinin/gha-conductor/commit/73b269b8df20657e508253cc3e8d3a75ef677d2f))
+
 ## [1.9.2](https://github.com/mdolinin/gha-conductor/compare/v1.9.1...v1.9.2) (2024-05-19)
 
 
