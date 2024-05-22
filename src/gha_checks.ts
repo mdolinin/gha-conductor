@@ -668,6 +668,11 @@ export class GhaChecks {
         if (prRelatedWorkflowRuns.length === 0) {
             this.log.warn(`No workflow runs for check id ${checkId} found in db`);
         } else {
+            const nothingToReRun = prRelatedWorkflowRuns.every((run) => run.workflow_run_id === null);
+            if (nothingToReRun) {
+                this.log.warn(`All workflow runs for check id ${checkId} does not have workflow_run_id, nothing to re-run`);
+                return;
+            }
             await this.cleanupPreviousResultFor(prRelatedWorkflowRuns);
             await this.reCreatePrCheck(prRelatedWorkflowRuns[0], octokit, checkId, payload.owner, payload.repo);
             await this.triggerReRunFor(prRelatedWorkflowRuns, octokit, payload.owner, payload.repo);
@@ -691,7 +696,8 @@ export class GhaChecks {
         if (resp.status === 201) {
             this.log.info(`${checkName} check with id ${newPRcheckRunId} for PR #${prRelatedWorkflowRun.pr_number} created`);
             await gha_workflow_runs(db).update({pr_check_id: pr_check_id}, {
-                pr_check_id: newPRcheckRunId
+                pr_check_id: newPRcheckRunId,
+                pr_conclusion: null
             });
         } else {
             this.log.error(`Failed to create ${checkName} check for PR #${prRelatedWorkflowRun.pr_number}`);
@@ -749,6 +755,10 @@ export class GhaChecks {
             const pr_check_id = checkRelatedWorkflowRun.pr_check_id;
             if (pr_check_id === null) {
                 this.log.warn(`Workflow run ${checkRelatedWorkflowRun.pipeline_run_name} does not have pr_check_id`);
+                return;
+            }
+            if (checkRelatedWorkflowRun.workflow_run_id === null) {
+                this.log.warn(`Workflow run ${checkRelatedWorkflowRun.pipeline_run_name} does not have workflow_run_id, nothing to re-run`);
                 return;
             }
             await this.cleanupPreviousResultFor(checkRelatedWorkflowRuns);

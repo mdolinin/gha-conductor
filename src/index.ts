@@ -218,7 +218,7 @@ export = (app: Probot) => {
     app.on(["check_run.rerequested"], async (context) => {
         const checkRun = context.payload.check_run;
         app.log.info(`check_run.rerequested event received for ${checkRun.name} with status ${checkRun.status}`);
-        if (checkRun.name === PRCheckName.PRStatus || checkRun.name === PRCheckName.PRMerge || checkRun.name === PRCheckName.PRClose) {
+        if ((<any>Object).values(PRCheckName).includes(checkRun.name)) {
             await checks.triggerReRunPRCheck(context.octokit, {
                 check_run_id: context.payload.check_run.id,
                 owner: context.payload.repository.owner.login,
@@ -239,7 +239,7 @@ export = (app: Probot) => {
             check_suite_id: context.payload.check_suite.id
         });
         for (const checkRun of checkRuns.data.check_runs) {
-            if (checkRun.name === PRCheckName.PRStatus || checkRun.name === PRCheckName.PRMerge || checkRun.name === PRCheckName.PRClose) {
+            if ((<any>Object).values(PRCheckName).includes(checkRun.name)) {
                 await checks.triggerReRunPRCheck(context.octokit, {
                     check_run_id: checkRun.id,
                     owner: context.payload.repository.owner.login,
