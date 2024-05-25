@@ -7,7 +7,14 @@ const checkoutBranchMock = jest.fn();
 const globMock = jest.fn().mockImplementation(() => {
     return ["file1", "file2"];
 });
+const findAllMock = jest.fn().mockReturnValue([]);
+const findMock = jest.fn().mockImplementation(() => {
+    return {
+        all: findAllMock
+    }
+});
 const deleteMock = jest.fn();
+const updateMock = jest.fn();
 const insertMock = jest.fn();
 const countMock = jest.fn().mockReturnValue(0);
 
@@ -21,7 +28,9 @@ jest.mock('../src/db/database', () => {
     return {
         gha_hooks: jest.fn(() => {
             return {
+                find: findMock,
                 delete: deleteMock,
+                update: updateMock,
                 insert: insertMock,
                 count: countMock
             };
@@ -158,8 +167,11 @@ describe('gha loader', () => {
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
-        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
+        expect(findMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
+        expect(findAllMock).toHaveBeenCalled();
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
+        expect(deleteMock).toHaveBeenCalledTimes(0)
+        expect(updateMock).toHaveBeenCalledTimes(0)
         expect(insertMock).toHaveBeenCalledTimes(10);
     });
 
@@ -271,7 +283,10 @@ describe('gha loader', () => {
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name2')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
-        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
+        expect(findMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
+        expect(findAllMock).toHaveBeenCalled();
+        expect(deleteMock).toHaveBeenCalledTimes(0)
+        expect(updateMock).toHaveBeenCalledTimes(0)
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
         expect(insertMock).toHaveBeenCalledTimes(10);
     });

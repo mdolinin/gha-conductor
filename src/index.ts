@@ -29,14 +29,13 @@ export = (app: Probot) => {
         // if push was delete branch
         if (context.payload.deleted) {
             const ref = context.payload.ref;
-            const branchName = context.payload.ref.split("/").pop();
+            const branchName = ref.split("/").pop();
             if (ref.startsWith("refs/heads/") && branchName) {
                 const fullName = context.payload.repository.full_name;
-                app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${fullName}`);
                 await ghaLoader.deleteAllGhaHooksForBranch(fullName, branchName);
-                app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${fullName} done`);
+                app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${fullName} completed`);
             } else {
-                app.log.info(`Delete is not for branch. Ref is ${ref} and branch name is ${branchName}`);
+                app.log.info(`Delete was for ref ${ref} that is not a branch`);
             }
             return;
         }
@@ -50,7 +49,7 @@ export = (app: Probot) => {
         }
         if (changedGhaFiles) {
             const ref = context.payload.ref;
-            const branchName = context.payload.ref.split("/").pop();
+            const branchName = ref.split("/").pop();
             if (ref.startsWith("refs/heads/") && branchName) {
                 // check if branch is base branch for at least one open PR
                 let params: RestEndpointMethodTypes["pulls"]["list"]["parameters"] = {
@@ -62,14 +61,13 @@ export = (app: Probot) => {
                 const branchPRs = await context.octokit.pulls.list(params);
                 if (branchPRs.data.length > 0) {
                     const fullName = context.payload.repository.full_name;
-                    app.log.info(`Reload gha yaml's in repo ${fullName} for branch ${branchName}`);
                     await ghaLoader.loadAllGhaYaml(context.octokit, fullName, branchName);
-                    app.log.info(`Reload gha yaml's in repo ${fullName} for branch ${branchName} done`);
+                    app.log.info(`Reload gha yaml's in repo ${fullName} for branch ${branchName} completed`);
                 } else {
                     app.log.info(`No open PRs found for branch ${branchName}`);
                 }
             } else {
-                app.log.info(`Push is not to branch. Ref is ${ref} and branch name is ${branchName}`);
+                app.log.info(`Push is for ref ${ref} that is not a branch`);
             }
         } else {
             app.log.info("No .gha.yaml files changed in push");

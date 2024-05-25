@@ -63,102 +63,23 @@ export class GhaLoader {
         // find all .gha.yaml files in repo using glob lib
         const ghaYamlFiles = await glob("**/.gha.yaml", {cwd: target});
         // parse yaml
-        // delete all hooks for db before upserting
-        await gha_hooks(db).delete({repo_full_name: full_name, branch: branch});
+        let newHooks: GhaHook[] = [];
         for (const ghaYamlFilePath of ghaYamlFiles) {
             this.log.info("Found .gha.yaml file " + ghaYamlFilePath);
             const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
             this.log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
-            await this.upsertGHAHooks(full_name, branch, <TheRootSchema>ghaFileYaml);
+            const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, full_name, branch);
+            newHooks = newHooks.concat(hooksFromFile);
         }
-    }
+        // reconcile with existing hooks
+        const existingHooks = await gha_hooks(db).find({repo_full_name: full_name, branch: branch}).all();
+        const hooksToDelete = existingHooks.filter(existingHook => !newHooks.some(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix));
+        const hooksToUpdate = existingHooks.filter(existingHook => newHooks.some(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix));
+        const hooksToInsert = newHooks.filter(newHook => !existingHooks.some(hook => hook.pipeline_unique_prefix === newHook.pipeline_unique_prefix));
 
-    private async upsertGHAHooks(full_name: string, branch: string, ghaFileYaml: TheRootSchema) {
-        // iterate over onPullRequest hooks and store in db
-        for (const onPR of ghaFileYaml.onPullRequest) {
-            for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
-                const hook = {
-                    repo_full_name: full_name,
-                    branch: branch,
-                    file_changes_matcher: fileChangesMatch,
-                    destination_branch_matcher: null,
-                    hook: 'onPullRequest' as HookType,
-                    hook_name: onPR.name,
-                    pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPR.name}`,
-                    pipeline_name: onPR.pipelineRef.name,
-                    pipeline_ref: onPR.pipelineRef.ref,
-                    pipeline_params: onPR.pipelineRunValues.params,
-                    shared_params: ghaFileYaml.sharedParams
-                }
-                await gha_hooks(db).insert(hook);
-            }
-        }
-        // iterate over onBranchMerge hooks and store in db
-        for (const onBranchMerge of ghaFileYaml.onBranchMerge) {
-            for (const fileChangesMatch of onBranchMerge.triggerConditions.fileChangesMatchAny) {
-                for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
-                    const hook = {
-                        repo_full_name: full_name,
-                        branch: branch,
-                        file_changes_matcher: fileChangesMatch,
-                        destination_branch_matcher: destinationBranchMatch,
-                        hook: 'onBranchMerge' as HookType,
-                        hook_name: onBranchMerge.name,
-                        pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onBranchMerge.name}`,
-                        pipeline_name: onBranchMerge.pipelineRef.name,
-                        pipeline_ref: onBranchMerge.pipelineRef.ref,
-                        pipeline_params: onBranchMerge.pipelineRunValues.params,
-                        shared_params: ghaFileYaml.sharedParams
-                    }
-                    await gha_hooks(db).insert(hook);
-                }
-            }
-        }
-        if (ghaFileYaml.onPullRequestClose !== undefined) {
-            // iterate over onPullRequestClose hooks and store in db
-            for (const onPRClose of ghaFileYaml.onPullRequestClose) {
-                for (const fileChangesMatch of onPRClose.triggerConditions.fileChangesMatchAny) {
-                    const hook = {
-                        repo_full_name: full_name,
-                        branch: branch,
-                        file_changes_matcher: fileChangesMatch,
-                        destination_branch_matcher: null,
-                        hook: 'onPullRequestClose' as HookType,
-                        hook_name: onPRClose.name,
-                        pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPRClose.name}`,
-                        pipeline_name: onPRClose.pipelineRef.name,
-                        pipeline_ref: onPRClose.pipelineRef.ref,
-                        pipeline_params: onPRClose.pipelineRunValues.params,
-                        shared_params: ghaFileYaml.sharedParams
-                    }
-                    await gha_hooks(db).insert(hook);
-                }
-            }
-        }
-        if (ghaFileYaml.onSlashCommand !== undefined) {
-            // iterate over onSlashCommand hooks and store in db
-            for (const onSlashCommand of ghaFileYaml.onSlashCommand) {
-                for (const fileChangesMatch of onSlashCommand.triggerConditions.fileChangesMatchAny) {
-                    for (const slashCommand of onSlashCommand.triggerConditions.slashCommands) {
-                        const hook = {
-                            repo_full_name: full_name,
-                            branch: branch,
-                            file_changes_matcher: fileChangesMatch,
-                            destination_branch_matcher: null,
-                            hook: 'onSlashCommand' as HookType,
-                            hook_name: onSlashCommand.name,
-                            pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onSlashCommand.name}`,
-                            pipeline_name: onSlashCommand.pipelineRef.name,
-                            pipeline_ref: onSlashCommand.pipelineRef.ref,
-                            pipeline_params: onSlashCommand.pipelineRunValues.params,
-                            shared_params: ghaFileYaml.sharedParams,
-                            slash_command: slashCommand
-                        }
-                        await gha_hooks(db).insert(hook);
-                    }
-                }
-            }
-        }
+        await Promise.all(hooksToDelete.map(hook => gha_hooks(db).delete({id: hook.id})));
+        await Promise.all(hooksToUpdate.map(hook => gha_hooks(db).update(hook, {id: hook.id})));
+        await Promise.all(hooksToInsert.map(hook => gha_hooks(db).insert(hook)));
     }
 
     async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
@@ -180,13 +101,13 @@ export class GhaLoader {
         return hooks;
     }
 
-    private getGhaHooks(ghaFileYaml: TheRootSchema): GhaHook[] {
+    private getGhaHooks(ghaFileYaml: TheRootSchema, repoFullName: string = "", branch: string = ""): GhaHook[] {
         const hooks: GhaHook[] = [];
         for (const onPR of ghaFileYaml.onPullRequest) {
             for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
                 const hook = {
-                    repo_full_name: "",
-                    branch: "",
+                    repo_full_name: repoFullName,
+                    branch: branch,
                     file_changes_matcher: fileChangesMatch,
                     destination_branch_matcher: null,
                     hook: 'onPullRequest' as HookType,
@@ -205,8 +126,8 @@ export class GhaLoader {
             for (const fileChangesMatch of onBranchMerge.triggerConditions.fileChangesMatchAny) {
                 for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
                     const hook = {
-                        repo_full_name: "",
-                        branch: "",
+                        repo_full_name: repoFullName,
+                        branch: branch,
                         file_changes_matcher: fileChangesMatch,
                         destination_branch_matcher: destinationBranchMatch,
                         hook: 'onBranchMerge' as HookType,
@@ -226,8 +147,8 @@ export class GhaLoader {
             for (const onPRClose of ghaFileYaml.onPullRequestClose) {
                 for (const fileChangesMatch of onPRClose.triggerConditions.fileChangesMatchAny) {
                     const hook = {
-                        repo_full_name: "",
-                        branch: "",
+                        repo_full_name: repoFullName,
+                        branch: branch,
                         file_changes_matcher: fileChangesMatch,
                         destination_branch_matcher: null,
                         hook: 'onPullRequestClose' as HookType,
@@ -248,8 +169,8 @@ export class GhaLoader {
                 for (const fileChangesMatch of onSlashCommand.triggerConditions.fileChangesMatchAny) {
                     for (const slashCommand of onSlashCommand.triggerConditions.slashCommands) {
                         const hook = {
-                            repo_full_name: "",
-                            branch: "",
+                            repo_full_name: repoFullName,
+                            branch: branch,
                             file_changes_matcher: fileChangesMatch,
                             destination_branch_matcher: null,
                             hook: 'onSlashCommand' as HookType,
