@@ -7,7 +7,39 @@ const checkoutBranchMock = jest.fn();
 const globMock = jest.fn().mockImplementation(() => {
     return ["file1", "file2"];
 });
+const findAllMock = jest.fn().mockReturnValue([
+    {
+        repo_full_name: "repo_full_name",
+        branch: "branch",
+        hook: "onPullRequest",
+        hook_name: "build",
+        pipeline_name: "common-job",
+        pipeline_ref: "main",
+        pipeline_run_values: {params: {COMMAND: "make build"}},
+        trigger_conditions: {fileChangesMatchAny: ["namespaces/domain-b/projects/example-c/**"]},
+        shared_params: {ROOT_DIR: "namespaces/domain-b/projects/example-c"},
+        pipeline_unique_prefix: "domain-b-example-c-build"
+    },
+    {
+        repo_full_name: "repo_full_name",
+        branch: "branch",
+        hook: "onPullRequest",
+        hook_name: "remove",
+        pipeline_name: "common-job",
+        pipeline_ref: "main",
+        pipeline_run_values: {params: {COMMAND: "make remove"}},
+        trigger_conditions: {fileChangesMatchAny: ["namespaces/domain-b/projects/example-c/**"]},
+        shared_params: {ROOT_DIR: "namespaces/domain-b/projects/example-c"},
+        pipeline_unique_prefix: "domain-b-example-c-remove"
+    }
+]);
+const findMock = jest.fn().mockImplementation(() => {
+    return {
+        all: findAllMock
+    }
+});
 const deleteMock = jest.fn();
+const updateMock = jest.fn();
 const insertMock = jest.fn();
 const countMock = jest.fn().mockReturnValue(0);
 
@@ -21,7 +53,9 @@ jest.mock('../src/db/database', () => {
     return {
         gha_hooks: jest.fn(() => {
             return {
+                find: findMock,
                 delete: deleteMock,
+                update: updateMock,
                 insert: insertMock,
                 count: countMock
             };
@@ -158,9 +192,12 @@ describe('gha loader', () => {
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
-        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
+        expect(findMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
+        expect(findAllMock).toHaveBeenCalled();
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
-        expect(insertMock).toHaveBeenCalledTimes(10);
+        expect(deleteMock).toHaveBeenCalledTimes(1)
+        expect(updateMock).toHaveBeenCalledTimes(1)
+        expect(insertMock).toHaveBeenCalledTimes(8);
     });
 
     it('should load all hooks, when one of gha yaml changes in the PR', async () => {
@@ -235,23 +272,23 @@ describe('gha loader', () => {
             "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
             "slash_command": undefined
         },
-        {
-            "branch": "",
-            "destination_branch_matcher": null,
-            "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
-            "hook": "onSlashCommand",
-            "hook_name": "validate-before-merge",
-            "pipeline_name": "generic-job",
-            "pipeline_params": {
-                "COMMAND": "make ${command} ${args}"
-            },
-            "pipeline_unique_prefix": "domain-b-example-c-validate-before-merge",
-            "repo_full_name": "",
-            "shared_params": {
-                "ROOT_DIR": "namespaces/domain-b/projects/example-c"
-            },
-            "slash_command": "validate"
-        }]);
+            {
+                "branch": "",
+                "destination_branch_matcher": null,
+                "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+                "hook": "onSlashCommand",
+                "hook_name": "validate-before-merge",
+                "pipeline_name": "generic-job",
+                "pipeline_params": {
+                    "COMMAND": "make ${command} ${args}"
+                },
+                "pipeline_unique_prefix": "domain-b-example-c-validate-before-merge",
+                "repo_full_name": "",
+                "shared_params": {
+                    "ROOT_DIR": "namespaces/domain-b/projects/example-c"
+                },
+                "slash_command": "validate"
+            }]);
         expect(octokit.request).toHaveBeenCalledWith("contents_url");
     });
 
@@ -271,9 +308,12 @@ describe('gha loader', () => {
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name2')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
-        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
+        expect(findMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
+        expect(findAllMock).toHaveBeenCalled();
+        expect(deleteMock).toHaveBeenCalledTimes(1)
+        expect(updateMock).toHaveBeenCalledTimes(1)
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
-        expect(insertMock).toHaveBeenCalledTimes(10);
+        expect(insertMock).toHaveBeenCalledTimes(8);
     });
 
     it('should delete all hooks from db, when branch is deleted', async () => {
