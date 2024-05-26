@@ -1,3 +1,10 @@
+## [1.9.4](https://github.com/mdolinin/gha-conductor/compare/v1.9.3...v1.9.4) (2024-05-26)
+
+
+### Bug Fixes
+
+* **loader:** reconcile new hooks with existing instead of bulk remove and insert ([#73](https://github.com/mdolinin/gha-conductor/issues/73)) ([4ba3dec](https://github.com/mdolinin/gha-conductor/commit/4ba3dec887c993160ff1db156040e0602176bd5a))
+
 ## [1.9.3](https://github.com/mdolinin/gha-conductor/compare/v1.9.2...v1.9.3) (2024-05-22)
 
 
