@@ -171,7 +171,7 @@ describe("gha-conductor app", () => {
                     pull_requests: "write",
                 },
             })
-            .get("/repos/mdolinin/mono-repo-example/pulls?state=open&base=main")
+            .get("/repos/mdolinin/mono-repo-example/pulls?state=open&base=feature-1")
             .reply(200, [
                 {
                     base: {
@@ -179,8 +179,11 @@ describe("gha-conductor app", () => {
                     },
                 },
             ])
-
-        await probot.receive({name: "push", payload: pushGhaYamlChangedPayload});
+        const payload = {
+            ...pushGhaYamlChangedPayload,
+            ref: "refs/heads/feature-1",
+        }
+        await probot.receive({name: "push", payload});
         expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });

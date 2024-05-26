@@ -51,20 +51,30 @@ export = (app: Probot) => {
             const ref = context.payload.ref;
             const branchName = ref.split("/").pop();
             if (ref.startsWith("refs/heads/") && branchName) {
-                // check if branch is base branch for at least one open PR
-                let params: RestEndpointMethodTypes["pulls"]["list"]["parameters"] = {
-                    owner: context.payload.repository.owner.login,
-                    repo: context.payload.repository.name,
-                    state: "open",
-                    base: branchName
-                };
-                const branchPRs = await context.octokit.pulls.list(params);
-                if (branchPRs.data.length > 0) {
+                let reloadAllGhaYamls = false;
+                if (branchName !== "master" && branchName !== "main") {
+                    // check if branch is base branch for at least one open PR
+                    let params: RestEndpointMethodTypes["pulls"]["list"]["parameters"] = {
+                        owner: context.payload.repository.owner.login,
+                        repo: context.payload.repository.name,
+                        state: "open",
+                        base: branchName
+                    };
+                    const branchPRs = await context.octokit.pulls.list(params);
+                    if (branchPRs.data.length > 0) {
+                        reloadAllGhaYamls = true;
+                    } else {
+                        app.log.info(`No open PRs found for branch ${branchName}`);
+                    }
+                } else {
+                    reloadAllGhaYamls = true;
+                }
+                if (reloadAllGhaYamls) {
                     const fullName = context.payload.repository.full_name;
                     await ghaLoader.loadAllGhaYaml(context.octokit, fullName, branchName);
                     app.log.info(`Reload gha yaml's in repo ${fullName} for branch ${branchName} completed`);
                 } else {
-                    app.log.info(`No open PRs found for branch ${branchName}`);
+                    app.log.info(`No need to reload gha yaml's in repo for branch ${branchName}`);
                 }
             } else {
                 app.log.info(`Push is for ref ${ref} that is not a branch`);
