@@ -8,6 +8,7 @@ import db, {gha_hooks} from "./db/database";
 import {TheRootSchema} from "./gha_yaml";
 import {HookType} from "./__generated__/_enums";
 import {components} from "@octokit/openapi-types";
+import {GhaHooks} from "./__generated__";
 
 export interface GhaHook {
     repo_full_name: string,
@@ -74,11 +75,32 @@ export class GhaLoader {
         // reconcile with existing hooks
         const existingHooks = await gha_hooks(db).find({repo_full_name: full_name, branch: branch}).all();
         const hooksToDelete = existingHooks.filter(existingHook => !newHooks.some(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix));
-        const hooksToUpdate = existingHooks.filter(existingHook => newHooks.some(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix));
+        const hooksToUpdate: GhaHooks[] = [];
+        existingHooks.forEach(existingHook => {
+            const newHook = newHooks.find(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix);
+            if (newHook !== undefined) {
+                hooksToUpdate.push(
+                    {
+                        ...existingHook,
+                        file_changes_matcher: newHook.file_changes_matcher,
+                        destination_branch_matcher: newHook.destination_branch_matcher,
+                        hook: newHook.hook,
+                        hook_name: newHook.hook_name,
+                        pipeline_name: newHook.pipeline_name,
+                        pipeline_ref: newHook.pipeline_ref || null,
+                        pipeline_params: newHook.pipeline_params,
+                        shared_params: newHook.shared_params,
+                        slash_command: newHook.slash_command || null
+                    });
+            }
+        })
         const hooksToInsert = newHooks.filter(newHook => !existingHooks.some(hook => hook.pipeline_unique_prefix === newHook.pipeline_unique_prefix));
 
+        this.log.debug(`Hooks to delete count: ${hooksToDelete.length}`);
         await Promise.all(hooksToDelete.map(hook => gha_hooks(db).delete({id: hook.id})));
-        await Promise.all(hooksToUpdate.map(hook => gha_hooks(db).update(hook, {id: hook.id})));
+        this.log.debug(`Hooks to update count: ${hooksToUpdate.length}`);
+        await Promise.all(hooksToUpdate.map(hook => gha_hooks(db).update({id: hook.id}, hook)));
+        this.log.debug(`Hooks to insert count: ${hooksToInsert.length}`);
         await Promise.all(hooksToInsert.map(hook => gha_hooks(db).insert(hook)));
     }
 
