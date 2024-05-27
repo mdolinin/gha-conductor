@@ -104,8 +104,25 @@ export class GhaLoader {
         await Promise.all(hooksToInsert.map(hook => gha_hooks(db).insert(hook)));
     }
 
-    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
+    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<{
+        hooksChangedInPR: GhaHook[]
+        annotationsForCheck: {
+            annotation_level: "failure" | "notice" | "warning";
+            message: string;
+            path: string;
+            start_line: number;
+            end_line: number
+        }[];
+    }> {
         let hooks: GhaHook[] = [];
+        const mapPipelineUniquePrefixToFile: Record<string, components["schemas"]["diff-entry"]> = {};
+        const annotationsForCheck: {
+            annotation_level: "failure" | "notice" | "warning",
+            message: string,
+            path: string,
+            start_line: number,
+            end_line: number
+        }[] = [];
         for (const file of data) {
             if (!file.filename.endsWith(".gha.yaml")) {
                 continue;
@@ -118,9 +135,41 @@ export class GhaLoader {
             }
             const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
             const ghaFileYaml = load(ghaFileContent);
-            hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml));
+            const ghaHooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml);
+            // check that pipeline_unique_prefix is unique
+            const duplicateKeys = ghaHooks.map(hook => hook.pipeline_unique_prefix)
+                .filter((value, index, self) => self.indexOf(value) !== index);
+            if (duplicateKeys.length > 0) {
+                this.log.error(`Duplicate pipeline_unique_prefix found in ${file.filename}: ${duplicateKeys}`);
+                annotationsForCheck.push({
+                    annotation_level: "failure",
+                    message: `Duplicate pipeline_unique_prefix found in ${file.filename}: ${duplicateKeys}`,
+                    path: file.filename,
+                    start_line: 1,
+                    end_line: 1
+                });
+            } else {
+                // check that pipeline_unique_prefix is unique across all files
+                const duplicateKeysAcrossFiles = Object.keys(mapPipelineUniquePrefixToFile).filter(key => ghaHooks.some(hook => hook.pipeline_unique_prefix === key));
+                if (duplicateKeysAcrossFiles.length > 0) {
+                    this.log.error(`Duplicate pipeline_unique_prefix found across files: ${duplicateKeysAcrossFiles}`);
+                    annotationsForCheck.push({
+                        annotation_level: "failure",
+                        message: `Duplicate pipeline_unique_prefix found across files: ${duplicateKeysAcrossFiles}`,
+                        path: file.filename,
+                        start_line: 1,
+                        end_line: 1
+                    });
+                } else {
+                    ghaHooks.reduce((acc, hook) => {
+                        acc[hook.pipeline_unique_prefix] = file;
+                        return acc;
+                    }, mapPipelineUniquePrefixToFile);
+                }
+            }
+            hooks = hooks.concat(ghaHooks);
         }
-        return hooks;
+        return {hooksChangedInPR: hooks, annotationsForCheck};
     }
 
     private getGhaHooks(ghaFileYaml: TheRootSchema, repoFullName: string = "", branch: string = ""): GhaHook[] {

@@ -178,6 +178,45 @@ export class GhaChecks {
         return checkRunUrl;
     }
 
+    async createPRCheckWithAnnotations(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number;
+        head: { sha: string };
+        base: { repo: { name: string; owner: { login: string } } }
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", annotationsForCheck: {
+        annotation_level: "failure" | "notice" | "warning";
+        message: string;
+        path: string;
+        start_line: number;
+        end_line: number
+    }[]) {
+        const checkName = this.hookToCheckName(hookType);
+        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const sha = pull_request.head.sha;
+        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+            owner: pull_request.base.repo.owner.login,
+            repo: pull_request.base.repo.name,
+            name: checkName,
+            head_sha: sha,
+            status: "completed",
+            conclusion: "failure",
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "Issues found in .gha.yml files",
+                summary: "Issues found in .gha.yml files",
+                annotations: annotationsForCheck,
+            }
+        };
+        const resp = await octokit.checks.create(params);
+        const checkRunId = resp.data.id;
+        const checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${checkRunId}`
+        if (resp.status === 201) {
+            this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+        } else {
+            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`);
+        }
+        return checkRunUrl;
+    }
+
 
     async createPRCheckForAllErroredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
         number: number;

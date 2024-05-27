@@ -144,20 +144,26 @@ export = (app: Probot) => {
             const repo_full_name = context.payload.repository.full_name;
             // if PR is just opened load all gha hooks for base branch
             if (context.payload.action === "opened") {
-                app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch}`);
                 await ghaLoader.loadAllGhaYamlForBranchIfNew(context.octokit, repo_full_name, baseBranch);
-                app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch} done`);
+                app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch} completed`);
             }
+            const eventType = context.payload.action;
+            const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
             const changedFilesResp = await context.octokit.pulls.listFiles({
                 owner: owner,
                 repo: repo,
                 pull_number: pullNumber
             });
             const changedFiles = changedFilesResp.data.map((file) => file.filename);
-            app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
-            const eventType = context.payload.action;
-            const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
+            app.log.debug(`PR changed files are ${JSON.stringify(changedFiles)}`);
+            const {
+                hooksChangedInPR,
+                annotationsForCheck
+            } = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
+            if (annotationsForCheck.length > 0) {
+                await checks.createPRCheckWithAnnotations(context.octokit, pr, hookType, annotationsForCheck);
+                return;
+            }
             const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR);
             if (merge_commit_sha === null) {
                 merge_commit_sha = context.payload.pull_request.head.sha;
@@ -353,7 +359,7 @@ export = (app: Probot) => {
             });
             const changedFiles = changedFilesResp.data.map((file) => file.filename);
             app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
+            const {hooksChangedInPR} = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
             const hookType = "onSlashCommand"
             const baseBranch = pr.base.ref;
             const command = commandTokens[0]
