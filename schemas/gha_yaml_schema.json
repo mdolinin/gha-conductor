@@ -126,7 +126,6 @@
                     "namespaces/domain-a/projects/example-a/**"
                 ]
             ],
-            "additionalItems": true,
             "items": {
                 "$id": "#/properties/defaultFileChangeTrigger/items",
                 "anyOf": [
@@ -186,7 +185,6 @@
                     }
                 ]
             ],
-            "additionalItems": true,
             "items": {
                 "$id": "#/properties/onPullRequest/items",
                 "anyOf": [
@@ -332,7 +330,6 @@
                                                 "namespaces/domain-a/projects/example-a/**"
                                             ]
                                         ],
-                                        "additionalItems": true,
                                         "items": {
                                             "$id": "#/properties/onPullRequest/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
                                             "anyOf": [
@@ -388,7 +385,6 @@
                     }
                 ]
             ],
-            "additionalItems": true,
             "items": {
                 "$id": "#/properties/onBranchMerge/items",
                 "anyOf": [
@@ -542,7 +538,6 @@
                                                 "master"
                                             ]
                                         ],
-                                        "additionalItems": true,
                                         "items": {
                                             "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/destinationBranchMatchesAny/items",
                                             "anyOf": [
@@ -571,7 +566,6 @@
                                                 "namespaces/domain-a/projects/example-b/test/test.sh"
                                             ]
                                         ],
-                                        "additionalItems": true,
                                         "items": {
                                             "$id": "#/properties/onBranchMerge/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
                                             "anyOf": [
@@ -624,7 +618,6 @@
                     }
                 ]
             ],
-            "additionalItems": true,
             "items": {
                 "$id": "#/properties/onPullRequestClose/items",
                 "anyOf": [
@@ -771,7 +764,6 @@
                                                 "namespaces/domain-a/projects/example-a/**"
                                             ]
                                         ],
-                                        "additionalItems": true,
                                         "items": {
                                             "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
                                             "anyOf": [
@@ -827,7 +819,6 @@
                     }
                 ]
             ],
-            "additionalItems": true,
             "items": {
                 "$id": "#/properties/onSlashCommand/items",
                 "anyOf": [
@@ -981,12 +972,11 @@
                                                 "validate"
                                             ]
                                         ],
-                                        "additionalItems": true,
                                         "items": {
                                             "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/slashCommands/items",
                                             "anyOf": [
                                                 {
-                                                    "$id": "#/properties/onPullRequestClose/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items/anyOf/0",
+                                                    "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/slashCommands/items/anyOf/0",
                                                     "type": "string",
                                                     "title": "Slash command matcher schema",
                                                     "description": "Slash command to match in the PR comment",
@@ -1009,7 +999,6 @@
                                                 "namespaces/domain-a/projects/example-a/**"
                                             ]
                                         ],
-                                        "additionalItems": true,
                                         "items": {
                                             "$id": "#/properties/onSlashCommand/items/anyOf/0/properties/triggerConditions/properties/fileChangesMatchAny/items",
                                             "anyOf": [
