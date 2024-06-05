@@ -156,14 +156,12 @@ export = (app: Probot) => {
             });
             const changedFiles = changedFilesResp.data.map((file) => file.filename);
             app.log.debug(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const {
-                hooksChangedInPR,
-                annotationsForCheck
-            } = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
+            const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, changedFilesResp.data);
             if (annotationsForCheck.length > 0) {
                 await checks.createPRCheckWithAnnotations(context.octokit, pr, hookType, annotationsForCheck);
                 return;
             }
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
             const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR);
             if (merge_commit_sha === null) {
                 merge_commit_sha = context.payload.pull_request.head.sha;
@@ -359,7 +357,7 @@ export = (app: Probot) => {
             });
             const changedFiles = changedFilesResp.data.map((file) => file.filename);
             app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const {hooksChangedInPR} = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
             const hookType = "onSlashCommand"
             const baseBranch = pr.base.ref;
             const command = commandTokens[0]

@@ -9,6 +9,8 @@ import {TheRootSchema} from "./gha_yaml";
 import {HookType} from "./__generated__/_enums";
 import {components} from "@octokit/openapi-types";
 import {GhaHooks} from "./__generated__";
+import Ajv from "ajv";
+import SourceMap from "js-yaml-source-map";
 
 export interface GhaHook {
     repo_full_name: string,
@@ -28,6 +30,7 @@ export interface GhaHook {
 export class GhaLoader {
 
     private git = simpleGit();
+    private ajv = new Ajv({allErrors: true});
 
     log: Logger;
 
@@ -104,18 +107,7 @@ export class GhaLoader {
         await Promise.all(hooksToInsert.map(hook => gha_hooks(db).insert(hook)));
     }
 
-    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<{
-        hooksChangedInPR: GhaHook[]
-        annotationsForCheck: {
-            annotation_level: "failure" | "notice" | "warning";
-            message: string;
-            path: string;
-            start_line: number;
-            end_line: number
-        }[];
-    }> {
-        let hooks: GhaHook[] = [];
-        const mapPipelineUniquePrefixToFile: Record<string, components["schemas"]["diff-entry"]> = {};
+    async validateGhaYamlFiles(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]) {
         const annotationsForCheck: {
             annotation_level: "failure" | "notice" | "warning",
             message: string,
@@ -123,6 +115,56 @@ export class GhaLoader {
             start_line: number,
             end_line: number
         }[] = [];
+        for (const file of data) {
+            if (!file.filename.endsWith(".gha.yaml")) {
+                continue;
+            }
+            this.log.info(`Validating file ${file.filename}`);
+            const resp = await octokit.request(file.contents_url);
+            if (resp.status !== 200) {
+                this.log.error(`Error loading file ${file.filename}`);
+                continue;
+            }
+            const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+            try {
+                const yamlSourceMap: SourceMap = new SourceMap();
+                const ghaFileJson = load(ghaFileContent, {listener: yamlSourceMap.listen()});
+                const schemaJson = JSON.parse(fs.readFileSync(path.join(__dirname, "gha_yaml_schema.json"), "utf8"));
+                const isValid = this.ajv.validate(schemaJson, ghaFileJson);
+                if (!isValid) {
+                    this.log.warn(`The YAML file ${file.filename} is not valid, there are ${this.ajv.errors?.length} errors:`);
+                    this.ajv.errors?.forEach(error => {
+                        this.log.debug(`Error: ${JSON.stringify(error)}`);
+                        const propertyPath: string = error.instancePath.replace(/^\//, '').replace(/\//g, '.');
+                        const propertyLocation = yamlSourceMap.lookup(propertyPath)
+                        const propertyLineNumber = propertyLocation ? propertyLocation.line : 0;
+                        annotationsForCheck.push({
+                            annotation_level: "failure",
+                            message: error.message || "Unknown error",
+                            path: file.filename,
+                            start_line: propertyLineNumber,
+                            end_line: propertyLineNumber
+                        });
+                    });
+                } else {
+                    this.log.info(`Validation passed for file ${file.filename}`);
+                }
+            } catch (e) {
+                this.log.error(`Error parsing yaml file ${file.filename}`, e);
+                annotationsForCheck.push({
+                    annotation_level: "failure",
+                    message: String(e),
+                    path: file.filename,
+                    start_line: 0,
+                    end_line: 0
+                });
+            }
+        }
+        return annotationsForCheck;
+    }
+
+    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
+        let hooks: GhaHook[] = [];
         for (const file of data) {
             if (!file.filename.endsWith(".gha.yaml")) {
                 continue;
@@ -135,41 +177,9 @@ export class GhaLoader {
             }
             const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
             const ghaFileYaml = load(ghaFileContent);
-            const ghaHooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml);
-            // check that pipeline_unique_prefix is unique
-            const duplicateKeys = ghaHooks.map(hook => hook.pipeline_unique_prefix)
-                .filter((value, index, self) => self.indexOf(value) !== index);
-            if (duplicateKeys.length > 0) {
-                this.log.error(`Duplicate pipeline_unique_prefix found in ${file.filename}: ${duplicateKeys}`);
-                annotationsForCheck.push({
-                    annotation_level: "failure",
-                    message: `Duplicate pipeline_unique_prefix found in ${file.filename}: ${duplicateKeys}`,
-                    path: file.filename,
-                    start_line: 1,
-                    end_line: 1
-                });
-            } else {
-                // check that pipeline_unique_prefix is unique across all files
-                const duplicateKeysAcrossFiles = Object.keys(mapPipelineUniquePrefixToFile).filter(key => ghaHooks.some(hook => hook.pipeline_unique_prefix === key));
-                if (duplicateKeysAcrossFiles.length > 0) {
-                    this.log.error(`Duplicate pipeline_unique_prefix found across files: ${duplicateKeysAcrossFiles}`);
-                    annotationsForCheck.push({
-                        annotation_level: "failure",
-                        message: `Duplicate pipeline_unique_prefix found across files: ${duplicateKeysAcrossFiles}`,
-                        path: file.filename,
-                        start_line: 1,
-                        end_line: 1
-                    });
-                } else {
-                    ghaHooks.reduce((acc, hook) => {
-                        acc[hook.pipeline_unique_prefix] = file;
-                        return acc;
-                    }, mapPipelineUniquePrefixToFile);
-                }
-            }
-            hooks = hooks.concat(ghaHooks);
+            hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml));
         }
-        return {hooksChangedInPR: hooks, annotationsForCheck};
+        return hooks;
     }
 
     private getGhaHooks(ghaFileYaml: TheRootSchema, repoFullName: string = "", branch: string = ""): GhaHook[] {
