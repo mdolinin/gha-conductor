@@ -29,7 +29,7 @@
     "js-yaml": "^4.1.0",
     "json-schema-to-typescript": "^14.0.5",
     "probot": "^13.3.0",
-    "simple-git": "^3.24.0"
+    "simple-git": "^3.25.0"
   },
   "devDependencies": {
     "@databases/pg-migrations": "^5.0.3",
