@@ -10,7 +10,7 @@ import {HookType} from "./__generated__/_enums";
 import {components} from "@octokit/openapi-types";
 import {GhaHooks} from "./__generated__";
 import Ajv from "ajv";
-import SourceMap from "js-yaml-source-map";
+import {isNode, LineCounter, parseDocument} from "yaml";
 
 export interface GhaHook {
     repo_full_name: string,
@@ -27,10 +27,13 @@ export interface GhaHook {
     slash_command: string | undefined
 }
 
+const schemaJson = JSON.parse(fs.readFileSync(path.join(__dirname, "gha_yaml_schema.json"), "utf8"));
+const ajv = new Ajv({allErrors: true});
+const validator = ajv.compile(schemaJson);
+
 export class GhaLoader {
 
     private git = simpleGit();
-    private ajv = new Ajv({allErrors: true});
 
     log: Logger;
 
@@ -114,6 +117,8 @@ export class GhaLoader {
             path: string,
             start_line: number,
             end_line: number
+            start_column: number,
+            end_column: number
         }[] = [];
         for (const file of data) {
             if (!file.filename.endsWith(".gha.yaml")) {
@@ -126,38 +131,48 @@ export class GhaLoader {
                 continue;
             }
             const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
-            try {
-                const yamlSourceMap: SourceMap = new SourceMap();
-                const ghaFileJson = load(ghaFileContent, {listener: yamlSourceMap.listen()});
-                const schemaJson = JSON.parse(fs.readFileSync(path.join(__dirname, "gha_yaml_schema.json"), "utf8"));
-                const isValid = this.ajv.validate(schemaJson, ghaFileJson);
-                if (!isValid) {
-                    this.log.warn(`The YAML file ${file.filename} is not valid, there are ${this.ajv.errors?.length} errors:`);
-                    this.ajv.errors?.forEach(error => {
-                        this.log.debug(`Error: ${JSON.stringify(error)}`);
-                        const propertyPath: string = error.instancePath.replace(/^\//, '').replace(/\//g, '.');
-                        const propertyLocation = yamlSourceMap.lookup(propertyPath)
-                        const propertyLineNumber = propertyLocation ? propertyLocation.line : 0;
+            const lineCounter = new LineCounter()
+            const ghaFileDoc = parseDocument(ghaFileContent, {lineCounter})
+            if (ghaFileDoc.errors.length > 0) {
+                ghaFileDoc.errors.forEach(error => {
+                    const {line, col} = lineCounter.linePos(error.pos[0]);
+                    this.log.warn(`${line}:${col} ${error.message}`);
+                    annotationsForCheck.push({
+                        annotation_level: "failure",
+                        message: error.message,
+                        path: file.filename,
+                        start_line: line,
+                        end_line: line,
+                        start_column: col,
+                        end_column: col
+                    });
+                });
+            } else {
+                validator(ghaFileDoc.toJSON())
+                if (validator.errors) {
+                    validator.errors?.forEach(error => {
+                        const propertyPath = error.instancePath.split("/").slice(1);
+                        const node = ghaFileDoc.getIn(propertyPath, true);
+                        let line = 0;
+                        let col = 0;
+                        if (isNode(node) && node.range) {
+                            const linePos = lineCounter.linePos(node.range[0]);
+                            line = linePos.line;
+                            col = linePos.col;
+                        }
                         annotationsForCheck.push({
                             annotation_level: "failure",
                             message: error.message || "Unknown error",
                             path: file.filename,
-                            start_line: propertyLineNumber,
-                            end_line: propertyLineNumber
+                            start_line: line,
+                            end_line: line,
+                            start_column: col,
+                            end_column: col
                         });
                     });
                 } else {
                     this.log.info(`Validation passed for file ${file.filename}`);
                 }
-            } catch (e) {
-                this.log.error(`Error parsing yaml file ${file.filename}`, e);
-                annotationsForCheck.push({
-                    annotation_level: "failure",
-                    message: String(e),
-                    path: file.filename,
-                    start_line: 0,
-                    end_line: 0
-                });
             }
         }
         return annotationsForCheck;
