@@ -10,7 +10,7 @@ import {HookType} from "./__generated__/_enums";
 import {components} from "@octokit/openapi-types";
 import {GhaHooks} from "./__generated__";
 import Ajv from "ajv";
-import {isNode, LineCounter, parseDocument} from "yaml";
+import {isNode, LineCounter, Node, parseDocument, YAMLSeq} from "yaml";
 
 export interface GhaHook {
     repo_full_name: string,
@@ -153,13 +153,7 @@ export class GhaLoader {
                     validator.errors?.forEach(error => {
                         const propertyPath = error.instancePath.split("/").slice(1);
                         const node = ghaFileDoc.getIn(propertyPath, true);
-                        let line = 0;
-                        let col = 0;
-                        if (isNode(node) && node.range) {
-                            const linePos = lineCounter.linePos(node.range[0]);
-                            line = linePos.line;
-                            col = linePos.col;
-                        }
+                        const {line, col} = this.getPosition(node, lineCounter);
                         annotationsForCheck.push({
                             annotation_level: "failure",
                             message: error.message || "Unknown error",
@@ -171,11 +165,53 @@ export class GhaLoader {
                         });
                     });
                 } else {
+                    // validate that pipeline unique prefix is unique `${teamNamespace}-${moduleName}-${name}`
+                    const teamNamespaceNode = ghaFileDoc.getIn(["teamNamespace"], true) as Node;
+                    const teamNamespace = teamNamespaceNode.toString();
+                    const moduleNameNode = ghaFileDoc.getIn(["moduleName"], true) as Node;
+                    const moduleName = moduleNameNode.toString();
+                    const names = new Set<string>();
+                    for (const hook of ["onPullRequest", "onBranchMerge", "onPullRequestClose", "onSlashCommand"]) {
+                        const onNode = ghaFileDoc.getIn([hook], true) as YAMLSeq;
+                        if (onNode === undefined) {
+                            continue;
+                        }
+                        for (const _ of onNode.items) {
+                            const index = onNode.items.indexOf(_);
+                            const nameNode = ghaFileDoc.getIn([hook, index, 'name'], true) as Node;
+                            const name = nameNode.toString();
+                            const pipelineUniquePrefix = `${teamNamespace}-${moduleName}-${name}`;
+                            const samePrefixCount = await gha_hooks(db).count({pipeline_unique_prefix: pipelineUniquePrefix})
+                            if (samePrefixCount > 0 || names.has(name)) {
+                                const {line, col} = this.getPosition(nameNode, lineCounter);
+                                annotationsForCheck.push({
+                                    annotation_level: "failure",
+                                    message: `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`,
+                                    path: file.filename,
+                                    start_line: line,
+                                    end_line: line,
+                                    start_column: col,
+                                    end_column: col
+                                });
+                            } else {
+                                this.log.debug(`Pipeline unique prefix ${pipelineUniquePrefix} is unique`);
+                            }
+                        }
+                    }
                     this.log.info(`Validation passed for file ${file.filename}`);
                 }
             }
         }
         return annotationsForCheck;
+    }
+
+    private getPosition(node: any, lineCounter: LineCounter, line: number = 0, col: number = 0) {
+        if (isNode(node) && node.range) {
+            const linePos = lineCounter.linePos(node.range[0]);
+            line = linePos.line;
+            col = linePos.col;
+        }
+        return {line, col};
     }
 
     async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
