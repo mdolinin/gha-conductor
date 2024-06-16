@@ -11,6 +11,7 @@ import {components} from "@octokit/openapi-types";
 import {GhaHooks} from "./__generated__";
 import Ajv from "ajv";
 import {isNode, LineCounter, Node, parseDocument, YAMLSeq} from "yaml";
+import {not} from "@databases/pg-typed";
 
 export interface GhaHook {
     repo_full_name: string,
@@ -19,6 +20,7 @@ export interface GhaHook {
     destination_branch_matcher: string | null,
     hook: HookType,
     hook_name: string,
+    path_to_gha_yaml: string | undefined,
     pipeline_unique_prefix: string,
     pipeline_name: string,
     pipeline_ref: string | undefined,
@@ -27,7 +29,7 @@ export interface GhaHook {
     slash_command: string | undefined
 }
 
-const schemaJson = JSON.parse(fs.readFileSync(path.join(__dirname, "gha_yaml_schema.json"), "utf8"));
+const schemaJson = JSON.parse(fs.readFileSync(path.join(__dirname, "schemas/gha_yaml_schema.json"), "utf8"));
 const ajv = new Ajv({allErrors: true});
 const validator = ajv.compile(schemaJson);
 
@@ -41,7 +43,7 @@ export class GhaLoader {
         this.log = log;
     }
 
-    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string) {
+    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string, force: boolean = false) {
         const {token} = await octokit.auth({type: "installation"}) as Record<string, string>;
         this.log.debug(`Repo full name is ${full_name}`);
         // create temp dir
@@ -75,39 +77,46 @@ export class GhaLoader {
             this.log.info("Found .gha.yaml file " + ghaYamlFilePath);
             const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
             this.log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
-            const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, full_name, branch);
+            const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, ghaYamlFilePath, full_name, branch);
             newHooks = newHooks.concat(hooksFromFile);
         }
-        // reconcile with existing hooks
-        const existingHooks = await gha_hooks(db).find({repo_full_name: full_name, branch: branch}).all();
-        const hooksToDelete = existingHooks.filter(existingHook => !newHooks.some(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix));
-        const hooksToUpdate: GhaHooks[] = [];
-        existingHooks.forEach(existingHook => {
-            const newHook = newHooks.find(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix);
-            if (newHook !== undefined) {
-                hooksToUpdate.push(
-                    {
-                        ...existingHook,
-                        file_changes_matcher: newHook.file_changes_matcher,
-                        destination_branch_matcher: newHook.destination_branch_matcher,
-                        hook: newHook.hook,
-                        hook_name: newHook.hook_name,
-                        pipeline_name: newHook.pipeline_name,
-                        pipeline_ref: newHook.pipeline_ref || null,
-                        pipeline_params: newHook.pipeline_params,
-                        shared_params: newHook.shared_params,
-                        slash_command: newHook.slash_command || null
-                    });
-            }
-        })
-        const hooksToInsert = newHooks.filter(newHook => !existingHooks.some(hook => hook.pipeline_unique_prefix === newHook.pipeline_unique_prefix));
+        if (!force) {
+            // reconcile with existing hooks
+            const existingHooks = await gha_hooks(db).find({repo_full_name: full_name, branch: branch}).all();
+            const hooksToDelete = existingHooks.filter(existingHook => !newHooks.some(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix));
+            const hooksToUpdate: GhaHooks[] = [];
+            existingHooks.forEach(existingHook => {
+                const newHook = newHooks.find(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix);
+                if (newHook !== undefined) {
+                    hooksToUpdate.push(
+                        {
+                            ...existingHook,
+                            file_changes_matcher: newHook.file_changes_matcher,
+                            destination_branch_matcher: newHook.destination_branch_matcher,
+                            hook: newHook.hook,
+                            hook_name: newHook.hook_name,
+                            path_to_gha_yaml: newHook.path_to_gha_yaml || null,
+                            pipeline_name: newHook.pipeline_name,
+                            pipeline_ref: newHook.pipeline_ref || null,
+                            pipeline_params: newHook.pipeline_params,
+                            shared_params: newHook.shared_params,
+                            slash_command: newHook.slash_command || null
+                        });
+                }
+            })
+            const hooksToInsert = newHooks.filter(newHook => !existingHooks.some(hook => hook.pipeline_unique_prefix === newHook.pipeline_unique_prefix));
 
-        this.log.debug(`Hooks to delete count: ${hooksToDelete.length}`);
-        await Promise.all(hooksToDelete.map(hook => gha_hooks(db).delete({id: hook.id})));
-        this.log.debug(`Hooks to update count: ${hooksToUpdate.length}`);
-        await Promise.all(hooksToUpdate.map(hook => gha_hooks(db).update({id: hook.id}, hook)));
-        this.log.debug(`Hooks to insert count: ${hooksToInsert.length}`);
-        await Promise.all(hooksToInsert.map(hook => gha_hooks(db).insert(hook)));
+            this.log.debug(`Hooks to delete count: ${hooksToDelete.length}`);
+            await Promise.all(hooksToDelete.map(hook => gha_hooks(db).delete({id: hook.id})));
+            this.log.debug(`Hooks to update count: ${hooksToUpdate.length}`);
+            await Promise.all(hooksToUpdate.map(hook => gha_hooks(db).update({id: hook.id}, hook)));
+            this.log.debug(`Hooks to insert count: ${hooksToInsert.length}`);
+            await Promise.all(hooksToInsert.map(hook => gha_hooks(db).insert(hook)));
+        } else {
+            this.log.debug(`Force is true, reinserting all ${newHooks.length} hooks`);
+            await gha_hooks(db).delete({repo_full_name: full_name, branch: branch});
+            await Promise.all(newHooks.map(hook => gha_hooks(db).insert(hook)));
+        }
     }
 
     async validateGhaYamlFiles(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]) {
@@ -181,12 +190,19 @@ export class GhaLoader {
                             const nameNode = ghaFileDoc.getIn([hook, index, 'name'], true) as Node;
                             const name = nameNode.toString();
                             const pipelineUniquePrefix = `${teamNamespace}-${moduleName}-${name}`;
-                            const samePrefixCount = await gha_hooks(db).count({pipeline_unique_prefix: pipelineUniquePrefix})
-                            if (samePrefixCount > 0 || names.has(name)) {
+                            const samePrefixHooks = await gha_hooks(db).find({pipeline_unique_prefix: pipelineUniquePrefix, path_to_gha_yaml: not(file.filename)}).all();
+                            if (samePrefixHooks.length > 0 || names.has(name)) {
                                 const {line, col} = this.getPosition(nameNode, lineCounter);
+                                let message = `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`;
+                                if (names.has(name)) {
+                                    message = message + " (duplicate name in the same file)";
+                                }
+                                if (samePrefixHooks.length > 0) {
+                                    message = message + ` (same name used in ${samePrefixHooks.map(value => value.path_to_gha_yaml).join(',')} files)`;
+                                }
                                 annotationsForCheck.push({
                                     annotation_level: "failure",
-                                    message: `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`,
+                                    message: message,
                                     path: file.filename,
                                     start_line: line,
                                     end_line: line,
@@ -194,6 +210,7 @@ export class GhaLoader {
                                     end_column: col
                                 });
                             } else {
+                                names.add(name);
                                 this.log.debug(`Pipeline unique prefix ${pipelineUniquePrefix} is unique`);
                             }
                         }
@@ -228,12 +245,12 @@ export class GhaLoader {
             }
             const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
             const ghaFileYaml = load(ghaFileContent);
-            hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml));
+            hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml, file.filename));
         }
         return hooks;
     }
 
-    private getGhaHooks(ghaFileYaml: TheRootSchema, repoFullName: string = "", branch: string = ""): GhaHook[] {
+    private getGhaHooks(ghaFileYaml: TheRootSchema, ghaYamlFilePath: string, repoFullName: string = "", branch: string = ""): GhaHook[] {
         const hooks: GhaHook[] = [];
         for (const onPR of ghaFileYaml.onPullRequest) {
             for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
@@ -244,6 +261,7 @@ export class GhaLoader {
                     destination_branch_matcher: null,
                     hook: 'onPullRequest' as HookType,
                     hook_name: onPR.name,
+                    path_to_gha_yaml: ghaYamlFilePath,
                     pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPR.name}`,
                     pipeline_name: onPR.pipelineRef.name,
                     pipeline_ref: onPR.pipelineRef.ref,
@@ -264,6 +282,7 @@ export class GhaLoader {
                         destination_branch_matcher: destinationBranchMatch,
                         hook: 'onBranchMerge' as HookType,
                         hook_name: onBranchMerge.name,
+                        path_to_gha_yaml: ghaYamlFilePath,
                         pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onBranchMerge.name}`,
                         pipeline_name: onBranchMerge.pipelineRef.name,
                         pipeline_ref: onBranchMerge.pipelineRef.ref,
@@ -285,6 +304,7 @@ export class GhaLoader {
                         destination_branch_matcher: null,
                         hook: 'onPullRequestClose' as HookType,
                         hook_name: onPRClose.name,
+                        path_to_gha_yaml: ghaYamlFilePath,
                         pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPRClose.name}`,
                         pipeline_name: onPRClose.pipelineRef.name,
                         pipeline_ref: onPRClose.pipelineRef.ref,
@@ -307,6 +327,7 @@ export class GhaLoader {
                             destination_branch_matcher: null,
                             hook: 'onSlashCommand' as HookType,
                             hook_name: onSlashCommand.name,
+                            path_to_gha_yaml: ghaYamlFilePath,
                             pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onSlashCommand.name}`,
                             pipeline_name: onSlashCommand.pipelineRef.name,
                             pipeline_ref: onSlashCommand.pipelineRef.ref,

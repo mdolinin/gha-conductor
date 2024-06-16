@@ -70,6 +70,6 @@
     "skipLibCheck": true
   },
   "hooks": [ "copy-files" ],
-  "include": ["src/**/*", "src/__generated__/schema.json", "schemas/gha_yaml_schema.json"],
+  "include": ["src/**/*", "src/__generated__/schema.json"],
   "compileOnSave": false
 }

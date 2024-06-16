@@ -87,9 +87,9 @@ export = (app: Probot) => {
     app.on("pull_request.labeled", async (context) => {
         app.log.info(`Pull request labeled event received for ${context.payload.pull_request.number} and label ${context.payload.label.name}`);
         if (context.payload.label.name === "gha-conductor:load") {
-            app.log.info("Reload gha yaml's in repo");
-            await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.payload.pull_request.base.ref);
-            app.log.info("Reload gha yaml's in repo done");
+            app.log.info("Force reload gha yaml's in repo started");
+            await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.payload.pull_request.base.ref, true);
+            app.log.info("Force reload gha yaml's in repo done");
         }
     });
 
