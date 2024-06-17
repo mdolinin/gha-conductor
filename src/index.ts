@@ -13,7 +13,10 @@ import {
     RestEndpointMethodTypes
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import {inspect} from "node:util";
+import {MergeOptions} from "probot/lib/context";
 
+const DEFAULT_GHA_HOOKS_FILE_NAME = ".gha.yaml";
+const APP_CONFIG_FILE = "gha-conductor-config.yaml";
 
 const TOKENISE_REGEX =
     /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
@@ -24,32 +27,63 @@ export = (app: Probot) => {
     const hooks = new Hooks(app.log);
     const checks = new GhaChecks(app.log);
     const reply = new GhaReply(app.log);
+    const configs = new Map<string, any>();
+
+    async function getHooksFileNameFromConfig(context: {
+        config<T>(fileName: string, defaultConfig?: T, deepMergeOptions?: MergeOptions): Promise<T | null>
+    }, repo_full_name: string, reload: boolean = false): Promise<string> {
+        let config;
+        if (configs.has(repo_full_name) && !reload) {
+            config = configs.get(repo_full_name);
+        } else {
+            config = await context.config(APP_CONFIG_FILE, {gha_hooks_file: DEFAULT_GHA_HOOKS_FILE_NAME});
+            configs.set(repo_full_name, config);
+        }
+        return config?.gha_hooks_file || DEFAULT_GHA_HOOKS_FILE_NAME;
+    }
 
     app.on("push", async (context) => {
+        const repoFullName = context.payload.repository.full_name;
         // if push was delete branch
         if (context.payload.deleted) {
             const ref = context.payload.ref;
             const branchName = ref.split("/").pop();
             if (ref.startsWith("refs/heads/") && branchName) {
-                const fullName = context.payload.repository.full_name;
-                await ghaLoader.deleteAllGhaHooksForBranch(fullName, branchName);
-                app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${fullName} completed`);
+                await ghaLoader.deleteAllGhaHooksForBranch(repoFullName, branchName);
+                app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${repoFullName} completed`);
             } else {
                 app.log.info(`Delete was for ref ${ref} that is not a branch`);
             }
             return;
         }
         const changedFiles = context.payload.commits.flatMap((commit) => commit.added.concat(commit.modified));
+        let configFileChanged = false;
+        for (const file of changedFiles) {
+            if (file.endsWith(APP_CONFIG_FILE)) {
+                configFileChanged = true;
+                break;
+            }
+        }
+        const ref = context.payload.ref;
+        const branchName = ref.split("/").pop();
+        let reloadConfig = false;
+        if (configFileChanged) {
+            if (ref.startsWith("refs/heads/") && branchName) {
+                if (branchName === "master" || branchName === "main") {
+                    reloadConfig = true;
+                    app.log.info(`Config file ${APP_CONFIG_FILE} changed in push for branch ${branchName}`);
+                }
+            }
+        }
+        const ghaHooksFileName = await getHooksFileNameFromConfig(context, repoFullName, reloadConfig);
         let changedGhaFiles = false;
         for (const file of changedFiles) {
-            if (file.endsWith(".gha.yaml")) {
+            if (file.endsWith(ghaHooksFileName)) {
                 changedGhaFiles = true;
                 break;
             }
         }
         if (changedGhaFiles) {
-            const ref = context.payload.ref;
-            const branchName = ref.split("/").pop();
             if (ref.startsWith("refs/heads/") && branchName) {
                 let reloadAllGhaYamls = false;
                 if (branchName !== "master" && branchName !== "main") {
@@ -71,7 +105,7 @@ export = (app: Probot) => {
                 }
                 if (reloadAllGhaYamls) {
                     const fullName = context.payload.repository.full_name;
-                    await ghaLoader.loadAllGhaYaml(context.octokit, fullName, branchName);
+                    await ghaLoader.loadAllGhaYaml(context.octokit, fullName, branchName, ghaHooksFileName);
                     app.log.info(`Reload gha yaml's in repo ${fullName} for branch ${branchName} completed`);
                 } else {
                     app.log.info(`No need to reload gha yaml's in repo for branch ${branchName}`);
@@ -80,7 +114,7 @@ export = (app: Probot) => {
                 app.log.info(`Push is for ref ${ref} that is not a branch`);
             }
         } else {
-            app.log.info("No .gha.yaml files changed in push");
+            app.log.info(`No ${ghaHooksFileName} files changed in push`);
         }
     });
 
@@ -88,7 +122,8 @@ export = (app: Probot) => {
         app.log.info(`Pull request labeled event received for ${context.payload.pull_request.number} and label ${context.payload.label.name}`);
         if (context.payload.label.name === "gha-conductor:load") {
             app.log.info("Force reload gha yaml's in repo started");
-            await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.payload.pull_request.base.ref, true);
+            const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name, true);
+            await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.payload.pull_request.base.ref, ghaHooksFileName, true);
             app.log.info("Force reload gha yaml's in repo done");
         }
     });
@@ -141,10 +176,11 @@ export = (app: Probot) => {
         }
         const numOfChangedFiles = context.payload.pull_request.changed_files;
         if (numOfChangedFiles > 0) {
+            const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name);
             const repo_full_name = context.payload.repository.full_name;
             // if PR is just opened load all gha hooks for base branch
             if (context.payload.action === "opened") {
-                await ghaLoader.loadAllGhaYamlForBranchIfNew(context.octokit, repo_full_name, baseBranch);
+                await ghaLoader.loadAllGhaYamlForBranchIfNew(context.octokit, repo_full_name, baseBranch, ghaHooksFileName);
                 app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch} completed`);
             }
             const eventType = context.payload.action;
@@ -156,12 +192,12 @@ export = (app: Probot) => {
             });
             const changedFiles = changedFilesResp.data.map((file) => file.filename);
             app.log.debug(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, changedFilesResp.data);
+            const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, ghaHooksFileName, changedFilesResp.data);
             if (annotationsForCheck.length > 0) {
                 await checks.createPRCheckWithAnnotations(context.octokit, pr, hookType, annotationsForCheck);
                 return;
             }
-            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp.data);
             const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR);
             if (merge_commit_sha === null) {
                 merge_commit_sha = context.payload.pull_request.head.sha;
@@ -357,7 +393,8 @@ export = (app: Probot) => {
             });
             const changedFiles = changedFilesResp.data.map((file) => file.filename);
             app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, changedFilesResp.data);
+            const ghaHooksFileName = await getHooksFileNameFromConfig(context, repo_full_name);
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp.data);
             const hookType = "onSlashCommand"
             const baseBranch = pr.base.ref;
             const command = commandTokens[0]

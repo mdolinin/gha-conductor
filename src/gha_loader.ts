@@ -43,7 +43,7 @@ export class GhaLoader {
         this.log = log;
     }
 
-    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string, force: boolean = false) {
+    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string, hooksFileName: string, force: boolean = false) {
         const {token} = await octokit.auth({type: "installation"}) as Record<string, string>;
         this.log.debug(`Repo full name is ${full_name}`);
         // create temp dir
@@ -69,12 +69,12 @@ export class GhaLoader {
             const checkoutResp = await this.git.checkoutBranch(branch, `origin/${branch}`);
             this.log.debug("Checkout response is " + JSON.stringify(checkoutResp));
         }
-        // find all .gha.yaml files in repo using glob lib
-        const ghaYamlFiles = await glob("**/.gha.yaml", {cwd: target});
+        // find all hooks files in repo using glob lib
+        const ghaYamlFiles = await glob(`**/${hooksFileName}`, {cwd: target});
         // parse yaml
         let newHooks: GhaHook[] = [];
         for (const ghaYamlFilePath of ghaYamlFiles) {
-            this.log.info("Found .gha.yaml file " + ghaYamlFilePath);
+            this.log.info(`Found ${hooksFileName} file ${ghaYamlFilePath}`);
             const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
             this.log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
             const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, ghaYamlFilePath, full_name, branch);
@@ -119,7 +119,7 @@ export class GhaLoader {
         }
     }
 
-    async validateGhaYamlFiles(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]) {
+    async validateGhaYamlFiles(octokit: InstanceType<typeof ProbotOctokit>, hooksFileName: string, data: components["schemas"]["diff-entry"][]) {
         const annotationsForCheck: {
             annotation_level: "failure" | "notice" | "warning",
             message: string,
@@ -130,7 +130,7 @@ export class GhaLoader {
             end_column: number
         }[] = [];
         for (const file of data) {
-            if (!file.filename.endsWith(".gha.yaml")) {
+            if (!file.filename.endsWith(hooksFileName)) {
                 continue;
             }
             this.log.info(`Validating file ${file.filename}`);
@@ -190,7 +190,10 @@ export class GhaLoader {
                             const nameNode = ghaFileDoc.getIn([hook, index, 'name'], true) as Node;
                             const name = nameNode.toString();
                             const pipelineUniquePrefix = `${teamNamespace}-${moduleName}-${name}`;
-                            const samePrefixHooks = await gha_hooks(db).find({pipeline_unique_prefix: pipelineUniquePrefix, path_to_gha_yaml: not(file.filename)}).all();
+                            const samePrefixHooks = await gha_hooks(db).find({
+                                pipeline_unique_prefix: pipelineUniquePrefix,
+                                path_to_gha_yaml: not(file.filename)
+                            }).all();
                             if (samePrefixHooks.length > 0 || names.has(name)) {
                                 const {line, col} = this.getPosition(nameNode, lineCounter);
                                 let message = `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`;
@@ -231,10 +234,10 @@ export class GhaLoader {
         return {line, col};
     }
 
-    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
+    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, hooksFileName: string, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
         let hooks: GhaHook[] = [];
         for (const file of data) {
-            if (!file.filename.endsWith(".gha.yaml")) {
+            if (!file.filename.endsWith(hooksFileName)) {
                 continue;
             }
             this.log.info(`Loading hooks for file ${file.filename}`);
@@ -343,14 +346,14 @@ export class GhaLoader {
         return hooks;
     }
 
-    async loadAllGhaYamlForBranchIfNew(octokit: InstanceType<typeof ProbotOctokit>, repo_full_name: string, baseBranch: string) {
+    async loadAllGhaYamlForBranchIfNew(octokit: InstanceType<typeof ProbotOctokit>, repo_full_name: string, baseBranch: string, hooksFileName: string) {
         const branchHooksCount = await gha_hooks(db).count({repo_full_name: repo_full_name, branch: baseBranch});
         if (branchHooksCount > 0) {
             this.log.info(`Branch ${baseBranch} exists in db for repo ${repo_full_name} with ${branchHooksCount} hooks`);
             return;
         }
         this.log.info(`Branch ${baseBranch} does not exist in db for repo ${repo_full_name}`);
-        await this.loadAllGhaYaml(octokit, repo_full_name, baseBranch);
+        await this.loadAllGhaYaml(octokit, repo_full_name, baseBranch, hooksFileName);
     }
 
     async deleteAllGhaHooksForBranch(fullName: string, branchName: string) {
