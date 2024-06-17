@@ -29,6 +29,8 @@ This can be achieved by using `paths` filter in the workflow definition, but it 
 ![checks-re-run-options](./docs/checks-re-run-options.png)
 - Show workflow logs in PR checks page
 - Link to the workflow run from PR checks page
+- Validate `.gha.yaml` files against JSON schema and check name uniqueness with error messages in PR diff
+![pr-diff-yaml-errors](./docs/pr-diff-yaml-errors.png)
 
 ## What gha-conductor does
 This app provides a way to define which workflows should be run for each event.

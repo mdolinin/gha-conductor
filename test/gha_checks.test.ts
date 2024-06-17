@@ -209,6 +209,49 @@ describe('gha_checks', () => {
         expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
     });
 
+    it('create pr-status check with annotations if yaml validation failed', async () => {
+        const annotationsForCheck = [{
+            annotation_level: "failure" as "failure" | "warning" | "notice",
+            message: "Unknown error",
+            path: ".gha.yaml",
+            start_line: 1,
+            end_line: 1,
+            start_column: 1,
+            end_column: 1
+        }];
+        // const merge_commit_sha = '1234567890';
+        let createCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 1,
+                },
+                status: 201,
+            }
+        });
+        const octokit = {
+            checks: {
+                create: createCheckMock
+            }
+        }
+        // @ts-ignore
+        const checkRunUrl = await checks.createPRCheckWithAnnotations(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', annotationsForCheck);
+        expect(createCheckMock).toHaveBeenCalledWith({
+            completed_at: expect.anything(),
+            conclusion: "failure",
+            head_sha: pullRequestOpenedPayload.pull_request.head.sha,
+            name: "pr-status",
+            output: {
+                summary: "Issues found in .gha.yml files",
+                title: "Issues found in .gha.yml files",
+                annotations: annotationsForCheck
+            },
+            owner: "mdolinin",
+            repo: "mono-repo-example",
+            status: "completed",
+        });
+        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
+    });
+
     it('create pr-status check when all pipelines failed to start', async () => {
         const merge_commit_sha = '1234567890';
         const createCheckMock = jest.fn().mockImplementation(() => {

@@ -32,6 +32,13 @@ const loadAllGhaYamlMock = jest
     .mockImplementation(() => {
         return Promise.resolve();
     });
+
+let validateGhaYamlFilesMock = jest
+    .spyOn(GhaLoader.prototype, 'validateGhaYamlFiles')
+    .mockImplementation(() => {
+        return Promise.resolve([]);
+    });
+
 const deleteAllGhaHooksForBranchMock = jest
     .spyOn(GhaLoader.prototype, 'deleteAllGhaHooksForBranch')
     .mockImplementation(() => {
@@ -76,6 +83,12 @@ const createWorkflowRunCheckErroredMock = jest
 
 const createPRCheckNoPipelinesTriggeredMock = jest
     .spyOn(GhaChecks.prototype, 'createPRCheckNoPipelinesTriggered')
+    .mockImplementation(() => {
+        return Promise.resolve("");
+    });
+
+const createPRCheckWithAnnotationsMock = jest
+    .spyOn(GhaChecks.prototype, 'createPRCheckWithAnnotations')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
@@ -190,7 +203,7 @@ describe("gha-conductor app", () => {
 
     test("load all gha yaml files into db when PR labeled with gha-conductor:load", async () => {
         await probot.receive({name: "pull_request", payload: pullRequestLabeledPayload});
-        expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
+        expect(loadAllGhaYamlMock).toHaveBeenCalledWith(expect.anything(), "mdolinin/mono-repo-example", "main", true);
     });
 
     test("when PR opened but is not mergeable, do nothing", async () => {
@@ -204,6 +217,7 @@ describe("gha-conductor app", () => {
         }
         await probot.receive({name: "pull_request", payload: unmergeablePullRequestOpenedPayload});
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(0);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(0);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
@@ -229,6 +243,7 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(0);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(0);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
@@ -263,8 +278,64 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "pull_request", payload: forkedPullRequestOpenedPayload});
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(0);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(0);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
+    test("when PR opened with not valid .gha.yaml files, create pr-status check with status failed and annotate failures in PR changes", async () => {
+        const annotationsForCheck = [{
+            annotation_level: "failure" as "failure" | "warning" | "notice",
+            message: "Unknown error",
+            path: ".gha.yaml",
+            start_line: 1,
+            end_line: 1,
+            start_column: 1,
+            end_column: 1
+        }];
+        validateGhaYamlFilesMock = validateGhaYamlFilesMock.mockImplementation(() => {
+            return Promise.resolve(annotationsForCheck);
+        });
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27")
+            .reply(200, {
+                mergeable: true,
+                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                base: {
+                    ref: "main",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ]);
+
+        await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
+        // restore mock implementation
+        validateGhaYamlFilesMock = validateGhaYamlFilesMock.mockImplementation(() => {
+            return Promise.resolve([]);
+        });
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckWithAnnotationsMock).toHaveBeenCalledWith(expect.anything(), expect.anything(),"onPullRequest", annotationsForCheck);
+        expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
+        expect(runWorkflowMock).toHaveBeenCalledTimes(0);
+        expect(createNewRunMock).toHaveBeenCalledTimes(0);
+        expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
@@ -301,6 +372,7 @@ describe("gha-conductor app", () => {
             return Promise.resolve([]);
         });
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
@@ -338,6 +410,7 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
@@ -378,6 +451,7 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
@@ -519,6 +593,7 @@ describe("gha-conductor app", () => {
             .reply(200);
 
         await probot.receive({name: "issue_comment", payload: slashCommandIssueCommentPayload});
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(0);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);

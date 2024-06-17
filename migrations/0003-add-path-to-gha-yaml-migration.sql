@@ -1,0 +1,1 @@
+ALTER TABLE gha_hooks ADD COLUMN IF NOT EXISTS path_to_gha_yaml TEXT NULL;

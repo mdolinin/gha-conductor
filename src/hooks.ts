@@ -99,6 +99,7 @@ export class Hooks {
             pipeline_ref: hook.pipeline_ref ? hook.pipeline_ref : undefined,
             repo_full_name: hook.repo_full_name,
             shared_params: hook.shared_params,
+            path_to_gha_yaml: hook.path_to_gha_yaml ? hook.path_to_gha_yaml : undefined,
             pipeline_unique_prefix: hook.pipeline_unique_prefix,
             file_changes_matcher: hook.file_changes_matcher,
             slash_command: hook.slash_command ? hook.slash_command : undefined,

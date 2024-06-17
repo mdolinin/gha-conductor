@@ -55,6 +55,7 @@ describe('gha hooks', () => {
             destination_branch_matcher: "baseBranch",
             hook: "onBranchMerge" as HookType,
             hook_name: "hook_name",
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "pipeline_unique_prefix",
             pipeline_name: "pipeline_name",
             pipeline_ref: "pipeline_ref",
@@ -87,6 +88,7 @@ describe('gha hooks', () => {
             destination_branch_matcher: "baseBranch",
             hook: "onPullRequest" as HookType,
             hook_name: "hook_name",
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "pipeline_unique_prefix",
             pipeline_name: "pipeline_name",
             pipeline_ref: "pipeline_ref",
@@ -118,6 +120,7 @@ describe('gha hooks', () => {
             destination_branch_matcher: "baseBranch",
             hook: "onSlashCommand" as HookType,
             hook_name: "hook_name",
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "pipeline_unique_prefix",
             pipeline_name: "pipeline_name",
             pipeline_ref: "pipeline_ref",
@@ -201,6 +204,7 @@ describe('gha hooks', () => {
                 ROOT_DIR: "root_dir1",
                 shared_param: "shared_param"
             },
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "namespace1-module1-hook1",
             file_changes_matcher: "*.yaml",
             slash_command: undefined,
@@ -221,6 +225,7 @@ describe('gha hooks', () => {
                 ROOT_DIR: "root_dir2",
                 shared_param: "shared_param"
             },
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "namespace1-module1-hook2",
             file_changes_matcher: "app/*.js",
             slash_command: undefined,
@@ -338,6 +343,7 @@ describe('gha hooks', () => {
                 ROOT_DIR: "root_dir1",
                 shared_param: "shared_param"
             },
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "namespace1-module1-hook1",
             file_changes_matcher: "*.yaml",
             slash_command: 'validate',
@@ -428,6 +434,7 @@ describe('gha hooks', () => {
                 ROOT_DIR: "root_dir1",
                 shared_param: "shared_param"
             },
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "namespace1-module1-hook1",
             file_changes_matcher: "*.yaml",
             slash_command: undefined,
