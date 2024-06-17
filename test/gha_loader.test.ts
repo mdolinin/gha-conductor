@@ -215,7 +215,7 @@ describe('gha loader', () => {
             }),
         };
         // @ts-ignore
-        await ghaLoader.loadAllGhaYaml(octokit, "repo_full_name", "branch", true);
+        await ghaLoader.loadAllGhaYaml(octokit, "repo_full_name", "branch", ".gha.yaml", true);
         expect(octokit.auth).toHaveBeenCalledWith({type: "installation"});
         expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:token@github.com/repo_full_name.git", expect.stringMatching(RegExp('.*repo_full_name')));
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name')), root: true});
@@ -275,7 +275,7 @@ describe('gha loader', () => {
             }
         ];
         // @ts-ignore
-        const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(octokit, diffEntries);
+        const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(octokit, ".gha.yaml", diffEntries);
         expect(annotationsForCheck).toEqual([
             {
                 annotation_level: "failure",
@@ -337,7 +337,7 @@ describe('gha loader', () => {
             }
         ];
         // @ts-ignore
-        const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(octokit, diffEntries);
+        const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(octokit, ".gha.yaml", diffEntries);
         expect(annotationsForCheck).toEqual([
             {
                 annotation_level: "failure",
@@ -408,7 +408,7 @@ describe('gha loader', () => {
             }
         ];
         // @ts-ignore
-        const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(octokit, diffEntries);
+        const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(octokit, ".gha.yaml", diffEntries);
         expect(annotationsForCheck).toEqual([
             {
                 annotation_level: "failure",
@@ -452,7 +452,7 @@ describe('gha loader', () => {
             }
         ];
         // @ts-ignore
-        const hooks = await ghaLoader.loadGhaHooks(octokit, diffEntries);
+        const hooks = await ghaLoader.loadGhaHooks(octokit, ".gha.yaml", diffEntries);
         expect(hooks).toEqual([
             {
                 "branch": "",

@@ -175,6 +175,24 @@ describe("gha-conductor app", () => {
         expect(deleteAllGhaHooksForBranchMock).toHaveBeenCalledTimes(1);
     });
 
+    test("when pushed changes with gha-conductor-config.yaml and branch is base, reload config from file", async () => {
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha-hooks.yaml");
+        const configChangePayload = JSON.parse(JSON.stringify(pushGhaYamlChangedPayload));
+        configChangePayload.commits[0].modified = [".github/gha-conductor-config.yaml"];
+        await probot.receive({name: "push", payload: configChangePayload});
+        expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(0);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
     test("when pushed changes with .gha.yaml and branch is base for at least one PR, load it into db", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
@@ -184,6 +202,8 @@ describe("gha-conductor app", () => {
                     pull_requests: "write",
                 },
             })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
             .get("/repos/mdolinin/mono-repo-example/pulls?state=open&base=feature-1")
             .reply(200, [
                 {
@@ -192,18 +212,29 @@ describe("gha-conductor app", () => {
                     },
                 },
             ])
-        const payload = {
+        const ghaYamlChangedAndHavePROpenedPayload = {
             ...pushGhaYamlChangedPayload,
             ref: "refs/heads/feature-1",
         }
-        await probot.receive({name: "push", payload});
+        await probot.receive({name: "push", payload: ghaYamlChangedAndHavePROpenedPayload});
         expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
     test("load all gha yaml files into db when PR labeled with gha-conductor:load", async () => {
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha-hooks.yaml");
         await probot.receive({name: "pull_request", payload: pullRequestLabeledPayload});
-        expect(loadAllGhaYamlMock).toHaveBeenCalledWith(expect.anything(), "mdolinin/mono-repo-example", "main", true);
+        expect(loadAllGhaYamlMock).toHaveBeenCalledWith(expect.anything(), "mdolinin/mono-repo-example", "main", ".gha-hooks.yaml", true);
+        expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
     test("when PR opened but is not mergeable, do nothing", async () => {
@@ -305,6 +336,8 @@ describe("gha-conductor app", () => {
                     pull_requests: "write",
                 },
             })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
             .get("/repos/mdolinin/mono-repo-example/pulls/27")
             .reply(200, {
                 mergeable: true,
@@ -351,6 +384,8 @@ describe("gha-conductor app", () => {
                     pull_requests: "write",
                 },
             })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
             .get("/repos/mdolinin/mono-repo-example/pulls/27")
             .reply(200, {
                 mergeable: true,
@@ -393,6 +428,8 @@ describe("gha-conductor app", () => {
                     pull_requests: "write",
                 },
             })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
             .get("/repos/mdolinin/mono-repo-example/pulls/27")
             .reply(200, {
                 mergeable: true,
@@ -434,6 +471,8 @@ describe("gha-conductor app", () => {
                     pull_requests: "write",
                 },
             })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
             .get("/repos/mdolinin/mono-repo-example/pulls/27")
             .reply(200, {
                 mergeable: true,
@@ -546,6 +585,8 @@ describe("gha-conductor app", () => {
                     issue_comments: "write",
                 },
             })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
             .get("/repos/mdolinin/mono-repo-example/collaborators/mdolinin/permission")
             .reply(200, {
                 permission: "write",
