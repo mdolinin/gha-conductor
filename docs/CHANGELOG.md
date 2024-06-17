@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/mdolinin/gha-conductor/compare/v1.9.4...v1.10.0) (2024-06-17)
+
+
+### Features
+
+* **check:** validate gha yaml content and create correct check with PR annotations ([#89](https://github.com/mdolinin/gha-conductor/issues/89)) ([5225402](https://github.com/mdolinin/gha-conductor/commit/522540249186e658bb431bf574bd5382083e2e16))
+
 ## [1.9.4](https://github.com/mdolinin/gha-conductor/compare/v1.9.3...v1.9.4) (2024-05-26)
 
 
