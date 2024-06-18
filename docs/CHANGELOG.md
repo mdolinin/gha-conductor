@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/mdolinin/gha-conductor/compare/v1.10.0...v1.11.0) (2024-06-18)
+
+
+### Features
+
+* **config:** provide ability to change gha hooks file name using config ([#91](https://github.com/mdolinin/gha-conductor/issues/91)) ([e86195b](https://github.com/mdolinin/gha-conductor/commit/e86195bddf61f2d39dc6d27ff801178b06902ed1))
+
 # [1.10.0](https://github.com/mdolinin/gha-conductor/compare/v1.9.4...v1.10.0) (2024-06-17)
 
 
