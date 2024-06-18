@@ -225,9 +225,9 @@ App uses PostgreSQL database to store information about which workflows should b
 - `@databases/pg-typed` and `@databases/pg-schema-cli` are used to generate TypeScript types and JSON schemas from the database schema. Generated types and schema are located in `src/__generated__` directory.
 
 ## Configuration
-App leverages [Probot configuration plugin](https://github.com/probot/octokit-plugin-config) to provide a way to define repo specific configuration or organization wide configuration.
-App uses `.github/gha-conductor-config.yaml` file to define repo specific configuration.
-Available configuration options(default values are shown):
+- App leverages [Probot configuration plugin](https://github.com/probot/octokit-plugin-config) to provide a way to define repo specific configuration or organization wide configuration.
+- App uses `.github/gha-conductor-config.yaml` file to define repo specific configuration.
+- Available configuration options(default values are shown):
 ```yaml
 gha_hooks_file: .gha.yaml
 ```
