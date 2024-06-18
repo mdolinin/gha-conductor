@@ -31,6 +31,7 @@ This can be achieved by using `paths` filter in the workflow definition, but it 
 - Link to the workflow run from PR checks page
 - Validate `.gha.yaml` files against JSON schema and check name uniqueness with error messages in PR diff
 ![pr-diff-yaml-errors](./docs/pr-diff-yaml-errors.png)
+- Define repo specific configuration using probot configuration file `.github/gha-conductor-config.yaml`
 
 ## What gha-conductor does
 This app provides a way to define which workflows should be run for each event.
@@ -222,6 +223,14 @@ App uses PostgreSQL database to store information about which workflows should b
 - `@databases/pg` is used to interact with the database.
 - `pg-migrations` is used to manage database schema. Migrations are located in `migrations` directory.
 - `@databases/pg-typed` and `@databases/pg-schema-cli` are used to generate TypeScript types and JSON schemas from the database schema. Generated types and schema are located in `src/__generated__` directory.
+
+## Configuration
+- App leverages [Probot configuration plugin](https://github.com/probot/octokit-plugin-config) to provide a way to define repo specific configuration or organization wide configuration.
+- App uses `.github/gha-conductor-config.yaml` file to define repo specific configuration.
+- Available configuration options(default values are shown):
+```yaml
+gha_hooks_file: .gha.yaml
+```
 
 ## Setup
 
