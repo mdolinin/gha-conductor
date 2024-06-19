@@ -15,8 +15,8 @@ import {
 import {inspect} from "node:util";
 import {MergeOptions} from "probot/lib/context";
 
-const DEFAULT_GHA_HOOKS_FILE_NAME = ".gha.yaml";
-const APP_CONFIG_FILE = "gha-conductor-config.yaml";
+const APP_CONFIG_FILE = process.env.APP_CONFIG_FILE || "gha-conductor-config.yaml";
+const DEFAULT_GHA_HOOKS_FILE_NAME = process.env.DEFAULT_GHA_HOOKS_FILE_NAME || ".gha.yaml";
 
 const TOKENISE_REGEX =
     /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
