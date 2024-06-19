@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/mdolinin/gha-conductor/compare/v1.11.0...v1.12.0) (2024-06-19)
+
+
+### Features
+
+* **config:** environment variables can be used to override app configuration options ([#97](https://github.com/mdolinin/gha-conductor/issues/97)) ([10f4797](https://github.com/mdolinin/gha-conductor/commit/10f4797d762d88e7cd316bb9fe0e42597a07c2dc))
+
 # [1.11.0](https://github.com/mdolinin/gha-conductor/compare/v1.10.0...v1.11.0) (2024-06-18)
 
 
