@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/mdolinin/gha-conductor/compare/v1.12.0...v1.13.0) (2024-06-19)
+
+
+### Features
+
+* **docker:** build and publish docker image for linux/amd64 and linux/arm64 platforms ([#98](https://github.com/mdolinin/gha-conductor/issues/98)) ([4954871](https://github.com/mdolinin/gha-conductor/commit/49548714964ce62b3cb4e306a462787eec08204c))
+
 # [1.12.0](https://github.com/mdolinin/gha-conductor/compare/v1.11.0...v1.12.0) (2024-06-19)
 
 
