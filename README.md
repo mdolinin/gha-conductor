@@ -231,6 +231,10 @@ App uses PostgreSQL database to store information about which workflows should b
 ```yaml
 gha_hooks_file: .gha.yaml
 ```
+- Environment variables can be used to override app configuration options.
+- Available environment variables:
+  - `APP_CONFIG_FILE` - name of the configuration file (default: `gha-conductor-config.yaml`)
+  - `DEFAULT_GHA_HOOKS_FILE_NAME` - name of the file that contains hooks configurations file (default: `.gha.yaml`)
 
 ## Setup
 
