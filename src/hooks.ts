@@ -124,7 +124,8 @@ export class Hooks {
                       },
                       action: string,
                       triggeredHooks: Set<GhaHook>, merge_commit_sha: string,
-                      commandTokens?: string[] | undefined
+                      commandTokens?: string[] | undefined,
+                      workflowFileExtension: string = ".yaml"
     ): Promise<TriggeredWorkflow[]> {
         const prNumber = pull_request.number;
         let pr_action = action;
@@ -150,7 +151,7 @@ export class Hooks {
             const owner = pull_request.base.repo.owner.login;
             const repo = pull_request.base.repo.name;
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
-            const workflow_id = `${hook.pipeline_name}.yaml`;
+            const workflow_id = `${hook.pipeline_name}${workflowFileExtension}`;
             const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
             let sharedParams = hook.shared_params;
             let pipelineParams = hook.pipeline_params;

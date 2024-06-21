@@ -230,11 +230,13 @@ App uses PostgreSQL database to store information about which workflows should b
 - Available configuration options(default values are shown):
 ```yaml
 gha_hooks_file: .gha.yaml
+workflow_file_extension: .yaml
 ```
 - Environment variables can be used to override app configuration options.
 - Available environment variables:
   - `APP_CONFIG_FILE` - name of the configuration file (default: `gha-conductor-config.yaml`)
   - `DEFAULT_GHA_HOOKS_FILE_NAME` - name of the file that contains hooks configurations file (default: `.gha.yaml`)
+  - `DEFAULT_WORKFLOW_FILE_EXTENSION` - extension of the GitHub Actions workflow files inside `.github/workflows` folder (default: `.yaml`)
 
 ## Setup
 
