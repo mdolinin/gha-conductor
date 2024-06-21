@@ -17,6 +17,7 @@ import {MergeOptions} from "probot/lib/context";
 
 const APP_CONFIG_FILE = process.env.APP_CONFIG_FILE || "gha-conductor-config.yaml";
 const DEFAULT_GHA_HOOKS_FILE_NAME = process.env.DEFAULT_GHA_HOOKS_FILE_NAME || ".gha.yaml";
+const DEFAULT_WORKFLOW_FILE_EXTENSION = process.env.DEFAULT_WORKFLOW_FILE_EXTENSION || ".yaml";
 
 const TOKENISE_REGEX =
     /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
@@ -29,17 +30,26 @@ export = (app: Probot) => {
     const reply = new GhaReply(app.log);
     const configs = new Map<string, any>();
 
-    async function getHooksFileNameFromConfig(context: {
+    async function getValueFromConfig(context: {
         config<T>(fileName: string, defaultConfig?: T, deepMergeOptions?: MergeOptions): Promise<T | null>
-    }, repo_full_name: string, reload: boolean = false): Promise<string> {
+    }, repo_full_name: string, key: string, reload: boolean = false): Promise<string> {
         let config;
         if (configs.has(repo_full_name) && !reload) {
             config = configs.get(repo_full_name);
         } else {
-            config = await context.config(APP_CONFIG_FILE, {gha_hooks_file: DEFAULT_GHA_HOOKS_FILE_NAME});
+            config = await context.config(APP_CONFIG_FILE, {
+                gha_hooks_file: DEFAULT_GHA_HOOKS_FILE_NAME,
+                workflow_file_extension: DEFAULT_WORKFLOW_FILE_EXTENSION
+            });
             configs.set(repo_full_name, config);
         }
-        return config?.gha_hooks_file || DEFAULT_GHA_HOOKS_FILE_NAME;
+        return config[key] || "";
+    }
+
+    async function getHooksFileNameFromConfig(context: {
+        config<T>(fileName: string, defaultConfig?: T, deepMergeOptions?: MergeOptions): Promise<T | null>
+    }, repo_full_name: string, reload: boolean = false) {
+        return await getValueFromConfig(context, repo_full_name, "gha_hooks_file", reload);
     }
 
     app.on("push", async (context) => {
@@ -202,7 +212,8 @@ export = (app: Probot) => {
             if (merge_commit_sha === null) {
                 merge_commit_sha = context.payload.pull_request.head.sha;
             }
-            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha);
+            const workflowFileExtension = await getValueFromConfig(context, repo_full_name, "workflow_file_extension");
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha, undefined, workflowFileExtension);
             for (const triggeredWorkflow of triggeredWorkflows) {
                 await checks.createNewRun(triggeredWorkflow, context.payload.pull_request, hookType, merge_commit_sha);
                 if (triggeredWorkflow.error) {
@@ -403,7 +414,8 @@ export = (app: Probot) => {
             if (merge_commit_sha === null) {
                 merge_commit_sha = pr.head.sha;
             }
-            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens);
+            const workflowFileExtension = await getValueFromConfig(context, repo_full_name, "workflow_file_extension");
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens, workflowFileExtension);
             for (const triggeredWorkflow of triggeredWorkflows) {
                 await checks.createNewRun(triggeredWorkflow, pr, hookType, merge_commit_sha);
                 if (triggeredWorkflow.error) {
