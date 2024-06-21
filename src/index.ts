@@ -66,7 +66,7 @@ export = (app: Probot) => {
             }
             return;
         }
-        const changedFiles = context.payload.commits.flatMap((commit) => commit.added.concat(commit.modified));
+        const changedFiles = context.payload.commits.flatMap((commit) => commit.added.concat(commit.modified).concat(commit.removed));
         let configFileChanged = false;
         for (const file of changedFiles) {
             if (file.endsWith(APP_CONFIG_FILE)) {
@@ -86,16 +86,16 @@ export = (app: Probot) => {
             }
         }
         const ghaHooksFileName = await getHooksFileNameFromConfig(context, repoFullName, reloadConfig);
-        let changedGhaFiles = false;
+        let changedHooksFiles = false;
         for (const file of changedFiles) {
             if (file.endsWith(ghaHooksFileName)) {
-                changedGhaFiles = true;
+                changedHooksFiles = true;
                 break;
             }
         }
-        if (changedGhaFiles) {
+        if (changedHooksFiles) {
             if (ref.startsWith("refs/heads/") && branchName) {
-                let reloadAllGhaYamls = false;
+                let loadHooks = false;
                 if (branchName !== "master" && branchName !== "main") {
                     // check if branch is base branch for at least one open PR
                     let params: RestEndpointMethodTypes["pulls"]["list"]["parameters"] = {
@@ -106,19 +106,19 @@ export = (app: Probot) => {
                     };
                     const branchPRs = await context.octokit.pulls.list(params);
                     if (branchPRs.data.length > 0) {
-                        reloadAllGhaYamls = true;
+                        loadHooks = true;
                     } else {
                         app.log.info(`No open PRs found for branch ${branchName}`);
                     }
                 } else {
-                    reloadAllGhaYamls = true;
+                    loadHooks = true;
                 }
-                if (reloadAllGhaYamls) {
+                if (loadHooks) {
                     const fullName = context.payload.repository.full_name;
-                    await ghaLoader.loadAllGhaYaml(context.octokit, fullName, branchName, ghaHooksFileName);
-                    app.log.info(`Reload gha yaml's in repo ${fullName} for branch ${branchName} completed`);
+                    await ghaLoader.loadGhaHooksFromCommits(context.octokit, fullName, branchName, ghaHooksFileName, context.payload.commits);
+                    app.log.info(`Load hooks from ${context.payload.commits.map(commit => commit.id).join(',')} commits for branch ${branchName} in repo ${repoFullName} completed`);
                 } else {
-                    app.log.info(`No need to reload gha yaml's in repo for branch ${branchName}`);
+                    app.log.info(`No need to load hooks from ${ghaHooksFileName} files for branch ${branchName} in repo ${repoFullName}`);
                 }
             } else {
                 app.log.info(`Push is for ref ${ref} that is not a branch`);
@@ -133,7 +133,7 @@ export = (app: Probot) => {
         if (context.payload.label.name === "gha-conductor:load") {
             app.log.info("Force reload gha yaml's in repo started");
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name, true);
-            await ghaLoader.loadAllGhaYaml(context.octokit, context.payload.repository.full_name, context.payload.pull_request.base.ref, ghaHooksFileName, true);
+            await ghaLoader.loadAllGhaHooksFromRepo(context.octokit, context.payload.repository.full_name, context.payload.pull_request.base.ref, ghaHooksFileName);
             app.log.info("Force reload gha yaml's in repo done");
         }
     });

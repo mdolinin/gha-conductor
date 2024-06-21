@@ -28,7 +28,7 @@ import {Hooks} from "../src/hooks";
 import {GhaChecks} from "../src/gha_checks";
 
 const loadAllGhaYamlMock = jest
-    .spyOn(GhaLoader.prototype, 'loadAllGhaYaml')
+    .spyOn(GhaLoader.prototype, 'loadAllGhaHooksFromRepo')
     .mockImplementation(() => {
         return Promise.resolve();
     });
@@ -37,6 +37,12 @@ let validateGhaYamlFilesMock = jest
     .spyOn(GhaLoader.prototype, 'validateGhaYamlFiles')
     .mockImplementation(() => {
         return Promise.resolve([]);
+    });
+
+const loadGhaHooksFromCommitsMock = jest
+    .spyOn(GhaLoader.prototype, 'loadGhaHooksFromCommits')
+    .mockImplementation(() => {
+        return Promise.resolve();
     });
 
 const deleteAllGhaHooksForBranchMock = jest
@@ -217,7 +223,7 @@ describe("gha-conductor app", () => {
             ref: "refs/heads/feature-1",
         }
         await probot.receive({name: "push", payload: ghaYamlChangedAndHavePROpenedPayload});
-        expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
+        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
@@ -233,7 +239,7 @@ describe("gha-conductor app", () => {
             .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
             .reply(200, "gha_hooks_file: .gha-hooks.yaml");
         await probot.receive({name: "pull_request", payload: pullRequestLabeledPayload});
-        expect(loadAllGhaYamlMock).toHaveBeenCalledWith(expect.anything(), "mdolinin/mono-repo-example", "main", ".gha-hooks.yaml", true);
+        expect(loadAllGhaYamlMock).toHaveBeenCalledWith(expect.anything(), "mdolinin/mono-repo-example", "main", ".gha-hooks.yaml");
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 

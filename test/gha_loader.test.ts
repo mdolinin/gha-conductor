@@ -183,7 +183,7 @@ describe('gha loader', () => {
         jest.clearAllMocks();
     });
 
-    it('should load all gha yaml files from github repo, when repo and branch provided to loader', async () => {
+    it('should load all gha yaml files from github repo and reinsert all hooks into db, when repo and branch provided to loader', async () => {
         const octokit = {
             auth: jest.fn().mockImplementation(() => {
                 return {
@@ -192,40 +192,14 @@ describe('gha loader', () => {
             }),
         };
         // @ts-ignore
-        await ghaLoader.loadAllGhaYaml(octokit, "repo_full_name", "branch");
+        await ghaLoader.loadAllGhaHooksFromRepo(octokit, "repo_full_name", "branch", ".gha.yaml");
         expect(octokit.auth).toHaveBeenCalledWith({type: "installation"});
         expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:token@github.com/repo_full_name.git", expect.stringMatching(RegExp('.*repo_full_name')));
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
-        expect(findMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
-        expect(findAllMock).toHaveBeenCalled();
         expect(readFileSyncMock).toHaveBeenCalledTimes(3);
         expect(deleteMock).toHaveBeenCalledTimes(1)
-        expect(updateMock).toHaveBeenCalledTimes(1)
-        expect(insertMock).toHaveBeenCalledTimes(8);
-    });
-
-    it('should load all gha yaml files from github repo and reinsert all hooks, when requested with force', async () => {
-        const octokit = {
-            auth: jest.fn().mockImplementation(() => {
-                return {
-                    token: "token"
-                }
-            }),
-        };
-        // @ts-ignore
-        await ghaLoader.loadAllGhaYaml(octokit, "repo_full_name", "branch", ".gha.yaml", true);
-        expect(octokit.auth).toHaveBeenCalledWith({type: "installation"});
-        expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:token@github.com/repo_full_name.git", expect.stringMatching(RegExp('.*repo_full_name')));
-        expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name')), root: true});
-        expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
-        expect(globMock).toHaveBeenCalled();
-        expect(findMock).not.toHaveBeenCalled();
-        expect(findAllMock).not.toHaveBeenCalled();
-        expect(updateMock).not.toHaveBeenCalled();
-        expect(readFileSyncMock).toHaveBeenCalledTimes(2);
-        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name", branch: "branch"});
         expect(insertMock).toHaveBeenCalledTimes(10);
     });
 
@@ -434,6 +408,40 @@ describe('gha loader', () => {
         expect(findAllMock).toHaveBeenCalled();
     });
 
+    it('should load all hooks, when at least one of gha yaml changes in commit', async () => {
+        const octokit = {
+            repos: {
+                getContent: jest.fn().mockImplementation(() => {
+                    return {
+                        data: {
+                            content: Buffer.from(ghaYamlExample).toString('base64'),
+                        },
+                        status: 200
+                    }
+                })
+            }
+        };
+        const commits = [
+            {
+                added: ["folder1/.gha.yaml"],
+                modified: [],
+                removed: ["folder2/.gha.yaml"],
+            },
+            {
+                added: [],
+                modified: ["folder1/subfolder1/.gha.yaml"],
+                removed: [],
+            }
+        ];
+        // @ts-ignore
+        await ghaLoader.loadGhaHooksFromCommits(octokit, "repo/full_name", "branch", ".gha.yaml", commits);
+        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(1, {owner: "repo", path: "folder1/.gha.yaml", ref: "branch", repo: "full_name"});
+        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(2, {owner: "repo", path: "folder1/subfolder1/.gha.yaml", ref: "branch", repo: "full_name"});
+        expect(deleteMock).toHaveBeenNthCalledWith(1, {repo_full_name: "repo/full_name", branch: "branch", path_to_gha_yaml: "folder2/.gha.yaml"});
+        expect(deleteMock).toHaveBeenNthCalledWith(2, {repo_full_name: "repo/full_name", branch: "branch", path_to_gha_yaml: "folder1/subfolder1/.gha.yaml"});
+        expect(insertMock).toHaveBeenCalledTimes(10);
+    });
+
     it('should load all hooks, when one of gha yaml changes in the PR', async () => {
         const octokit = {
             request: jest.fn().mockImplementation(() => {
@@ -548,12 +556,9 @@ describe('gha loader', () => {
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name2')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
-        expect(findMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name2", branch: "branch"});
-        expect(findAllMock).toHaveBeenCalled();
         expect(deleteMock).toHaveBeenCalledTimes(1)
-        expect(updateMock).toHaveBeenCalledTimes(1)
         expect(readFileSyncMock).toHaveBeenCalledTimes(2);
-        expect(insertMock).toHaveBeenCalledTimes(8);
+        expect(insertMock).toHaveBeenCalledTimes(10);
     });
 
     it('should delete all hooks from db, when branch is deleted', async () => {
