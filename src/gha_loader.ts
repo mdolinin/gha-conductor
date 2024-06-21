@@ -8,10 +8,10 @@ import db, {gha_hooks} from "./db/database";
 import {TheRootSchema} from "./gha_yaml";
 import {HookType} from "./__generated__/_enums";
 import {components} from "@octokit/openapi-types";
-import {GhaHooks} from "./__generated__";
 import Ajv from "ajv";
 import {isNode, LineCounter, Node, parseDocument, YAMLSeq} from "yaml";
 import {not} from "@databases/pg-typed";
+import {Commit} from "@octokit/webhooks-types";
 
 export interface GhaHook {
     repo_full_name: string,
@@ -43,7 +43,7 @@ export class GhaLoader {
         this.log = log;
     }
 
-    async loadAllGhaYaml(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string, hooksFileName: string, force: boolean = false) {
+    async loadAllGhaHooksFromRepo(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string, hooksFileName: string) {
         const {token} = await octokit.auth({type: "installation"}) as Record<string, string>;
         this.log.debug(`Repo full name is ${full_name}`);
         // create temp dir
@@ -80,43 +80,9 @@ export class GhaLoader {
             const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, ghaYamlFilePath, full_name, branch);
             newHooks = newHooks.concat(hooksFromFile);
         }
-        if (!force) {
-            // reconcile with existing hooks
-            const existingHooks = await gha_hooks(db).find({repo_full_name: full_name, branch: branch}).all();
-            const hooksToDelete = existingHooks.filter(existingHook => !newHooks.some(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix));
-            const hooksToUpdate: GhaHooks[] = [];
-            existingHooks.forEach(existingHook => {
-                const newHook = newHooks.find(hook => hook.pipeline_unique_prefix === existingHook.pipeline_unique_prefix);
-                if (newHook !== undefined) {
-                    hooksToUpdate.push(
-                        {
-                            ...existingHook,
-                            file_changes_matcher: newHook.file_changes_matcher,
-                            destination_branch_matcher: newHook.destination_branch_matcher,
-                            hook: newHook.hook,
-                            hook_name: newHook.hook_name,
-                            path_to_gha_yaml: newHook.path_to_gha_yaml || null,
-                            pipeline_name: newHook.pipeline_name,
-                            pipeline_ref: newHook.pipeline_ref || null,
-                            pipeline_params: newHook.pipeline_params,
-                            shared_params: newHook.shared_params,
-                            slash_command: newHook.slash_command || null
-                        });
-                }
-            })
-            const hooksToInsert = newHooks.filter(newHook => !existingHooks.some(hook => hook.pipeline_unique_prefix === newHook.pipeline_unique_prefix));
-
-            this.log.debug(`Hooks to delete count: ${hooksToDelete.length}`);
-            await Promise.all(hooksToDelete.map(hook => gha_hooks(db).delete({id: hook.id})));
-            this.log.debug(`Hooks to update count: ${hooksToUpdate.length}`);
-            await Promise.all(hooksToUpdate.map(hook => gha_hooks(db).update({id: hook.id}, hook)));
-            this.log.debug(`Hooks to insert count: ${hooksToInsert.length}`);
-            await Promise.all(hooksToInsert.map(hook => gha_hooks(db).insert(hook)));
-        } else {
-            this.log.debug(`Force is true, reinserting all ${newHooks.length} hooks`);
-            await gha_hooks(db).delete({repo_full_name: full_name, branch: branch});
-            await Promise.all(newHooks.map(hook => gha_hooks(db).insert(hook)));
-        }
+        this.log.debug(`Reinserting all ${newHooks.length} hooks`);
+        await gha_hooks(db).delete({repo_full_name: full_name, branch: branch});
+        await Promise.all(newHooks.map(hook => gha_hooks(db).insert(hook)));
     }
 
     async validateGhaYamlFiles(octokit: InstanceType<typeof ProbotOctokit>, hooksFileName: string, data: components["schemas"]["diff-entry"][]) {
@@ -232,6 +198,71 @@ export class GhaLoader {
             col = linePos.col;
         }
         return {line, col};
+    }
+
+    async loadGhaHooksFromCommits(octokit: InstanceType<typeof ProbotOctokit>, repoFullName: string, branchName: string, ghaHooksFileName: string, commits: Commit[]) {
+        for (const commit of commits) {
+            for (const removedFile of commit.removed) {
+                if (removedFile.endsWith(ghaHooksFileName)) {
+                    this.log.info(`Removing hooks for file ${removedFile}`);
+                    await gha_hooks(db).delete({
+                        repo_full_name: repoFullName,
+                        branch: branchName,
+                        path_to_gha_yaml: removedFile
+                    });
+                }
+            }
+            for (const addedFile of commit.added) {
+                if (addedFile.endsWith(ghaHooksFileName)) {
+                    this.log.info(`Adding hooks for file ${addedFile}`);
+                    const resp = await octokit.repos.getContent({
+                        owner: repoFullName.split("/")[0],
+                        repo: repoFullName.split("/")[1],
+                        path: addedFile,
+                        ref: branchName
+                    });
+                    if (resp.status !== 200) {
+                        this.log.error(`Error loading file ${addedFile}`);
+                        continue;
+                    }
+                    if ("content" in resp.data) {
+                        const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+                        const ghaFileYaml = load(ghaFileContent);
+                        const hooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml, addedFile, repoFullName, branchName);
+                        this.log.debug(`Inserting ${hooks.length} hooks for file ${addedFile}`);
+                        await Promise.all(hooks.map(hook => gha_hooks(db).insert(hook)));
+                    }
+
+                }
+            }
+            for (const modifiedFile of commit.modified) {
+                if (modifiedFile.endsWith(ghaHooksFileName)) {
+                    this.log.info(`Modifying hooks for file ${modifiedFile}`);
+                    const resp = await octokit.repos.getContent({
+                        owner: repoFullName.split("/")[0],
+                        repo: repoFullName.split("/")[1],
+                        path: modifiedFile,
+                        ref: branchName
+                    });
+                    if (resp.status !== 200) {
+                        this.log.error(`Error loading file ${modifiedFile}`);
+                        continue;
+                    }
+                    if ("content" in resp.data) {
+                        const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+                        const ghaFileYaml = load(ghaFileContent);
+                        const hooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml, modifiedFile, repoFullName, branchName);
+                        this.log.debug(`Deleting and inserting ${hooks.length} hooks for file ${modifiedFile}`);
+                        await gha_hooks(db).delete({
+                            repo_full_name: repoFullName,
+                            branch: branchName,
+                            path_to_gha_yaml: modifiedFile
+                        });
+                        await Promise.all(hooks.map(hook => gha_hooks(db).insert(hook)));
+                    }
+                }
+            }
+        }
     }
 
     async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, hooksFileName: string, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
@@ -353,7 +384,7 @@ export class GhaLoader {
             return;
         }
         this.log.info(`Branch ${baseBranch} does not exist in db for repo ${repo_full_name}`);
-        await this.loadAllGhaYaml(octokit, repo_full_name, baseBranch, hooksFileName);
+        await this.loadAllGhaHooksFromRepo(octokit, repo_full_name, baseBranch, hooksFileName);
     }
 
     async deleteAllGhaHooksForBranch(fullName: string, branchName: string) {
