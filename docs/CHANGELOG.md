@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/mdolinin/gha-conductor/compare/v1.14.0...v1.15.0) (2024-06-21)
+
+
+### Features
+
+* **gha-loader:** load hooks from files changed in commits on push instead of whole repo ([#105](https://github.com/mdolinin/gha-conductor/issues/105)) ([5865d07](https://github.com/mdolinin/gha-conductor/commit/5865d0789746bd6d7b9696ebc003e60141c32b4b))
+
 # [1.14.0](https://github.com/mdolinin/gha-conductor/compare/v1.13.0...v1.14.0) (2024-06-21)
 
 
