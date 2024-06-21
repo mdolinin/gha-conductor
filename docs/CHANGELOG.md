@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/mdolinin/gha-conductor/compare/v1.13.0...v1.14.0) (2024-06-21)
+
+
+### Features
+
+* **config:** provide ability to configure workflow file extension ([#104](https://github.com/mdolinin/gha-conductor/issues/104)) ([1df7464](https://github.com/mdolinin/gha-conductor/commit/1df7464cda304348b9ab2e671b9d448ab827e978))
+
 # [1.13.0](https://github.com/mdolinin/gha-conductor/compare/v1.12.0...v1.13.0) (2024-06-19)
 
 
