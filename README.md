@@ -129,7 +129,7 @@ name: "Common job"
 run-name: "${{ inputs.PIPELINE_NAME }}"
 on:
   workflow_dispatch: # This is required to be able to trigger the workflow from the app
-    inputs:
+    inputs: # extra inputs that can be added to the workflow and will be provided by the app from context, params or sharedParams
       PIPELINE_NAME: # Required to be able to differentiate between jobs
         required: true
       SERIALIZED_VARIABLES: # workaround the 10 input limit by serializing the variables into a JSON string
