@@ -7,9 +7,23 @@ import {HookType} from "./__generated__/_enums";
 import db, {gha_hooks} from "./db/database";
 import {GhaHook} from "./gha_loader";
 import {GhaHooks} from "./__generated__";
+import {load} from "js-yaml";
 
 type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["createWorkflowDispatch"]["parameters"];
 
+type WorkflowDefinition = {
+    name: string,
+    on: {
+        workflow_dispatch: {
+            inputs: {
+                [key: string]: {
+                    default?: string,
+                    required: boolean
+                }
+            }
+        }
+    }
+}
 
 export interface TriggeredWorkflow {
     name: string,
@@ -178,10 +192,11 @@ export class Hooks {
                 ...sharedParams,
                 ...pipelineParams
             }
-            let inputs = {
+            let inputs: Record<string, string> = {
                 PIPELINE_NAME: pipeline_name,
                 SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
             };
+            const workflowInputsMap = new Map<string, { required: boolean, default?: string }>();
             // verify workflow exists and is active
             try {
                 const resp = await octokit.rest.actions.getWorkflow({
@@ -195,6 +210,61 @@ export class Hooks {
                         name: pipeline_name,
                         inputs: inputs,
                         error: `Workflow ${workflow_id} is not active`
+                    });
+                    continue;
+                }
+                // download the workflow file to get the inputs
+                const workflowFileResp = await octokit.rest.repos.getContent({
+                    owner: owner,
+                    repo: repo,
+                    path: resp.data.path,
+                    ref: pipeline_ref
+                });
+                if ("content" in workflowFileResp.data) {
+                    const workflowFileContent = Buffer.from(workflowFileResp.data.content, 'base64').toString();
+                    const workflowYaml = load(workflowFileContent) as WorkflowDefinition;
+                    const workflowInputs = workflowYaml.on.workflow_dispatch.inputs
+                    for (const [key, value] of Object.entries(workflowInputs)) {
+                        workflowInputsMap.set(key, value);
+                    }
+                    // check if PIPELINE_NAME and SERIALIZED_VARIABLES are required
+                    if (!workflowInputsMap.has("PIPELINE_NAME") || !workflowInputsMap.has("SERIALIZED_VARIABLES")) {
+                        this.log.warn(`Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`);
+                        triggeredPipelines.push({
+                            name: pipeline_name,
+                            inputs: inputs,
+                            error: `Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`
+                        });
+                        continue;
+                    }
+                    workflowInputsMap.delete("PIPELINE_NAME");
+                    workflowInputsMap.delete("SERIALIZED_VARIABLES");
+                    // add required inputs to inputs, if missing and no default value return error
+                    let missingInputs = false;
+                    for (const [key, value] of workflowInputsMap) {
+                        if (value.required) {
+                            if (serialized_variables[key] === undefined) {
+                                if (!value.default) {
+                                    this.log.warn(`Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`);
+                                    triggeredPipelines.push({
+                                        name: pipeline_name,
+                                        inputs: inputs,
+                                        error: `Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`
+                                    });
+                                    missingInputs = true;
+                                }
+                            }
+                        }
+                    }
+                    if (missingInputs) {
+                        continue;
+                    }
+                } else {
+                    this.log.warn(`Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
+                    triggeredPipelines.push({
+                        name: pipeline_name,
+                        inputs: inputs,
+                        error: `Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`
                     });
                     continue;
                 }
@@ -240,6 +310,12 @@ export class Hooks {
                         PIPELINE_NAME: pipeline_name,
                         SERIALIZED_VARIABLES: JSON.stringify(serialized_variables)
                     }
+                }
+            }
+            // add extra workflow inputs to inputs
+            for (const [key, _] of workflowInputsMap) {
+                if (serialized_variables[key] !== undefined) {
+                    inputs[key] = serialized_variables[key]
                 }
             }
             const workflowDispatch: workflowDispatchEventParameters = {
