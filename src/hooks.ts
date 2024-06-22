@@ -31,7 +31,7 @@ export class Hooks {
     ): Promise<Set<GhaHook>> {
         this.log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
         const triggeredHooks = new Set<GhaHook>();
-        const allHooks = new Map<string, GhaHook>();
+        const allHooks = new Map<string, GhaHook[]>();
         if (hookType === "onBranchMerge") {
             const mainHooks = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
@@ -40,12 +40,7 @@ export class Hooks {
                 destination_branch_matcher: baseBranch
             }).all()
             const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType && hook.destination_branch_matcher === baseBranch)
-            for (const hook of mainHooks) {
-                allHooks.set(hook.pipeline_unique_prefix, this.mapToHook(hook));
-            }
-            for (const hook of prHooks) {
-                allHooks.set(hook.pipeline_unique_prefix, hook);
-            }
+            this.mergeHooksFromDbWithPRHooksByUniquePrefix(mainHooks, prHooks, allHooks);
         } else if (hookType === "onSlashCommand") {
             if (!slashCommand) {
                 this.log.error("Slash command hook type requires a slash command");
@@ -58,12 +53,7 @@ export class Hooks {
                 slash_command: slashCommand
             }).all();
             const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType && hook.slash_command === slashCommand)
-            for (const hook of mainHooks) {
-                allHooks.set(hook.pipeline_unique_prefix, this.mapToHook(hook));
-            }
-            for (const hook of prHooks) {
-                allHooks.set(hook.pipeline_unique_prefix, hook);
-            }
+            this.mergeHooksFromDbWithPRHooksByUniquePrefix(mainHooks, prHooks, allHooks);
         } else {
             const mainHooks = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
@@ -71,22 +61,49 @@ export class Hooks {
                 hook: hookType
             }).all();
             const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType)
-            for (const hook of mainHooks) {
-                allHooks.set(hook.pipeline_unique_prefix, this.mapToHook(hook));
-            }
-            for (const hook of prHooks) {
-                allHooks.set(hook.pipeline_unique_prefix, hook);
-            }
+            this.mergeHooksFromDbWithPRHooksByUniquePrefix(mainHooks, prHooks, allHooks);
         }
-        for (const file of files_changed) {
-            allHooks.forEach((hook) => {
-                if (!hook.file_changes_matcher.startsWith("!") && minimatch(file, hook.file_changes_matcher)) {
-                    this.log.info(`File ${file} matches matcher ${hook.file_changes_matcher}`);
-                    triggeredHooks.add(hook);
+        allHooks.forEach((hooks) => {
+            let matched = false;
+            for (const hook of hooks) {
+                if (matched) {
+                    break;
                 }
-            });
-        }
+                for (const file of files_changed) {
+                    if (!hook.file_changes_matcher.startsWith("!") && minimatch(file, hook.file_changes_matcher)) {
+                        this.log.info(`File ${file} matches matcher ${hook.file_changes_matcher} for hook ${hook.pipeline_unique_prefix}`);
+                        triggeredHooks.add(hook);
+                        matched = true;
+                    }
+                }
+            }
+        });
         return triggeredHooks
+    }
+
+    private mergeHooksFromDbWithPRHooksByUniquePrefix(mainHooks: GhaHooks[], prHooks: GhaHook[], allHooks: Map<string, GhaHook[]>) {
+        const groupedMainHooks = new Map<string, GhaHook[]>();
+        for (const hook of mainHooks) {
+            if (!groupedMainHooks.has(hook.pipeline_unique_prefix)) {
+                groupedMainHooks.set(hook.pipeline_unique_prefix, [this.mapToHook(hook)]);
+            } else {
+                groupedMainHooks.get(hook.pipeline_unique_prefix)?.push(this.mapToHook(hook));
+            }
+        }
+        const groupedPrHooks = new Map<string, GhaHook[]>();
+        for (const hook of prHooks) {
+            if (!groupedPrHooks.has(hook.pipeline_unique_prefix)) {
+                groupedPrHooks.set(hook.pipeline_unique_prefix, [hook]);
+            } else {
+                groupedPrHooks.get(hook.pipeline_unique_prefix)?.push(hook);
+            }
+        }
+        for (const [pipeline_unique_prefix, hooks] of groupedMainHooks) {
+            allHooks.set(pipeline_unique_prefix, hooks);
+        }
+        for (const [pipeline_unique_prefix, hooks] of groupedPrHooks) {
+            allHooks.set(pipeline_unique_prefix, hooks);
+        }
     }
 
     private mapToHook(hook: GhaHooks) {
