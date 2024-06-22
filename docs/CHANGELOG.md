@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/mdolinin/gha-conductor/compare/v1.15.1...v1.16.0) (2024-06-22)
+
+
+### Features
+
+* **hooks:** before dispatch, validate workflow inputs and provide input values from context, params or sharedParams ([#107](https://github.com/mdolinin/gha-conductor/issues/107)) ([f280f16](https://github.com/mdolinin/gha-conductor/commit/f280f16549a9d62527a674f255f576f4ffaef85e))
+
 ## [1.15.1](https://github.com/mdolinin/gha-conductor/compare/v1.15.0...v1.15.1) (2024-06-22)
 
 
