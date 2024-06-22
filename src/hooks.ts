@@ -259,6 +259,14 @@ export class Hooks {
                     if (missingInputs) {
                         continue;
                     }
+                } else {
+                    this.log.warn(`Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
+                    triggeredPipelines.push({
+                        name: pipeline_name,
+                        inputs: inputs,
+                        error: `Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`
+                    });
+                    continue;
                 }
             } catch (e) {
                 this.log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
