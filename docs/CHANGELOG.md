@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/mdolinin/gha-conductor/compare/v1.15.0...v1.15.1) (2024-06-22)
+
+
+### Bug Fixes
+
+* **hooks:** group hooks by pipeline unique name, pr hooks takes precedence and tigger only one hook if multiple files matched ([#106](https://github.com/mdolinin/gha-conductor/issues/106)) ([2b07cd8](https://github.com/mdolinin/gha-conductor/commit/2b07cd822f2c60de44129fce1d423bb6dfbaa2e2))
+
 # [1.15.0](https://github.com/mdolinin/gha-conductor/compare/v1.14.0...v1.15.0) (2024-06-21)
 
 
