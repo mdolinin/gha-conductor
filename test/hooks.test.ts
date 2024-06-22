@@ -8,6 +8,10 @@ const findAllMock = jest.fn().mockImplementation(() => {
         {
             file_changes_matcher: "file1",
             pipeline_unique_prefix: "pipeline_unique_prefix"
+        },
+        {
+            file_changes_matcher: "file2",
+            pipeline_unique_prefix: "pipeline_unique_prefix"
         }
     ]
 
@@ -81,7 +85,7 @@ describe('gha hooks', () => {
     });
 
     it('find hooks to trigger, when matched files changed on pull request open', async () => {
-        let hook = {
+        let hook1 = {
             repo_full_name: "repo_full_name",
             branch: "baseBranch",
             file_changes_matcher: "file1",
@@ -96,12 +100,27 @@ describe('gha hooks', () => {
             shared_params: {},
             slash_command: undefined
         };
+        let hook2 = {
+            repo_full_name: "repo_full_name",
+            branch: "baseBranch",
+            file_changes_matcher: "file2",
+            destination_branch_matcher: "baseBranch",
+            hook: "onPullRequest" as HookType,
+            hook_name: "hook_name",
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
+            pipeline_unique_prefix: "pipeline_unique_prefix",
+            pipeline_name: "pipeline_name",
+            pipeline_ref: "pipeline_ref",
+            pipeline_params: {},
+            shared_params: {},
+            slash_command: undefined
+        };
         const triggeredHookNames = await hooks.filterTriggeredHooks(
             "repo_full_name", "onPullRequest", ["file1", "file2"], "baseBranch",
             [
-                hook
+                hook1, hook2
             ]);
-        expect(triggeredHookNames).toEqual(new Set([hook]));
+        expect(triggeredHookNames).toEqual(new Set([hook1]));
         expect(findMock).toHaveBeenCalledWith(
             {
                 repo_full_name: "repo_full_name",
