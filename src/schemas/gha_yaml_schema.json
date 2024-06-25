@@ -77,7 +77,6 @@
         "moduleName",
         "teamNamespace",
         "sharedParams",
-        "defaultFileChangeTrigger",
         "onPullRequest",
         "onBranchMerge"
     ],
@@ -114,34 +113,6 @@
                 }
             ],
             "additionalProperties": true
-        },
-        "defaultFileChangeTrigger": {
-            "$id": "#/properties/defaultFileChangeTrigger",
-            "type": "array",
-            "title": "The defaultFileChangeTrigger schema",
-            "description": "List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.",
-            "default": [],
-            "examples": [
-                [
-                    "namespaces/domain-a/projects/example-a/**"
-                ]
-            ],
-            "items": {
-                "$id": "#/properties/defaultFileChangeTrigger/items",
-                "anyOf": [
-                    {
-                        "$id": "#/properties/defaultFileChangeTrigger/items/anyOf/0",
-                        "type": "string",
-                        "title": "The first anyOf schema",
-                        "description": "List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.",
-                        "default": "",
-                        "examples": [
-                            "namespaces/domain-a/projects/example-a/**",
-                            "namespaces/domain-a/projects/example-b/test/test.sh"
-                        ]
-                    }
-                ]
-            }
         },
         "onPullRequest": {
             "$id": "#/properties/onPullRequest",
