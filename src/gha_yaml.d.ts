@@ -154,7 +154,7 @@ export type TheOnSlashCommandSchema = PropertiesOnSlashCommandItems[];
 export interface TheRootSchema {
   moduleName: TheModuleNameSchema;
   teamNamespace: TheTeamNamespaceSchema;
-  sharedParams: TheSharedParamsSchema;
+  sharedParams?: TheSharedParamsSchema;
   onPullRequest: TheOnPullRequestSchema;
   onBranchMerge: TheOnBranchMergeSchema;
   onPullRequestClose?: TheOnPullRequestCloseSchema;
