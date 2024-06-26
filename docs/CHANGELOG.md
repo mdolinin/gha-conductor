@@ -1,3 +1,10 @@
+## [1.16.1](https://github.com/mdolinin/gha-conductor/compare/v1.16.0...v1.16.1) (2024-06-26)
+
+
+### Bug Fixes
+
+* **schema:** remove not required params and catch errors from validation process ([#111](https://github.com/mdolinin/gha-conductor/issues/111)) ([df63c83](https://github.com/mdolinin/gha-conductor/commit/df63c838628dcbf0809af6659e9b8a73f621684a))
+
 # [1.16.0](https://github.com/mdolinin/gha-conductor/compare/v1.15.1...v1.16.0) (2024-06-22)
 
 
