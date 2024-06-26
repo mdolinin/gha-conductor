@@ -107,31 +107,15 @@ export class GhaLoader {
             }
             const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
             const lineCounter = new LineCounter()
-            const ghaFileDoc = parseDocument(ghaFileContent, {lineCounter})
-            if (ghaFileDoc.errors.length > 0) {
-                ghaFileDoc.errors.forEach(error => {
-                    const {line, col} = lineCounter.linePos(error.pos[0]);
-                    this.log.warn(`${line}:${col} ${error.message}`);
-                    annotationsForCheck.push({
-                        annotation_level: "failure",
-                        message: error.message,
-                        path: file.filename,
-                        start_line: line,
-                        end_line: line,
-                        start_column: col,
-                        end_column: col
-                    });
-                });
-            } else {
-                validator(ghaFileDoc.toJSON())
-                if (validator.errors) {
-                    validator.errors?.forEach(error => {
-                        const propertyPath = error.instancePath.split("/").slice(1);
-                        const node = ghaFileDoc.getIn(propertyPath, true);
-                        const {line, col} = this.getPosition(node, lineCounter);
+            try {
+                const ghaFileDoc = parseDocument(ghaFileContent, {lineCounter})
+                if (ghaFileDoc.errors.length > 0) {
+                    ghaFileDoc.errors.forEach(error => {
+                        const {line, col} = lineCounter.linePos(error.pos[0]);
+                        this.log.warn(`${line}:${col} ${error.message}`);
                         annotationsForCheck.push({
                             annotation_level: "failure",
-                            message: error.message || "Unknown error",
+                            message: error.message,
                             path: file.filename,
                             start_line: line,
                             end_line: line,
@@ -140,52 +124,81 @@ export class GhaLoader {
                         });
                     });
                 } else {
-                    // validate that pipeline unique prefix is unique `${teamNamespace}-${moduleName}-${name}`
-                    const teamNamespaceNode = ghaFileDoc.getIn(["teamNamespace"], true) as Node;
-                    const teamNamespace = teamNamespaceNode.toString();
-                    const moduleNameNode = ghaFileDoc.getIn(["moduleName"], true) as Node;
-                    const moduleName = moduleNameNode.toString();
-                    const names = new Set<string>();
-                    for (const hook of ["onPullRequest", "onBranchMerge", "onPullRequestClose", "onSlashCommand"]) {
-                        const onNode = ghaFileDoc.getIn([hook], true) as YAMLSeq;
-                        if (onNode === undefined) {
-                            continue;
-                        }
-                        for (const _ of onNode.items) {
-                            const index = onNode.items.indexOf(_);
-                            const nameNode = ghaFileDoc.getIn([hook, index, 'name'], true) as Node;
-                            const name = nameNode.toString();
-                            const pipelineUniquePrefix = `${teamNamespace}-${moduleName}-${name}`;
-                            const samePrefixHooks = await gha_hooks(db).find({
-                                pipeline_unique_prefix: pipelineUniquePrefix,
-                                path_to_gha_yaml: not(file.filename)
-                            }).all();
-                            if (samePrefixHooks.length > 0 || names.has(name)) {
-                                const {line, col} = this.getPosition(nameNode, lineCounter);
-                                let message = `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`;
-                                if (names.has(name)) {
-                                    message = message + " (duplicate name in the same file)";
+                    validator(ghaFileDoc.toJSON())
+                    if (validator.errors) {
+                        validator.errors?.forEach(error => {
+                            const propertyPath = error.instancePath.split("/").slice(1);
+                            const node = ghaFileDoc.getIn(propertyPath, true);
+                            const {line, col} = this.getPosition(node, lineCounter);
+                            annotationsForCheck.push({
+                                annotation_level: "failure",
+                                message: error.message || "Unknown error",
+                                path: file.filename,
+                                start_line: line,
+                                end_line: line,
+                                start_column: col,
+                                end_column: col
+                            });
+                        });
+                    } else {
+                        // validate that pipeline unique prefix is unique `${teamNamespace}-${moduleName}-${name}`
+                        const teamNamespaceNode = ghaFileDoc.getIn(["teamNamespace"], true) as Node;
+                        const teamNamespace = teamNamespaceNode.toString();
+                        const moduleNameNode = ghaFileDoc.getIn(["moduleName"], true) as Node;
+                        const moduleName = moduleNameNode.toString();
+                        const names = new Set<string>();
+                        for (const hook of ["onPullRequest", "onBranchMerge", "onPullRequestClose", "onSlashCommand"]) {
+                            const onNode = ghaFileDoc.getIn([hook], true) as YAMLSeq;
+                            if (onNode === undefined) {
+                                continue;
+                            }
+                            for (const _ of onNode.items) {
+                                const index = onNode.items.indexOf(_);
+                                const nameNode = ghaFileDoc.getIn([hook, index, 'name'], true) as Node;
+                                const name = nameNode.toString();
+                                const pipelineUniquePrefix = `${teamNamespace}-${moduleName}-${name}`;
+                                const samePrefixHooks = await gha_hooks(db).find({
+                                    pipeline_unique_prefix: pipelineUniquePrefix,
+                                    path_to_gha_yaml: not(file.filename)
+                                }).all();
+                                if (samePrefixHooks.length > 0 || names.has(name)) {
+                                    const {line, col} = this.getPosition(nameNode, lineCounter);
+                                    let message = `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`;
+                                    if (names.has(name)) {
+                                        message = message + " (duplicate name in the same file)";
+                                    }
+                                    if (samePrefixHooks.length > 0) {
+                                        message = message + ` (same name used in ${samePrefixHooks.map(value => value.path_to_gha_yaml).join(',')} files)`;
+                                    }
+                                    annotationsForCheck.push({
+                                        annotation_level: "failure",
+                                        message: message,
+                                        path: file.filename,
+                                        start_line: line,
+                                        end_line: line,
+                                        start_column: col,
+                                        end_column: col
+                                    });
+                                } else {
+                                    names.add(name);
+                                    this.log.debug(`Pipeline unique prefix ${pipelineUniquePrefix} is unique`);
                                 }
-                                if (samePrefixHooks.length > 0) {
-                                    message = message + ` (same name used in ${samePrefixHooks.map(value => value.path_to_gha_yaml).join(',')} files)`;
-                                }
-                                annotationsForCheck.push({
-                                    annotation_level: "failure",
-                                    message: message,
-                                    path: file.filename,
-                                    start_line: line,
-                                    end_line: line,
-                                    start_column: col,
-                                    end_column: col
-                                });
-                            } else {
-                                names.add(name);
-                                this.log.debug(`Pipeline unique prefix ${pipelineUniquePrefix} is unique`);
                             }
                         }
+                        this.log.info(`Validation passed for file ${file.filename}`);
                     }
-                    this.log.info(`Validation passed for file ${file.filename}`);
                 }
+            } catch (e) {
+                this.log.warn(e, `Error during validation of file ${file.filename}`);
+                annotationsForCheck.push({
+                    annotation_level: "failure",
+                    message: String(e),
+                    path: file.filename,
+                    start_line: 1,
+                    end_line: 1,
+                    start_column: 1,
+                    end_column: 1
+                })
             }
         }
         return annotationsForCheck;
