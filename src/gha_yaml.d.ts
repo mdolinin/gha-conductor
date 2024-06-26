@@ -13,15 +13,6 @@ export type TheModuleNameSchema = string;
  * teamNamespace must be unique across the whole mono repo
  */
 export type TheTeamNamespaceSchema = string;
-export type PropertiesDefaultFileChangeTriggerItems = TheFirstAnyOfSchema;
-/**
- * List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.
- */
-export type TheFirstAnyOfSchema = string;
-/**
- * List of files that are tracked under defaultFileChangeTrigger variable to trigger pipeline based on the event.
- */
-export type TheDefaultFileChangeTriggerSchema = PropertiesDefaultFileChangeTriggerItems[];
 export type PropertiesOnPullRequestItems = OnPullRequestHookSchema;
 /**
  * name of the hook, must be unique in the .gha.yaml file
@@ -163,8 +154,7 @@ export type TheOnSlashCommandSchema = PropertiesOnSlashCommandItems[];
 export interface TheRootSchema {
   moduleName: TheModuleNameSchema;
   teamNamespace: TheTeamNamespaceSchema;
-  sharedParams: TheSharedParamsSchema;
-  defaultFileChangeTrigger: TheDefaultFileChangeTriggerSchema;
+  sharedParams?: TheSharedParamsSchema;
   onPullRequest: TheOnPullRequestSchema;
   onBranchMerge: TheOnBranchMergeSchema;
   onPullRequestClose?: TheOnPullRequestCloseSchema;
