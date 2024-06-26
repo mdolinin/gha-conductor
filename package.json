@@ -27,7 +27,7 @@
     "@databases/pg-typed": "^4.4.1",
     "glob": "^10.4.2",
     "js-yaml": "^4.1.0",
-    "json-schema-to-typescript": "^14.0.5",
+    "json-schema-to-typescript": "^14.1.0",
     "probot": "^13.3.0",
     "simple-git": "^3.25.0",
     "ajv": "^8.14.0",
