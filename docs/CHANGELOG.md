@@ -1,3 +1,10 @@
+## [1.16.2](https://github.com/mdolinin/gha-conductor/compare/v1.16.1...v1.16.2) (2024-06-27)
+
+
+### Bug Fixes
+
+* **gha-loader:** correctly load hooks when onPullRequest or onBranchMerge is empty list ([#115](https://github.com/mdolinin/gha-conductor/issues/115)) ([bfb19a4](https://github.com/mdolinin/gha-conductor/commit/bfb19a44bb967d9649408d9b93e76a00c69bb388))
+
 ## [1.16.1](https://github.com/mdolinin/gha-conductor/compare/v1.16.0...v1.16.1) (2024-06-26)
 
 
