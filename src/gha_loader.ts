@@ -299,45 +299,49 @@ export class GhaLoader {
 
     private getGhaHooks(ghaFileYaml: TheRootSchema, ghaYamlFilePath: string, repoFullName: string = "", branch: string = ""): GhaHook[] {
         const hooks: GhaHook[] = [];
-        for (const onPR of ghaFileYaml.onPullRequest) {
-            for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
-                const hook = {
-                    repo_full_name: repoFullName,
-                    branch: branch,
-                    file_changes_matcher: fileChangesMatch,
-                    destination_branch_matcher: null,
-                    hook: 'onPullRequest' as HookType,
-                    hook_name: onPR.name,
-                    path_to_gha_yaml: ghaYamlFilePath,
-                    pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPR.name}`,
-                    pipeline_name: onPR.pipelineRef.name,
-                    pipeline_ref: onPR.pipelineRef.ref,
-                    pipeline_params: onPR.pipelineRunValues.params,
-                    shared_params: ghaFileYaml.sharedParams,
-                    slash_command: undefined
-                }
-                hooks.push(hook);
-            }
-        }
-        for (const onBranchMerge of ghaFileYaml.onBranchMerge) {
-            for (const fileChangesMatch of onBranchMerge.triggerConditions.fileChangesMatchAny) {
-                for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
+        if (ghaFileYaml.onPullRequest !== undefined) {
+            for (const onPR of ghaFileYaml.onPullRequest) {
+                for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
                     const hook = {
                         repo_full_name: repoFullName,
                         branch: branch,
                         file_changes_matcher: fileChangesMatch,
-                        destination_branch_matcher: destinationBranchMatch,
-                        hook: 'onBranchMerge' as HookType,
-                        hook_name: onBranchMerge.name,
+                        destination_branch_matcher: null,
+                        hook: 'onPullRequest' as HookType,
+                        hook_name: onPR.name,
                         path_to_gha_yaml: ghaYamlFilePath,
-                        pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onBranchMerge.name}`,
-                        pipeline_name: onBranchMerge.pipelineRef.name,
-                        pipeline_ref: onBranchMerge.pipelineRef.ref,
-                        pipeline_params: onBranchMerge.pipelineRunValues.params,
+                        pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onPR.name}`,
+                        pipeline_name: onPR.pipelineRef.name,
+                        pipeline_ref: onPR.pipelineRef.ref,
+                        pipeline_params: onPR.pipelineRunValues.params,
                         shared_params: ghaFileYaml.sharedParams,
                         slash_command: undefined
                     }
                     hooks.push(hook);
+                }
+            }
+        }
+        if (ghaFileYaml.onBranchMerge !== undefined) {
+            for (const onBranchMerge of ghaFileYaml.onBranchMerge) {
+                for (const fileChangesMatch of onBranchMerge.triggerConditions.fileChangesMatchAny) {
+                    for (const destinationBranchMatch of onBranchMerge.triggerConditions.destinationBranchMatchesAny) {
+                        const hook = {
+                            repo_full_name: repoFullName,
+                            branch: branch,
+                            file_changes_matcher: fileChangesMatch,
+                            destination_branch_matcher: destinationBranchMatch,
+                            hook: 'onBranchMerge' as HookType,
+                            hook_name: onBranchMerge.name,
+                            path_to_gha_yaml: ghaYamlFilePath,
+                            pipeline_unique_prefix: `${ghaFileYaml.teamNamespace}-${ghaFileYaml.moduleName}-${onBranchMerge.name}`,
+                            pipeline_name: onBranchMerge.pipelineRef.name,
+                            pipeline_ref: onBranchMerge.pipelineRef.ref,
+                            pipeline_params: onBranchMerge.pipelineRunValues.params,
+                            shared_params: ghaFileYaml.sharedParams,
+                            slash_command: undefined
+                        }
+                        hooks.push(hook);
+                    }
                 }
             }
         }
