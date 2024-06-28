@@ -29,7 +29,7 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     if (getRouter) {
         const pkg = loadPackageJson(resolve(process.cwd(), "package.json"));
         const router = getRouter("/api");
-        router.get("/health", (_, res) => {
+        router.get("/health", (_req, res) => {
             res.json({healthy: true, version: pkg.version});
         });
     }
