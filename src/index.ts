@@ -1,4 +1,4 @@
-import {Probot} from "probot";
+import {ApplicationFunctionOptions, Probot} from "probot";
 import {GhaLoader} from "./gha_loader";
 import {GhaReply} from "./gha_reply";
 import {Hooks} from "./hooks";
@@ -14,6 +14,8 @@ import {
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import {inspect} from "node:util";
 import {MergeOptions} from "probot/lib/context";
+import {loadPackageJson} from "probot/lib/helpers/load-package-json";
+import {resolve} from "node:path";
 
 const APP_CONFIG_FILE = process.env.APP_CONFIG_FILE || "gha-conductor-config.yaml";
 const DEFAULT_GHA_HOOKS_FILE_NAME = process.env.DEFAULT_GHA_HOOKS_FILE_NAME || ".gha.yaml";
@@ -22,7 +24,15 @@ const DEFAULT_WORKFLOW_FILE_EXTENSION = process.env.DEFAULT_WORKFLOW_FILE_EXTENS
 const TOKENISE_REGEX =
     /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
 
-export = (app: Probot) => {
+export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
+
+    if (getRouter) {
+        const pkg = loadPackageJson(resolve(process.cwd(), "package.json"));
+        const router = getRouter("/api");
+        router.get("/health", (_, res) => {
+            res.json({healthy: true, version: pkg.version});
+        });
+    }
 
     const ghaLoader = new GhaLoader(app.log);
     const hooks = new Hooks(app.log);
