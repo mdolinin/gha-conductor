@@ -9,4 +9,5 @@ RUN yarn cache clean
 ENV NODE_ENV="production"
 COPY . .
 RUN yarn build
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD ["node", "./lib/healthcheck.js"]
 CMD [ "yarn", "bot:start" ]
