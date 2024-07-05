@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/mdolinin/gha-conductor/compare/v1.16.2...v1.17.0) (2024-07-05)
+
+
+### Features
+
+* **healthcheck:** add /api/health endpoint and node script to verify app ([#116](https://github.com/mdolinin/gha-conductor/issues/116)) ([0d44b5f](https://github.com/mdolinin/gha-conductor/commit/0d44b5f789df0c4ed9e660a9cbd2cefa770ee099))
+
 ## [1.16.2](https://github.com/mdolinin/gha-conductor/compare/v1.16.1...v1.16.2) (2024-06-27)
 
 
