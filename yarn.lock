@@ -5844,7 +5844,7 @@ loose-envify@^1.0.0:
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
 
-lru-cache@^10.0.0, lru-cache@^10.0.1, lru-cache@^10.0.3, lru-cache@^10.2.0:
+lru-cache@^10.0.0, lru-cache@^10.0.1, lru-cache@^10.2.0:
   version "10.2.0"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-10.2.0.tgz#0bd445ca57363465900f4d1f9bd8db343a4d95c3"
   integrity sha512-2bIM8x+VAf6JT4bKAljS1qUWgMsqZRPGJS6FSahIMPVvctcNhyVp7AJu7quxOW9jwkryBReKZY5tY5JYv2n/7Q==
@@ -7109,10 +7109,10 @@ private@^0.1.6, private@^0.1.8:
   resolved "https://registry.yarnpkg.com/private/-/private-0.1.8.tgz#2381edb3689f7a53d653190060fcf822d2f368ff"
   integrity sha512-VvivMrbvd2nKkiG38qjULzlc+4Vx4wm/whI9pQD35YrARNnhxeiRktSOhSukRLFNlzg6Br/cJPet5J/u19r/mg==
 
-probot@^13.3.0:
-  version "13.3.0"
-  resolved "https://registry.yarnpkg.com/probot/-/probot-13.3.0.tgz#2154c4dad9609cb1ef82c0d4959c3a2ddf553d1a"
-  integrity sha512-X9xb96WvaycsPiNj1QOte4ABKb6mSwHpWHJKq/dTjFSMpLT4kC5SRN4wKQi1zwZHsnIW/twbOeOZespGfkNkYA==
+probot@^13.3.5:
+  version "13.3.5"
+  resolved "https://registry.yarnpkg.com/probot/-/probot-13.3.5.tgz#93cd5321dc5d1b3bfb50fb588d798e4b541b181a"
+  integrity sha512-qClGF33aJkXs1f5jpgWme6+fHCYckJMGx7NGyUYB6YUourpplP4ZZ2QF0hu73jbtMBqr0mZLusPPXwUmP3RX6A==
   dependencies:
     "@octokit/core" "^5.0.2"
     "@octokit/plugin-enterprise-compatibility" "^4.0.1"
@@ -7131,16 +7131,14 @@ probot@^13.3.0:
     commander "^12.0.0"
     deepmerge "^4.3.1"
     dotenv "^16.3.1"
-    eventsource "^2.0.2"
     express "^4.18.2"
     ioredis "^5.3.2"
     js-yaml "^4.1.0"
-    lru-cache "^10.0.3"
+    lru-cache "^11.0.0"
     octokit-auth-probot "^2.0.0"
     pino "^9.0.0"
     pino-http "^10.0.0"
     pkg-conf "^3.1.0"
-    resolve "^1.22.8"
     update-dotenv "^1.1.1"
 
 proc-log@^3.0.0:
@@ -7500,7 +7498,7 @@ resolve.exports@^2.0.0:
   resolved "https://registry.npmjs.org/resolve.exports/-/resolve.exports-2.0.2.tgz"
   integrity sha512-X2UW6Nw3n/aMgDVy+0rSqgHlv39WZAlZrXCdnbyEiKm17DSqHX4MmQMaST3FbeWR5FTuRcUwYAziZajji0Y7mg==
 
-resolve@^1.20.0, resolve@^1.22.8:
+resolve@^1.20.0:
   version "1.22.8"
   resolved "https://registry.npmjs.org/resolve/-/resolve-1.22.8.tgz"
   integrity sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw==
