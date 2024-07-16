@@ -5844,10 +5844,10 @@ loose-envify@^1.0.0:
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
 
-lru-cache@^10.0.0, lru-cache@^10.0.1, lru-cache@^10.2.0:
-  version "10.2.0"
-  resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-10.2.0.tgz#0bd445ca57363465900f4d1f9bd8db343a4d95c3"
-  integrity sha512-2bIM8x+VAf6JT4bKAljS1qUWgMsqZRPGJS6FSahIMPVvctcNhyVp7AJu7quxOW9jwkryBReKZY5tY5JYv2n/7Q==
+lru-cache@^10.0.0, lru-cache@^10.0.1, lru-cache@^10.0.3, lru-cache@^10.2.0:
+  version "10.4.3"
+  resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-10.4.3.tgz#410fc8a17b70e598013df257c2446b7f3383f119"
+  integrity sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==
 
 lru-cache@^11.0.0:
   version "11.0.0"
@@ -7109,10 +7109,10 @@ private@^0.1.6, private@^0.1.8:
   resolved "https://registry.yarnpkg.com/private/-/private-0.1.8.tgz#2381edb3689f7a53d653190060fcf822d2f368ff"
   integrity sha512-VvivMrbvd2nKkiG38qjULzlc+4Vx4wm/whI9pQD35YrARNnhxeiRktSOhSukRLFNlzg6Br/cJPet5J/u19r/mg==
 
-probot@^13.3.5:
-  version "13.3.5"
-  resolved "https://registry.yarnpkg.com/probot/-/probot-13.3.5.tgz#93cd5321dc5d1b3bfb50fb588d798e4b541b181a"
-  integrity sha512-qClGF33aJkXs1f5jpgWme6+fHCYckJMGx7NGyUYB6YUourpplP4ZZ2QF0hu73jbtMBqr0mZLusPPXwUmP3RX6A==
+probot@^13.3.6:
+  version "13.3.6"
+  resolved "https://registry.yarnpkg.com/probot/-/probot-13.3.6.tgz#7178f0d9684a128c93d53718bd7b48bad7cb4dd2"
+  integrity sha512-bgNu5p6rcAbaXwX/il6Y6zYtjN7VKPBKFENAAOp0v4Z5ysiwyX6si/agxO8MP4RPU2A0DazNZP2FVnYaqb54FQ==
   dependencies:
     "@octokit/core" "^5.0.2"
     "@octokit/plugin-enterprise-compatibility" "^4.0.1"
@@ -7134,7 +7134,7 @@ probot@^13.3.5:
     express "^4.18.2"
     ioredis "^5.3.2"
     js-yaml "^4.1.0"
-    lru-cache "^11.0.0"
+    lru-cache "^10.0.3"
     octokit-auth-probot "^2.0.0"
     pino "^9.0.0"
     pino-http "^10.0.0"
