@@ -29,7 +29,7 @@
     "glob": "^11.0.0",
     "js-yaml": "^4.1.0",
     "json-schema-to-typescript": "^15.0.0",
-    "probot": "^13.3.6",
+    "probot": "^13.3.7",
     "simple-git": "^3.25.0",
     "yaml": "^2.5.0"
   },
