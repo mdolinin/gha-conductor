@@ -75,12 +75,6 @@ let runWorkflowMock = jest
         return Promise.resolve([]);
     });
 
-const createNewRunMock = jest
-    .spyOn(GhaChecks.prototype, 'createNewRun')
-    .mockImplementation(() => {
-        return Promise.resolve();
-    });
-
 const createWorkflowRunCheckErroredMock = jest
     .spyOn(GhaChecks.prototype, 'createWorkflowRunCheckErrored')
     .mockImplementation(() => {
@@ -370,7 +364,6 @@ describe("gha-conductor app", () => {
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(0);
-        expect(createNewRunMock).toHaveBeenCalledTimes(0);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
@@ -417,7 +410,6 @@ describe("gha-conductor app", () => {
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
-        expect(createNewRunMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(1);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(1);
@@ -457,7 +449,6 @@ describe("gha-conductor app", () => {
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
-        expect(createNewRunMock).toHaveBeenCalledTimes(0);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(1);
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
@@ -500,7 +491,6 @@ describe("gha-conductor app", () => {
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
-        expect(createNewRunMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
@@ -644,7 +634,6 @@ describe("gha-conductor app", () => {
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
-        expect(createNewRunMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);

@@ -5,7 +5,7 @@ import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.js
 import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
 import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
 import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
-import {PullRequest} from "@octokit/webhooks-types";
+
 import {TriggeredWorkflow} from "../src/hooks";
 import {Logger} from "probot";
 
@@ -73,70 +73,6 @@ describe('gha_checks', () => {
 
     afterEach(() => {
         jest.clearAllMocks();
-    });
-
-    it('store new run into db, including errors', async () => {
-        const pipeline = {name: 'gha-checks-1234567890', inputs: {}, error: "ref not exist"};
-        const pullRequestOpened: PullRequest & {
-            state: "open";
-            closed_at: null;
-            merged_at: null;
-            merged: boolean;
-            merged_by: null;
-        } = {
-            ...pullRequestOpenedPayload.pull_request,
-            author_association: "OWNER",
-            state: "open",
-            user: {
-                ...pullRequestOpenedPayload.pull_request.user,
-                type: "User",
-            },
-            base: {
-                ...pullRequestOpenedPayload.pull_request.base,
-                user: {
-                    ...pullRequestOpenedPayload.pull_request.base.user,
-                    type: "User",
-                },
-                repo: {
-                    ...pullRequestOpenedPayload.pull_request.base.repo,
-                    custom_properties: {},
-                    visibility: "private",
-                    owner: {
-                        ...pullRequestOpenedPayload.pull_request.base.repo.owner,
-                        type: "User",
-                    },
-                }
-            },
-            head: {
-                ...pullRequestOpenedPayload.pull_request.head,
-                user: {
-                    ...pullRequestOpenedPayload.pull_request.head.user,
-                    type: "User",
-                },
-                repo: {
-                    ...pullRequestOpenedPayload.pull_request.head.repo,
-                    custom_properties: {},
-                    visibility: "private",
-                    owner: {
-                        ...pullRequestOpenedPayload.pull_request.head.repo.owner,
-                        type: "User",
-                    },
-                }
-            }
-        };
-        const merge_commit_sha = '1234567890';
-        await checks.createNewRun(pipeline, pullRequestOpened, 'onPullRequest', merge_commit_sha);
-        expect(insertMock).toHaveBeenCalledWith({
-            name: 'gha-checks',
-            head_sha: merge_commit_sha,
-            merge_commit_sha: merge_commit_sha,
-            pipeline_run_name: pipeline.name,
-            workflow_run_inputs: {},
-            pr_number: pullRequestOpened.number,
-            hook: 'onPullRequest',
-            status: 'completed',
-            conclusion: 'failure',
-        });
     });
 
     it('should create check if workflow run got error on attempt to trigger', async () => {

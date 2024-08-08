@@ -47,32 +47,6 @@ export class GhaChecks {
         this.log = log;
     }
 
-    async createNewRun(triggeredWorkflow: TriggeredWorkflow, pull_request: {
-        number: number
-    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
-        const {headSha, checkName} = this.parseHeadShaFromJobName(triggeredWorkflow.name);
-        if (headSha) {
-            let workflowRun = {
-                name: checkName,
-                head_sha: headSha,
-                merge_commit_sha: merge_commit_sha,
-                pipeline_run_name: triggeredWorkflow.name,
-                workflow_run_inputs: triggeredWorkflow.inputs,
-                pr_number: pull_request.number,
-                hook: hookType,
-            }
-            if (triggeredWorkflow.error) {
-                workflowRun = Object.assign(workflowRun, {
-                    status: "completed",
-                    conclusion: "failure"
-                });
-            }
-            await gha_workflow_runs(db).insert(workflowRun);
-        } else {
-            this.log.error("Failed to parse head sha from triggeredWorkflow name " + triggeredWorkflow);
-        }
-    }
-
     private hookToCheckName(hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand") {
         switch (hookType) {
             case "onPullRequest":
