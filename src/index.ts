@@ -225,7 +225,6 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             const workflowFileExtension = await getValueFromConfig(context, repo_full_name, "workflow_file_extension");
             const triggeredWorkflows = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha, undefined, workflowFileExtension);
             for (const triggeredWorkflow of triggeredWorkflows) {
-                await checks.createNewRun(triggeredWorkflow, context.payload.pull_request, hookType, merge_commit_sha);
                 if (triggeredWorkflow.error) {
                     await checks.createWorkflowRunCheckErrored(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, triggeredWorkflow);
                 }
@@ -427,7 +426,6 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             const workflowFileExtension = await getValueFromConfig(context, repo_full_name, "workflow_file_extension");
             const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens, workflowFileExtension);
             for (const triggeredWorkflow of triggeredWorkflows) {
-                await checks.createNewRun(triggeredWorkflow, pr, hookType, merge_commit_sha);
                 if (triggeredWorkflow.error) {
                     await checks.createWorkflowRunCheckErrored(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflow);
                 }

@@ -4,7 +4,7 @@ import {
     RestEndpointMethodTypes
 } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
 import {HookType} from "./__generated__/_enums";
-import db, {gha_hooks} from "./db/database";
+import db, {gha_hooks, gha_workflow_runs} from "./db/database";
 import {GhaHook} from "./gha_loader";
 import {GhaHooks} from "./__generated__";
 import {load} from "js-yaml";
@@ -167,9 +167,10 @@ export class Hooks {
         } else if (action === "synchronize") {
             pr_action = "opened";
         }
+        const headSha = pull_request.head.sha;
         const common_serialized_variables = {
             'PR_HEAD_REF': pull_request.head.ref,
-            'PR_HEAD_SHA': pull_request.head.sha,
+            'PR_HEAD_SHA': headSha,
             'PR_BASE_REF': pull_request.base.ref,
             'PR_BASE_SHA': pull_request.base.sha,
             'PR_MERGE_SHA': merge_commit_sha,
@@ -183,7 +184,8 @@ export class Hooks {
             const repo = pull_request.base.repo.name;
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
             const workflow_id = `${hook.pipeline_name}${workflowFileExtension}`;
-            const pipeline_name = `${hook.pipeline_unique_prefix}-${pull_request.head.sha}`;
+            const pipelineUniquePrefix = hook.pipeline_unique_prefix;
+            const pipeline_name = `${pipelineUniquePrefix}-${headSha}`;
             let sharedParams = hook.shared_params;
             let pipelineParams = hook.pipeline_params;
             // merge all shared and pipeline params and common_serialized_variables
@@ -206,6 +208,7 @@ export class Hooks {
                 });
                 if (resp.data.state !== "active") {
                     this.log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
+                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: inputs,
@@ -230,6 +233,7 @@ export class Hooks {
                     // check if PIPELINE_NAME and SERIALIZED_VARIABLES are required
                     if (!workflowInputsMap.has("PIPELINE_NAME") || !workflowInputsMap.has("SERIALIZED_VARIABLES")) {
                         this.log.warn(`Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`);
+                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                         triggeredPipelines.push({
                             name: pipeline_name,
                             inputs: inputs,
@@ -246,6 +250,7 @@ export class Hooks {
                             if (serialized_variables[key] === undefined) {
                                 if (!value.default) {
                                     this.log.warn(`Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`);
+                                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                                     triggeredPipelines.push({
                                         name: pipeline_name,
                                         inputs: inputs,
@@ -261,6 +266,7 @@ export class Hooks {
                     }
                 } else {
                     this.log.warn(`Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
+                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: inputs,
@@ -270,6 +276,7 @@ export class Hooks {
                 }
             } catch (e) {
                 this.log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
+                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: inputs,
@@ -280,6 +287,7 @@ export class Hooks {
             if (hook.hook === "onSlashCommand") {
                 if (!commandTokens) {
                     this.log.error("Slash command hook type requires a slash command");
+                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: inputs,
@@ -290,6 +298,7 @@ export class Hooks {
                     const command = commandTokens[0];
                     if (hook.slash_command !== command) {
                         this.log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
+                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                         triggeredPipelines.push({
                             name: pipeline_name,
                             inputs: inputs,
@@ -327,10 +336,12 @@ export class Hooks {
             };
             try {
                 await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
-                this.log.info(`Workflow ${hook.pipeline_unique_prefix} triggered successfully for PR#${prNumber}`);
+                this.log.info(`Workflow ${pipelineUniquePrefix} triggered successfully for PR#${prNumber}`);
+                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook);
                 triggeredPipelines.push({name: pipeline_name, inputs: inputs});
             } catch (e) {
-                this.log.error("Failed to trigger workflow " + hook.pipeline_unique_prefix + " for PR#" + prNumber);
+                this.log.error("Failed to trigger workflow " + pipelineUniquePrefix + " for PR#" + prNumber);
+                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: inputs,
@@ -339,6 +350,33 @@ export class Hooks {
             }
         }
         return triggeredPipelines;
+    }
+
+    async createNewRun(workflowRunName: string,
+                       headSha: string,
+                       mergeCommitSha: string,
+                       pipelineRunName: string,
+                       workflowRunInputs: Record<string, string>,
+                       prNumber: number,
+                       hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
+                       withError: boolean = false
+    ) {
+        let workflowRun = {
+            name: workflowRunName,
+            head_sha: headSha,
+            merge_commit_sha: mergeCommitSha,
+            pipeline_run_name: pipelineRunName,
+            workflow_run_inputs: workflowRunInputs,
+            pr_number: prNumber,
+            hook: hookType,
+        }
+        if (withError) {
+            workflowRun = Object.assign(workflowRun, {
+                status: "completed",
+                conclusion: "failure"
+            });
+        }
+        await gha_workflow_runs(db).insert(workflowRun);
     }
 
     static mapEventTypeToHook(

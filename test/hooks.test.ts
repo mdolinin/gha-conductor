@@ -3,6 +3,7 @@ import {HookType} from "../src/__generated__/_enums";
 import {GhaHook} from "../src/gha_loader";
 import {Logger} from "probot";
 
+const insertMock = jest.fn();
 const findAllMock = jest.fn().mockImplementation(() => {
     return [
         {
@@ -35,7 +36,12 @@ jest.mock('../src/db/database', () => {
             return {
                 find: findMock,
             };
-        })
+        }),
+        gha_workflow_runs: jest.fn(() => {
+            return {
+                insert: insertMock,
+            };
+        }),
     }
 });
 
@@ -311,6 +317,7 @@ describe('gha hooks', () => {
             repo: "repo_name",
             workflow_id: "pipeline_name_2.yaml"
         });
+        expect(insertMock).toHaveBeenCalledTimes(2);
         expect(triggeredPipelineNames).toEqual([
             {
                 inputs: {
@@ -427,6 +434,7 @@ describe('gha hooks', () => {
             workflow_id: "pipeline_name_1.yaml"
         });
         expect(workflowDispatchMock).toHaveBeenCalledTimes(1);
+        expect(insertMock).toHaveBeenCalledTimes(1);
         expect(triggeredPipelineNames).toEqual([
             {
                 inputs: {
@@ -509,6 +517,7 @@ describe('gha hooks', () => {
         });
         expect(getWorkflowMock).toHaveBeenCalledTimes(1);
         expect(workflowDispatchMock).not.toHaveBeenCalled();
+        expect(insertMock).toBeCalledTimes(1);
         expect(triggeredPipelineNames).toEqual([
             {
                 error: "Failed to get workflow pipeline_name_1.yaml, probably does not exist in repo owner_login/repo_name",
@@ -623,6 +632,7 @@ describe('gha hooks', () => {
         });
         expect(getWorkflowMock).toHaveBeenCalledTimes(1);
         expect(workflowDispatchMock).not.toHaveBeenCalled();
+        expect(insertMock).toBeCalledTimes(1);
         expect(triggeredPipelineNames).toEqual([
             {
                 error: "Workflow pipeline_name_1.yaml requires input EXTRA_INPUT_REQUIRED which is missing in SERIALIZED_VARIABLES and has no default value",
@@ -633,6 +643,28 @@ describe('gha hooks', () => {
                 name: "namespace1-module1-hook1-head_sha"
             }
         ]);
+    });
+
+    it('store new run into db, including errors', async () => {
+        const pipelineUniquePrefix = 'gha-checks';
+        const headSha = '1234567890';
+        const merge_commit_sha = '1234567890';
+        const pipeline_name = `${pipelineUniquePrefix}-${headSha}`;
+        const inputs = {};
+        const prNumber = 1;
+        const HookType = "onPullRequest";
+        await hooks.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, HookType, true);
+        expect(insertMock).toHaveBeenCalledWith({
+            name: 'gha-checks',
+            head_sha: headSha,
+            merge_commit_sha: merge_commit_sha,
+            pipeline_run_name: pipeline_name,
+            workflow_run_inputs: inputs,
+            pr_number: prNumber,
+            hook: 'onPullRequest',
+            status: 'completed',
+            conclusion: 'failure',
+        });
     });
 
 });
