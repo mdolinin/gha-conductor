@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/mdolinin/gha-conductor/compare/v1.17.0...v1.17.1) (2024-08-08)
+
+
+### Bug Fixes
+
+* **hooks:** persist workflow run as soon as it dispatched ([#149](https://github.com/mdolinin/gha-conductor/issues/149)) ([f80a71e](https://github.com/mdolinin/gha-conductor/commit/f80a71e6ad1848540a4eba2978f3736e978c6792))
+
 # [1.17.0](https://github.com/mdolinin/gha-conductor/compare/v1.16.2...v1.17.0) (2024-07-05)
 
 
