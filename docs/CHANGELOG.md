@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/mdolinin/gha-conductor/compare/v1.17.1...v1.18.0) (2024-08-09)
+
+
+### Features
+
+* **schema:** make onBranchMerge hook optional ([#150](https://github.com/mdolinin/gha-conductor/issues/150)) ([6266546](https://github.com/mdolinin/gha-conductor/commit/6266546349d2e4d04591af40ee747fb17b52e9dd))
+
 ## [1.17.1](https://github.com/mdolinin/gha-conductor/compare/v1.17.0...v1.17.1) (2024-08-08)
 
 
