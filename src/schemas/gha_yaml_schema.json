@@ -76,8 +76,7 @@
     "required": [
         "moduleName",
         "teamNamespace",
-        "onPullRequest",
-        "onBranchMerge"
+        "onPullRequest"
     ],
     "properties": {
         "moduleName": {
