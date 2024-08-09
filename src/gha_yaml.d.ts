@@ -156,7 +156,7 @@ export interface TheRootSchema {
   teamNamespace: TheTeamNamespaceSchema;
   sharedParams?: TheSharedParamsSchema;
   onPullRequest: TheOnPullRequestSchema;
-  onBranchMerge: TheOnBranchMergeSchema;
+  onBranchMerge?: TheOnBranchMergeSchema;
   onPullRequestClose?: TheOnPullRequestCloseSchema;
   onSlashCommand?: TheOnSlashCommandSchema;
   [k: string]: unknown;
