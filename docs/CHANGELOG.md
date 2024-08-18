@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/mdolinin/gha-conductor/compare/v1.18.0...v1.19.0) (2024-08-18)
+
+
+### Features
+
+* **pr-merge:** create PR comment with check url after merge if failed ([#157](https://github.com/mdolinin/gha-conductor/issues/157)) ([a97fda7](https://github.com/mdolinin/gha-conductor/commit/a97fda7d37ecd2ce9ed48af56126b8453583c1d4))
+
 # [1.18.0](https://github.com/mdolinin/gha-conductor/compare/v1.17.1...v1.18.0) (2024-08-09)
 
 
