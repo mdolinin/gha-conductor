@@ -579,15 +579,17 @@ export class GhaChecks {
                 this.log.info("All jobs finished for pr #" + allPRWorkflowRuns[0].pr_number);
                 const conclusion = this.getConclusion(allPRWorkflowRuns);
                 const actions = this.getAvailableActions(conclusion);
-                const summary = await this.formatGHCheckSummaryAll(octokit, payload.repository.owner.login, payload.repository.name, allPRWorkflowRuns, "completed");
+                const owner = payload.repository.owner.login;
+                const repo = payload.repository.name;
+                const summary = await this.formatGHCheckSummaryAll(octokit, owner, repo, allPRWorkflowRuns, "completed");
                 const prCheckId = allPRWorkflowRuns[0].pr_check_id;
                 if (!prCheckId) {
                     this.log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
                     return;
                 }
                 const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
-                    owner: payload.repository.owner.login,
-                    repo: payload.repository.name,
+                    owner: owner,
+                    repo: repo,
                     check_run_id: Number(prCheckId),
                     status: "completed",
                     conclusion: conclusion,
@@ -604,6 +606,7 @@ export class GhaChecks {
                     await gha_workflow_runs(db).update({pr_check_id: allPRWorkflowRuns[0].pr_check_id}, {
                         pr_conclusion: conclusion,
                     });
+                    await this.createPRCommentWithCheckUrlAfterMergeIfFailed(octokit, owner, repo, prNumber, allPRWorkflowRuns[0], conclusion, summary);
                 } else {
                     this.log.error("Failed to update pr-status check with id " + allPRWorkflowRuns[0].pr_check_id + " for PR #" + allPRWorkflowRuns[0].pr_number + " completed");
                 }
@@ -611,6 +614,26 @@ export class GhaChecks {
                 this.log.info("Some jobs not finished for pr #" + allPRWorkflowRuns[0].pr_number);
             }
         }
+    }
+
+    private async createPRCommentWithCheckUrlAfterMergeIfFailed(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, prNumber: number, prWorkflowRuns: GhaWorkflowRuns, conclusion: string, summary: string) {
+        if (conclusion === "success") {
+            return;
+        }
+        if (prWorkflowRuns.hook !== "onBranchMerge") {
+            return;
+        }
+        const checkName = this.hookToCheckName(prWorkflowRuns.hook);
+        const checkRunUrl = `https://github.com/${owner}/${repo}/runs/${prWorkflowRuns.pr_check_id}`
+        const prComment = `# ${checkName} completed with ${conclusion}\n` +
+            `**[Check run](${checkRunUrl})**\n` +
+            `${summary}`;
+        await octokit.issues.createComment({
+            owner: owner,
+            repo: repo,
+            issue_number: prNumber,
+            body: prComment
+        });
     }
 
     private getAvailableActions(conclusion: string) {

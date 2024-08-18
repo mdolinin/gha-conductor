@@ -10,7 +10,7 @@ import {TriggeredWorkflow} from "../src/hooks";
 import {Logger} from "probot";
 
 const insertMock = jest.fn();
-const findAllMock = jest.fn().mockImplementation(() => {
+const findAllSuccess = jest.fn().mockImplementation(() => {
     return [
         {
             id: 1,
@@ -28,6 +28,7 @@ const findAllMock = jest.fn().mockImplementation(() => {
         }
     ]
 });
+let findAllMock = findAllSuccess;
 const findOneMock = jest.fn().mockImplementation(() => {
     return {
         id: 1,
@@ -536,6 +537,103 @@ describe('gha_checks', () => {
             pr_check_id: 4,
         }, {
             pr_conclusion: "success"
+        });
+    });
+
+    it('should update pr-merge check and add comment to PR, when workflow run completed with failure', async () => {
+        findAllMock = jest.fn().mockImplementation(() => {
+            return [
+                {
+                    id: 1,
+                    name: 'gha-checks-1234567890',
+                    head_sha: '1234567890',
+                    merge_commit_sha: '1234567890',
+                    pipeline_run_name: 'gha-checks-1234567890',
+                    workflow_run_inputs: {},
+                    pr_number: 1,
+                    hook: 'onBranchMerge',
+                    status: 'completed',
+                    pr_check_id: 4,
+                    conclusion: 'failure',
+                    workflow_run_id: 5,
+                }
+            ]
+        });
+        const updateCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 3,
+                    status: 'completed',
+                    details_url: '',
+                    conclusion: 'failure'
+                },
+                status: 200,
+            }
+        });
+        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+        const createCommentMock = jest.fn();
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            },
+            issues: {
+                createComment: createCommentMock
+            }
+        }
+        // @ts-ignore
+        await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
+        expect(findOneMock).toHaveBeenCalledWith({
+            pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
+            pr_conclusion: null
+        });
+        expect(findMock).toHaveBeenCalledWith({
+            pr_check_id: 3,
+            pr_number: 1,
+            pr_conclusion: null
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        findAllMock = findAllSuccess;
+        expect(downloadJobLogsForWorkflowRunMock).toBeCalledTimes(1);
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            check_run_id: 4,
+            output: expect.anything(),
+            conclusion: "failure",
+            completed_at: expect.anything(),
+            owner: workflowJobCompletedPayload.repository.owner.login,
+            repo: workflowJobCompletedPayload.repository.name,
+            status: "completed",
+            actions: [
+                {
+                    description: "Re-run all workflows",
+                    identifier: "re-run",
+                    label: "Re-run",
+                },
+                {
+                    description: "Re-run failed workflows",
+                    identifier: "re-run-failed",
+                    label: "Re-run failed",
+                }
+            ]
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            pr_check_id: 4,
+        }, {
+            pr_conclusion: "failure"
+        });
+        expect(createCommentMock).toHaveBeenCalledWith({
+            owner: 'mdolinin',
+            repo: 'mono-repo-example',
+            issue_number: 1,
+            body: expect.stringContaining("# pr-merge completed with failure\n**[Check run](https://github.com/mdolinin/mono-repo-example/runs/4)**"),
         });
     });
 
