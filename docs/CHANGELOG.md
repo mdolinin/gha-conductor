@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/mdolinin/gha-conductor/compare/v1.19.0...v1.20.0) (2024-08-30)
+
+
+### Features
+
+* **monitoring:** add dd-tracer ([#168](https://github.com/mdolinin/gha-conductor/issues/168)) ([01bb240](https://github.com/mdolinin/gha-conductor/commit/01bb2407062fa342193babb6508f5e1807be39e7))
+
 # [1.19.0](https://github.com/mdolinin/gha-conductor/compare/v1.18.0...v1.19.0) (2024-08-18)
 
 
