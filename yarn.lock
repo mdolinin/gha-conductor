@@ -831,10 +831,10 @@
   dependencies:
     call-bind "^1.0.2"
 
-"@mswjs/interceptors@^0.34.3":
-  version "0.34.3"
-  resolved "https://registry.yarnpkg.com/@mswjs/interceptors/-/interceptors-0.34.3.tgz#7b36062120e1b2ef31c38f531541af3960f15afc"
-  integrity sha512-UPi1V51c4+PVVG1lhVK2i29aOyBqXvBF8WBvlXIp2Q0vTVKrm20x2voLfunVC3N5wzocxEoHJyOwAXNdoMqy3Q==
+"@mswjs/interceptors@^0.35.0":
+  version "0.35.0"
+  resolved "https://registry.yarnpkg.com/@mswjs/interceptors/-/interceptors-0.35.0.tgz#ccdabb668833b97d3c5f26e761f5ea665629dd5f"
+  integrity sha512-f5cHyIvm4m4g1I5x9EH1etGx0puaU0OaX2szqGRVBVgUC6aMASlOI5hbpe7tJ9l4/VWjCUu5OMraCazLZGI24A==
   dependencies:
     "@open-draft/deferred-promise" "^2.2.0"
     "@open-draft/logger" "^0.3.0"
@@ -6305,12 +6305,12 @@ nerf-dart@^1.0.0:
   resolved "https://registry.yarnpkg.com/nerf-dart/-/nerf-dart-1.0.0.tgz#e6dab7febf5ad816ea81cf5c629c5a0ebde72c1a"
   integrity sha512-EZSPZB70jiVsivaBLYDCyntd5eH8NTSMOn3rB+HxwdmKThGELLdYv8qVIMWvZEFy9w8ZZpW9h9OB32l1rGtj7g==
 
-nock@^14.0.0-beta.11:
-  version "14.0.0-beta.11"
-  resolved "https://registry.yarnpkg.com/nock/-/nock-14.0.0-beta.11.tgz#cec62932161ff4cf1a20844d98b440c3c99747ce"
-  integrity sha512-tmImk6btCUcCFHXkhqZnuSe4e/4M/YYs8qYaQGdjZSBloTXgQyuPrgjzn45zmFWpK2bDSEtIcF8olFdFxRaA1g==
+nock@^14.0.0-beta.12:
+  version "14.0.0-beta.12"
+  resolved "https://registry.yarnpkg.com/nock/-/nock-14.0.0-beta.12.tgz#54b22543c8f1927932aeeb9aa6d3fc7875344888"
+  integrity sha512-O0rwesoqOBhCG/5A1ytWJKLGhmqWeOs7xJYsTVqePqywUdSYsOZ7dY4l0lN6w7dfvg2C11sqMuNKmRi8ktLs7A==
   dependencies:
-    "@mswjs/interceptors" "^0.34.3"
+    "@mswjs/interceptors" "^0.35.0"
     json-stringify-safe "^5.0.1"
     propagate "^2.0.0"
 
