@@ -7037,9 +7037,9 @@ path-to-regexp@0.1.10:
   integrity sha512-7lf7qcQidTku0Gu3YDPc8DJ1q7OOucfa/BSsIwjuh56VU7katFvuM8hULfkwB3Fns/rsVF7PwPKVw1sl5KQS9w==
 
 path-to-regexp@^0.1.2:
-  version "0.1.9"
-  resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.9.tgz#8c7bfecca31b4c83c29ddc7899269aa2794f3311"
-  integrity sha512-AM+ti/Ap918nCDfNf+6kpD5PCTZipPOcuDs3CHfi/X5Zk+GauD99pinQosrG6cM59MSUremZPByf82kpHiiEqA==
+  version "0.1.11"
+  resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.11.tgz#a527e662c89efc4646dbfa8100bf3e847e495761"
+  integrity sha512-c0t+KCuUkO/YDLPG4WWzEwx3J5F/GHXsD1h/SNZfySqAIKe/BaP95x8fWtOfRJokpS5yYHRJjMtYlXD8jxnpbw==
 
 path-type@^4.0.0:
   version "4.0.0"
