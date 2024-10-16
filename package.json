@@ -32,7 +32,7 @@
     "json-schema-to-typescript": "^15.0.2",
     "probot": "^13.3.8",
     "simple-git": "^3.27.0",
-    "yaml": "^2.5.1"
+    "yaml": "^2.6.0"
   },
   "devDependencies": {
     "@databases/pg-migrations": "^5.0.3",
