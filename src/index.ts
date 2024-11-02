@@ -301,12 +301,12 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     app.on(["check_suite.rerequested"], async (context) => {
         app.log.info(`check_suite.rerequested event received for ${context.payload.check_suite.id}`);
         // get all check runs for this check suite
-        const checkRuns = await context.octokit.checks.listForSuite({
+        const checkRuns = await context.octokit.paginate(context.octokit.checks.listForSuite, {
             owner: context.payload.repository.owner.login,
             repo: context.payload.repository.name,
             check_suite_id: context.payload.check_suite.id
-        });
-        for (const checkRun of checkRuns.data.check_runs) {
+        }, response => response.data.check_runs);
+        for (const checkRun of checkRuns) {
             if ((<any>Object).values(PRCheckName).includes(checkRun.name)) {
                 await checks.triggerReRunPRCheck(context.octokit, {
                     check_run_id: checkRun.id,
