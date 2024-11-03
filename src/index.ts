@@ -305,7 +305,7 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             owner: context.payload.repository.owner.login,
             repo: context.payload.repository.name,
             check_suite_id: context.payload.check_suite.id
-        }, response => response.data.check_runs);
+        });
         for (const checkRun of checkRuns) {
             if ((<any>Object).values(PRCheckName).includes(checkRun.name)) {
                 await checks.triggerReRunPRCheck(context.octokit, {
