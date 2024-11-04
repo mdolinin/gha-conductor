@@ -148,12 +148,27 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         }
     });
 
-    app.on(["pull_request.opened", "pull_request.reopened", "pull_request.synchronize", "pull_request.closed"], async (context) => {
+    app.on(["pull_request.opened", "pull_request.reopened", "pull_request.synchronize", "pull_request.closed", "pull_request.edited"], async (context) => {
         const pr = context.payload.pull_request;
         const pullNumber = context.payload.pull_request.number;
         const owner = context.payload.repository.owner.login;
         const repo = context.payload.repository.name;
+        const repo_full_name = context.payload.repository.full_name;
         app.log.info(`PR handler called for ${pr.number} and action ${context.payload.action}`);
+        // if pull request edited but changes doesn't contain base branch changes then skip all hooks
+        if (context.payload.action === "edited") {
+            const changes = context.payload.changes;
+            if (changes && changes.base && changes.base.ref && changes.base.ref.from) {
+                const baseBranch = changes.base.ref.from;
+                const newBaseBranch = pr.base.ref;
+                app.log.info(`PR base branch was changed from ${baseBranch} to ${newBaseBranch}. Reevaluating hooks`);
+                const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name);
+                await ghaLoader.loadAllGhaYamlForBranchIfNew(context.octokit, repo_full_name, newBaseBranch, ghaHooksFileName);
+            } else {
+                app.log.info("PR base branch was not changed. No hooks will be triggered");
+                return;
+            }
+        }
         let mergeable = pr.mergeable;
         let merge_commit_sha = pr.merge_commit_sha;
         if (mergeable === null && !pr.merged) {
@@ -197,7 +212,6 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         const numOfChangedFiles = context.payload.pull_request.changed_files;
         if (numOfChangedFiles > 0) {
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name);
-            const repo_full_name = context.payload.repository.full_name;
             // if PR is just opened load all gha hooks for base branch
             if (context.payload.action === "opened") {
                 await ghaLoader.loadAllGhaYamlForBranchIfNew(context.octokit, repo_full_name, baseBranch, ghaHooksFileName);

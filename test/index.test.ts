@@ -641,6 +641,81 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
+    test("when PR edited but base branch is not changed, do nothing", async () => {
+        const mock = nock("https://api.github.com")
+        const prTitleEditedPayload = {
+            ...pullRequestOpenedPayload,
+            action: "edited",
+            changes: {
+                title: {
+                    from: "test",
+                }
+            }
+        }
+        await probot.receive({name: "pull_request", payload: prTitleEditedPayload});
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(0);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(0);
+        expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
+    test("when PR edited but base branch is changed, load all hooks from new branch and continue", async () => {
+        runWorkflowMock = runWorkflowMock.mockImplementation(() => {
+            return Promise.resolve([{name: "test", inputs: {}}]);
+        });
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
+            .get("/repos/mdolinin/mono-repo-example/pulls/27")
+            .reply(200, {
+                mergeable: true,
+                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                base: {
+                    ref: "main",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ]);
+        const prBaseBranchEditedPayload = {
+            ...pullRequestOpenedPayload,
+            action: "edited",
+            changes: {
+                base: {
+                    ref: {
+                        from: "main",
+                    }
+                }
+            },
+        }
+        await probot.receive({name: "pull_request", payload: prBaseBranchEditedPayload});
+        // restore mock implementation
+        runWorkflowMock = runWorkflowMock.mockImplementation(() => {
+            return Promise.resolve([]);
+        });
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
+        expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
+        expect(runWorkflowMock).toHaveBeenCalledTimes(1);
+        expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
     afterEach(() => {
         nock.cleanAll();
         nock.enableNetConnect();

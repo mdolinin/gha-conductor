@@ -380,7 +380,7 @@ export class Hooks {
     }
 
     static mapEventTypeToHook(
-        eventType: "closed" | "opened" | "reopened" | "synchronize",
+        eventType: "closed" | "opened" | "reopened" | "synchronize" | "edited",
         merged: null | boolean): HookType {
         switch (eventType) {
             case "closed":
@@ -391,6 +391,7 @@ export class Hooks {
             case "opened":
             case "reopened":
             case "synchronize":
+            case "edited":
                 return "onPullRequest";
         }
     }
