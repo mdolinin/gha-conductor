@@ -493,16 +493,7 @@ export class GhaChecks {
     }
 
     private formatGHCheckSummary(workflow: GhaWorkflowRuns, conclusion: string, status: string, log: string | null) {
-        let workflowRunStatusIcon: string;
-        if (conclusion === "failure") {
-            workflowRunStatusIcon = "❌";
-        } else if (conclusion === "success") {
-            workflowRunStatusIcon = "✅";
-        } else if (status === "in_progress") {
-            workflowRunStatusIcon = "\uD83D\uDD04";
-        } else {
-            workflowRunStatusIcon = "⏸️";
-        }
+        const workflowRunStatusIcon = this.getWorkflowStatusIcon(conclusion, status);
         let summary = `<details><summary>${workflowRunStatusIcon}: ${workflow.name}</summary><p>\n` +
             `\n` +
             `\n` +
@@ -528,14 +519,44 @@ export class GhaChecks {
         return summary;
     }
 
+    private getWorkflowStatusIcon(conclusion: string, status: string) {
+        if (conclusion === "failure") {
+            return "❌";
+        } else if (conclusion === "success") {
+            return "✅";
+        } else if (status === "in_progress") {
+            return "\uD83D\uDD04";
+        } else {
+            return "⏸️";
+        }
+    }
+
     private async formatGHCheckSummaryAll(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, workflowRuns: GhaWorkflowRuns[], status: string = "") {
+        let summaryWithoutLogs = ""
+        for (const workflowRun of workflowRuns) {
+            const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
+            const workflowRunStatus = workflowRun.status ? workflowRun.status : status;
+            summaryWithoutLogs += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, "");
+            summaryWithoutLogs += "\n";
+        }
+        if (summaryWithoutLogs.length > GITHUB_CHECK_TEXT_LIMIT) {
+            // create simplified summary
+            let summary = "";
+            for (const workflowRun of workflowRuns) {
+                const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
+                const workflowRunStatus = workflowRun.status ? workflowRun.status : status;
+                const workflowRunStatusIcon = this.getWorkflowStatusIcon(workflowRunConclusion, workflowRunStatus);
+                summary += `${workflowRunStatusIcon}: **[${workflowRun.name}](${workflowRun.workflow_run_url})**\n`;
+            }
+            return summary;
+        }
         let summary = "";
-        const log_max_size = (GITHUB_CHECK_TEXT_LIMIT / workflowRuns.length) - 2000;
+        const log_max_size = (GITHUB_CHECK_TEXT_LIMIT / workflowRuns.length) - summaryWithoutLogs.length;
         for (const workflowRun of workflowRuns) {
             const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
             const workflowRunStatus = workflowRun.status ? workflowRun.status : status;
             let workflowJobLog: string | null = null;
-            if (workflowRun.workflow_job_id !== null) {
+            if (workflowRun.workflow_job_id !== null && log_max_size > 0) {
                 workflowJobLog = await this.getWorkflowJobLog(octokit, owner, repo, workflowRun.workflow_job_id, log_max_size);
             }
             summary += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, workflowJobLog);

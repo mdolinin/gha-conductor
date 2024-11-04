@@ -205,19 +205,19 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             const eventType = context.payload.action;
             const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
-            const changedFilesResp = await context.octokit.pulls.listFiles({
+            const changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
                 owner: owner,
                 repo: repo,
                 pull_number: pullNumber
             });
-            const changedFiles = changedFilesResp.data.map((file) => file.filename);
+            const changedFiles = changedFilesResp.map((file) => file.filename);
             app.log.debug(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, ghaHooksFileName, changedFilesResp.data);
+            const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, ghaHooksFileName, changedFilesResp);
             if (annotationsForCheck.length > 0) {
                 await checks.createPRCheckWithAnnotations(context.octokit, pr, hookType, annotationsForCheck);
                 return;
             }
-            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp.data);
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp);
             const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR);
             if (merge_commit_sha === null) {
                 merge_commit_sha = context.payload.pull_request.head.sha;
@@ -301,12 +301,12 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     app.on(["check_suite.rerequested"], async (context) => {
         app.log.info(`check_suite.rerequested event received for ${context.payload.check_suite.id}`);
         // get all check runs for this check suite
-        const checkRuns = await context.octokit.checks.listForSuite({
+        const checkRuns = await context.octokit.paginate(context.octokit.checks.listForSuite, {
             owner: context.payload.repository.owner.login,
             repo: context.payload.repository.name,
             check_suite_id: context.payload.check_suite.id
         });
-        for (const checkRun of checkRuns.data.check_runs) {
+        for (const checkRun of checkRuns) {
             if ((<any>Object).values(PRCheckName).includes(checkRun.name)) {
                 await checks.triggerReRunPRCheck(context.octokit, {
                     check_run_id: checkRun.id,
@@ -406,15 +406,15 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         const numOfChangedFiles = pr.changed_files;
         if (numOfChangedFiles > 0) {
             const repo_full_name = context.payload.repository.full_name;
-            const changedFilesResp = await context.octokit.pulls.listFiles({
+            const changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
                 owner: owner,
                 repo: repo,
                 pull_number: prNumber
             });
-            const changedFiles = changedFilesResp.data.map((file) => file.filename);
+            const changedFiles = changedFilesResp.map((file) => file.filename);
             app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, repo_full_name);
-            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp.data);
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp);
             const hookType = "onSlashCommand"
             const baseBranch = pr.base.ref;
             const command = commandTokens[0]

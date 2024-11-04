@@ -555,14 +555,14 @@ describe("gha-conductor app", () => {
                 },
             })
             .get("/repos/mdolinin/mono-repo-example/check-suites/20638784158/check-runs")
-            .reply(200, {
-                check_runs: [
+            .reply(200,
+                [
                     {
                         id: 7856385885,
                         name: "pr-status",
                     }
                 ]
-            });
+            );
 
         await probot.receive({name: "check_suite", payload: checkSuiteRerequestedPayload});
         expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
