@@ -1,3 +1,10 @@
+## [1.20.1](https://github.com/mdolinin/gha-conductor/compare/v1.20.0...v1.20.1) (2024-11-04)
+
+
+### Bug Fixes
+
+* **pr-check:** reevaluate checks when the base branch of a pull request was changed ([#227](https://github.com/mdolinin/gha-conductor/issues/227)) ([063a786](https://github.com/mdolinin/gha-conductor/commit/063a786c9e3fb193777894e7732217a387f5fe6f))
+
 # [1.20.0](https://github.com/mdolinin/gha-conductor/compare/v1.19.0...v1.20.0) (2024-08-30)
 
 
