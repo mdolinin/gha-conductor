@@ -1037,53 +1037,53 @@
     node-gyp "^10.0.0"
     which "^4.0.0"
 
-"@octokit/auth-app@^6.0.1":
-  version "6.0.4"
-  resolved "https://registry.yarnpkg.com/@octokit/auth-app/-/auth-app-6.0.4.tgz#3c435c4c9ba9005405d889f4a5018df5e8ca93cf"
-  integrity sha512-TPmJYgd05ok3nzHj7Y6we/V7Ez1wU3ztLFW3zo/afgYFtqYZg0W7zb6Kp5ag6E85r8nCE1JfS6YZoZusa14o9g==
+"@octokit/auth-app@^6.1.3":
+  version "6.1.3"
+  resolved "https://registry.yarnpkg.com/@octokit/auth-app/-/auth-app-6.1.3.tgz#68372159aa7b3c80d0c2319f96e1d93e2e5614d2"
+  integrity sha512-dcaiteA6Y/beAlDLZOPNReN3FGHu+pARD6OHfh3T9f3EO09++ec+5wt3KtGGSSs2Mp5tI8fQwdMOEnrzBLfgUA==
   dependencies:
-    "@octokit/auth-oauth-app" "^7.0.0"
-    "@octokit/auth-oauth-user" "^4.0.0"
-    "@octokit/request" "^8.0.2"
-    "@octokit/request-error" "^5.0.0"
-    "@octokit/types" "^12.0.0"
+    "@octokit/auth-oauth-app" "^7.1.0"
+    "@octokit/auth-oauth-user" "^4.1.0"
+    "@octokit/request" "^8.3.1"
+    "@octokit/request-error" "^5.1.0"
+    "@octokit/types" "^13.1.0"
     deprecation "^2.3.1"
-    lru-cache "^10.0.0"
+    lru-cache "npm:@wolfy1339/lru-cache@^11.0.2-patch.1"
     universal-github-app-jwt "^1.1.2"
     universal-user-agent "^6.0.0"
 
-"@octokit/auth-oauth-app@^7.0.0":
-  version "7.0.1"
-  resolved "https://registry.yarnpkg.com/@octokit/auth-oauth-app/-/auth-oauth-app-7.0.1.tgz#30fd8fcb4608ca52c29c265a3fc7032897796c8e"
-  integrity sha512-RE0KK0DCjCHXHlQBoubwlLijXEKfhMhKm9gO56xYvFmP1QTMb+vvwRPmQLLx0V+5AvV9N9I3lr1WyTzwL3rMDg==
+"@octokit/auth-oauth-app@^7.1.0":
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/@octokit/auth-oauth-app/-/auth-oauth-app-7.1.0.tgz#d0f74e19ebd5a4829cb780c107cedd6c894f20fc"
+  integrity sha512-w+SyJN/b0l/HEb4EOPRudo7uUOSW51jcK1jwLa+4r7PA8FPFpoxEnHBHMITqCsc/3Vo2qqFjgQfz/xUUvsSQnA==
   dependencies:
-    "@octokit/auth-oauth-device" "^6.0.0"
-    "@octokit/auth-oauth-user" "^4.0.0"
-    "@octokit/request" "^8.0.2"
-    "@octokit/types" "^12.0.0"
+    "@octokit/auth-oauth-device" "^6.1.0"
+    "@octokit/auth-oauth-user" "^4.1.0"
+    "@octokit/request" "^8.3.1"
+    "@octokit/types" "^13.0.0"
     "@types/btoa-lite" "^1.0.0"
     btoa-lite "^1.0.0"
     universal-user-agent "^6.0.0"
 
-"@octokit/auth-oauth-device@^6.0.0":
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/@octokit/auth-oauth-device/-/auth-oauth-device-6.0.1.tgz#38e5f7f8997c5e8b774f283463ecf4a7e42d7cee"
-  integrity sha512-yxU0rkL65QkjbqQedgVx3gmW7YM5fF+r5uaSj9tM/cQGVqloXcqP2xK90eTyYvl29arFVCW8Vz4H/t47mL0ELw==
+"@octokit/auth-oauth-device@^6.1.0":
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/@octokit/auth-oauth-device/-/auth-oauth-device-6.1.0.tgz#f868213a3db05fe27e68d1fc607502a322379dd9"
+  integrity sha512-FNQ7cb8kASufd6Ej4gnJ3f1QB5vJitkoV1O0/g6e6lUsQ7+VsSNRHRmFScN2tV4IgKA12frrr/cegUs0t+0/Lw==
   dependencies:
-    "@octokit/oauth-methods" "^4.0.0"
-    "@octokit/request" "^8.0.0"
-    "@octokit/types" "^12.0.0"
+    "@octokit/oauth-methods" "^4.1.0"
+    "@octokit/request" "^8.3.1"
+    "@octokit/types" "^13.0.0"
     universal-user-agent "^6.0.0"
 
-"@octokit/auth-oauth-user@^4.0.0":
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/@octokit/auth-oauth-user/-/auth-oauth-user-4.0.1.tgz#c8267883935c83f78318c726ff91d7e98de05517"
-  integrity sha512-N94wWW09d0hleCnrO5wt5MxekatqEJ4zf+1vSe8MKMrhZ7gAXKFOKrDEZW2INltvBWJCyDUELgGRv8gfErH1Iw==
+"@octokit/auth-oauth-user@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@octokit/auth-oauth-user/-/auth-oauth-user-4.1.0.tgz#32e5529f8bd961af9839a1f8c6ab0c8ad2184eee"
+  integrity sha512-FrEp8mtFuS/BrJyjpur+4GARteUCrPeR/tZJzD8YourzoVhRics7u7we/aDcKv+yywRNwNi/P4fRi631rG/OyQ==
   dependencies:
-    "@octokit/auth-oauth-device" "^6.0.0"
-    "@octokit/oauth-methods" "^4.0.0"
-    "@octokit/request" "^8.0.2"
-    "@octokit/types" "^12.0.0"
+    "@octokit/auth-oauth-device" "^6.1.0"
+    "@octokit/oauth-methods" "^4.1.0"
+    "@octokit/request" "^8.3.1"
+    "@octokit/types" "^13.0.0"
     btoa-lite "^1.0.0"
     universal-user-agent "^6.0.0"
 
@@ -1139,12 +1139,12 @@
     "@octokit/types" "^13.0.0"
     universal-user-agent "^7.0.2"
 
-"@octokit/endpoint@^9.0.0":
-  version "9.0.4"
-  resolved "https://registry.yarnpkg.com/@octokit/endpoint/-/endpoint-9.0.4.tgz#8afda5ad1ffc3073d08f2b450964c610b821d1ea"
-  integrity sha512-DWPLtr1Kz3tv8L0UvXTDP1fNwM0S+z6EJpRcvH66orY6Eld4XBMCSYsaWp4xIm61jTWxK68BrR7ibO+vSDnZqw==
+"@octokit/endpoint@^9.0.1":
+  version "9.0.5"
+  resolved "https://registry.yarnpkg.com/@octokit/endpoint/-/endpoint-9.0.5.tgz#e6c0ee684e307614c02fc6ac12274c50da465c44"
+  integrity sha512-ekqR4/+PCLkEBF6qgj8WqJfvDq65RH85OAgrtnVp1mSxaXF03u2xW/hUdweGS5654IlC0wkNYC18Z50tSYTAFw==
   dependencies:
-    "@octokit/types" "^12.0.0"
+    "@octokit/types" "^13.1.0"
     universal-user-agent "^6.0.0"
 
 "@octokit/graphql@^7.0.0":
@@ -1170,15 +1170,15 @@
   resolved "https://registry.yarnpkg.com/@octokit/oauth-authorization-url/-/oauth-authorization-url-6.0.2.tgz#cc82ca29cc5e339c9921672f39f2b3f5c8eb6ef2"
   integrity sha512-CdoJukjXXxqLNK4y/VOiVzQVjibqoj/xHgInekviUJV73y/BSIcwvJ/4aNHPBPKcPWFnd4/lO9uqRV65jXhcLA==
 
-"@octokit/oauth-methods@^4.0.0":
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/@octokit/oauth-methods/-/oauth-methods-4.0.1.tgz#90d22c662387056307778d7e5c4763ff559636c4"
-  integrity sha512-1NdTGCoBHyD6J0n2WGXg9+yDLZrRNZ0moTEex/LSPr49m530WNKcCfXDghofYptr3st3eTii+EHoG5k/o+vbtw==
+"@octokit/oauth-methods@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@octokit/oauth-methods/-/oauth-methods-4.1.0.tgz#1403ac9c4d4e277922fddc4c89fa8a782f8f791b"
+  integrity sha512-4tuKnCRecJ6CG6gr0XcEXdZtkTDbfbnD5oaHBmLERTjTMZNi2CbfEHZxPU41xXLDG4DfKf+sonu00zvKI9NSbw==
   dependencies:
     "@octokit/oauth-authorization-url" "^6.0.2"
-    "@octokit/request" "^8.0.2"
-    "@octokit/request-error" "^5.0.0"
-    "@octokit/types" "^12.0.0"
+    "@octokit/request" "^8.3.1"
+    "@octokit/request-error" "^5.1.0"
+    "@octokit/types" "^13.0.0"
     btoa-lite "^1.0.0"
 
 "@octokit/openapi-types@^20.0.0":
@@ -1186,10 +1186,10 @@
   resolved "https://registry.yarnpkg.com/@octokit/openapi-types/-/openapi-types-20.0.0.tgz#9ec2daa0090eeb865ee147636e0c00f73790c6e5"
   integrity sha512-EtqRBEjp1dL/15V7WiX5LJMIxxkdiGJnabzYx5Apx4FkQIFgAfKumXeYAqqJCj1s+BMX4cPFIFC4OLCR6stlnA==
 
-"@octokit/openapi-types@^21.0.0":
-  version "21.2.0"
-  resolved "https://registry.yarnpkg.com/@octokit/openapi-types/-/openapi-types-21.2.0.tgz#d699a060dd6814fae4e5b601a5d530b6edd94136"
-  integrity sha512-xx+Xd6I7rYvul/hgUDqv6TeGX0IOGnhSg9IOeYgd/uI7IAqUy6DE2B6Ipv2M4mWoxaMcWjIzgTIcv8pMO3F3vw==
+"@octokit/openapi-types@^22.2.0":
+  version "22.2.0"
+  resolved "https://registry.yarnpkg.com/@octokit/openapi-types/-/openapi-types-22.2.0.tgz#75aa7dcd440821d99def6a60b5f014207ae4968e"
+  integrity sha512-QBhVjcUa9W7Wwhm6DBFu6ZZ+1/t/oYxqc2tp81Pi41YNuJinbFRx8B133qVOrAaBbF7D/m0Et6f9/pZt9Rc+tg==
 
 "@octokit/plugin-enterprise-compatibility@^4.0.1":
   version "4.0.1"
@@ -1263,6 +1263,15 @@
     deprecation "^2.0.0"
     once "^1.4.0"
 
+"@octokit/request-error@^5.1.0":
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/@octokit/request-error/-/request-error-5.1.0.tgz#ee4138538d08c81a60be3f320cd71063064a3b30"
+  integrity sha512-GETXfE05J0+7H2STzekpKObFe765O5dlAKUTLNGeH+x47z7JjXHfsHKo5z21D/o/IOZTUEI6nyWyR+bZVP/n5Q==
+  dependencies:
+    "@octokit/types" "^13.1.0"
+    deprecation "^2.0.0"
+    once "^1.4.0"
+
 "@octokit/request-error@^6.0.0", "@octokit/request-error@^6.0.1":
   version "6.1.0"
   resolved "https://registry.yarnpkg.com/@octokit/request-error/-/request-error-6.1.0.tgz#8b69a5c6db3674369a84722ce3d06b58f1d71584"
@@ -1270,14 +1279,14 @@
   dependencies:
     "@octokit/types" "^13.0.0"
 
-"@octokit/request@^8.0.0", "@octokit/request@^8.0.1", "@octokit/request@^8.0.2", "@octokit/request@^8.1.6":
-  version "8.2.0"
-  resolved "https://registry.yarnpkg.com/@octokit/request/-/request-8.2.0.tgz#125c547bc3f4c0e2dfa38c6829a1cf00027fbd98"
-  integrity sha512-exPif6x5uwLqv1N1irkLG1zZNJkOtj8bZxuVHd71U5Ftuxf2wGNvAJyNBcPbPC+EBzwYEbBDdSFb8EPcjpYxPQ==
+"@octokit/request@^8.0.1", "@octokit/request@^8.0.2", "@octokit/request@^8.1.6", "@octokit/request@^8.3.1":
+  version "8.4.0"
+  resolved "https://registry.yarnpkg.com/@octokit/request/-/request-8.4.0.tgz#7f4b7b1daa3d1f48c0977ad8fffa2c18adef8974"
+  integrity sha512-9Bb014e+m2TgBeEJGEbdplMVWwPmL1FPtggHQRkV+WVsMggPtEkLKPlcVYm/o8xKLkpJ7B+6N8WfQMtDLX2Dpw==
   dependencies:
-    "@octokit/endpoint" "^9.0.0"
-    "@octokit/request-error" "^5.0.0"
-    "@octokit/types" "^12.0.0"
+    "@octokit/endpoint" "^9.0.1"
+    "@octokit/request-error" "^5.1.0"
+    "@octokit/types" "^13.1.0"
     universal-user-agent "^6.0.0"
 
 "@octokit/request@^9.0.0":
@@ -1297,12 +1306,12 @@
   dependencies:
     "@octokit/openapi-types" "^20.0.0"
 
-"@octokit/types@^13.0.0":
-  version "13.1.0"
-  resolved "https://registry.yarnpkg.com/@octokit/types/-/types-13.1.0.tgz#d99ec2996eb617a484120d706b5ce96905cb1fb0"
-  integrity sha512-nBwAFOYqVUUJ2AZFK4ZzESQptaAVqdTDKk8gE0Xr0o99WuPDSrhUC38x0F40xD9OUxXhOOuZKWNNVVLPSHQDvQ==
+"@octokit/types@^13.0.0", "@octokit/types@^13.1.0":
+  version "13.6.1"
+  resolved "https://registry.yarnpkg.com/@octokit/types/-/types-13.6.1.tgz#432fc6c0aaae54318e5b2d3e15c22ac97fc9b15f"
+  integrity sha512-PHZE9Z+kWXb23Ndik8MKPirBPziOc0D2/3KH1P+6jK5nGWe96kadZuE4jev2/Jq7FvIfTlT2Ltg8Fv2x1v0a5g==
   dependencies:
-    "@octokit/openapi-types" "^21.0.0"
+    "@octokit/openapi-types" "^22.2.0"
 
 "@octokit/webhooks-methods@^4.1.0":
   version "4.1.0"
@@ -6017,7 +6026,7 @@ loose-envify@^1.0.0:
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
 
-lru-cache@^10.0.0, lru-cache@^10.0.1, lru-cache@^10.0.3, lru-cache@^10.2.0:
+lru-cache@^10.0.1, lru-cache@^10.2.0:
   version "10.4.3"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-10.4.3.tgz#410fc8a17b70e598013df257c2446b7f3383f119"
   integrity sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==
@@ -6046,6 +6055,11 @@ lru-cache@^7.14.0:
   version "7.18.3"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-7.18.3.tgz#f793896e0fd0e954a59dfdd82f0773808df6aa89"
   integrity sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==
+
+"lru-cache@npm:@wolfy1339/lru-cache@^11.0.2-patch.1":
+  version "11.0.2-patch.1"
+  resolved "https://registry.yarnpkg.com/@wolfy1339/lru-cache/-/lru-cache-11.0.2-patch.1.tgz#bb648b660478099c9022ee71a00b80603daf7294"
+  integrity sha512-BgYZfL2ADCXKOw2wJtkM3slhHotawWkgIRRxq4wEybnZQPjvAp71SPX35xepMykTw8gXlzWcWPTY31hlbnRsDA==
 
 make-dir@^4.0.0:
   version "4.0.0"
@@ -6696,12 +6710,12 @@ object.assign@^4.1.4:
     has-symbols "^1.0.3"
     object-keys "^1.1.1"
 
-octokit-auth-probot@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/octokit-auth-probot/-/octokit-auth-probot-2.0.0.tgz#5c52a6c8cb5546bf9bfd2d7249f654bea9668d2a"
-  integrity sha512-bxidVIyxYJ+hWkG24pchPrN6mJdQrklZ2Acu+oGmZlh9aRONsIrw0KNW5W7QC2VlkxsFQwb9lnV+vH0BcEhnLQ==
+octokit-auth-probot@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/octokit-auth-probot/-/octokit-auth-probot-2.0.1.tgz#8b536a08aea6587ace88e0bff87f69510d9a679e"
+  integrity sha512-HzOJ4EPC5OJN6oZEoKTMYtqUQ2ZSKHmDWbLHfFB7JYpho9Zb+aJmDfRShd5a/eGvmIzbZ0NRIWjmnvspDp8JAQ==
   dependencies:
-    "@octokit/auth-app" "^6.0.1"
+    "@octokit/auth-app" "^6.1.3"
     "@octokit/auth-token" "^4.0.0"
     "@octokit/auth-unauthenticated" "^5.0.1"
     "@octokit/types" "^12.0.0"
@@ -7280,10 +7294,10 @@ private@^0.1.6, private@^0.1.8:
   resolved "https://registry.yarnpkg.com/private/-/private-0.1.8.tgz#2381edb3689f7a53d653190060fcf822d2f368ff"
   integrity sha512-VvivMrbvd2nKkiG38qjULzlc+4Vx4wm/whI9pQD35YrARNnhxeiRktSOhSukRLFNlzg6Br/cJPet5J/u19r/mg==
 
-probot@^13.3.9:
-  version "13.3.9"
-  resolved "https://registry.yarnpkg.com/probot/-/probot-13.3.9.tgz#2b6680fda6886dacb2fa7b87de4b8312ad306b01"
-  integrity sha512-uIRErUsseimlH9pIWCfI8XVCtpFCZE2FoUsZ3O58Zuh28bGCrXwBzzGR0ykeEJBAVHNOhaWtxdWz05fevDHdow==
+probot@^13.3.10:
+  version "13.3.10"
+  resolved "https://registry.yarnpkg.com/probot/-/probot-13.3.10.tgz#60310d84077ba891c8059f906563505801a9552f"
+  integrity sha512-C9XyVTHbNqEpoVTYBY8V4k3P1mM0JYwXoHV008i34cexQyWtvggX+IU2eJ2ZvIPXqLiig7H626gOxNgXlUUkjg==
   dependencies:
     "@octokit/core" "^5.0.2"
     "@octokit/plugin-enterprise-compatibility" "^4.0.1"
@@ -7305,8 +7319,8 @@ probot@^13.3.9:
     express "^4.21.0"
     ioredis "^5.3.2"
     js-yaml "^4.1.0"
-    lru-cache "^10.0.3"
-    octokit-auth-probot "^2.0.0"
+    lru-cache "npm:@wolfy1339/lru-cache@^11.0.2-patch.1"
+    octokit-auth-probot "^2.0.1"
     pino "^9.0.0"
     pino-http "^10.0.0"
     pkg-conf "^3.1.0"
