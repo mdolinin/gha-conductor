@@ -1,3 +1,10 @@
+## [1.20.2](https://github.com/mdolinin/gha-conductor/compare/v1.20.1...v1.20.2) (2024-11-06)
+
+
+### Bug Fixes
+
+* **gh-checks:** catch and correctly log errors from octokit rest client ([#230](https://github.com/mdolinin/gha-conductor/issues/230)) ([8cd26db](https://github.com/mdolinin/gha-conductor/commit/8cd26db93428f5b695d9d18c9da66a80791709fc))
+
 ## [1.20.1](https://github.com/mdolinin/gha-conductor/compare/v1.20.0...v1.20.1) (2024-11-04)
 
 
