@@ -13,7 +13,7 @@ import {GhaWorkflowRuns} from "./__generated__";
 import {anyOf, not} from "@databases/pg-typed";
 import {TriggeredWorkflow} from "./hooks";
 
-const GITHUB_CHECK_TEXT_LIMIT = 65535;
+export const GITHUB_CHECK_TEXT_LIMIT = 65535;
 const ansiPattern = [
     '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
     '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]))'
@@ -550,12 +550,12 @@ export class GhaChecks {
         }
     }
 
-    private async formatGHCheckSummaryAll(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, workflowRuns: GhaWorkflowRuns[], status: string = "") {
+    async formatGHCheckSummaryAll(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, workflowRuns: GhaWorkflowRuns[], status: string = "") {
         let summaryWithoutLogs = ""
         for (const workflowRun of workflowRuns) {
             const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
             const workflowRunStatus = workflowRun.status ? workflowRun.status : status;
-            summaryWithoutLogs += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, "");
+            summaryWithoutLogs += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, "-");
             summaryWithoutLogs += "\n";
         }
         if (summaryWithoutLogs.length > GITHUB_CHECK_TEXT_LIMIT) {
@@ -567,10 +567,16 @@ export class GhaChecks {
                 const workflowRunStatusIcon = this.getWorkflowStatusIcon(workflowRunConclusion, workflowRunStatus);
                 summary += `${workflowRunStatusIcon}: **[${workflowRun.name}](${workflowRun.workflow_run_url})**\n`;
             }
+            if (summary.length > GITHUB_CHECK_TEXT_LIMIT) {
+                return summary.slice(0, GITHUB_CHECK_TEXT_LIMIT);
+            }
             return summary;
         }
         let summary = "";
-        const log_max_size = (GITHUB_CHECK_TEXT_LIMIT / workflowRuns.length) - summaryWithoutLogs.length;
+        let log_max_size = GITHUB_CHECK_TEXT_LIMIT - summaryWithoutLogs.length;
+        if (workflowRuns.length > 0) {
+            log_max_size = Math.floor(log_max_size / workflowRuns.length);
+        }
         for (const workflowRun of workflowRuns) {
             const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
             const workflowRunStatus = workflowRun.status ? workflowRun.status : status;
