@@ -1,3 +1,10 @@
+## [1.20.3](https://github.com/mdolinin/gha-conductor/compare/v1.20.2...v1.20.3) (2024-11-07)
+
+
+### Bug Fixes
+
+* **gh-checks:** github check summary for multiple workflow runs should not go over limit ([#231](https://github.com/mdolinin/gha-conductor/issues/231)) ([665df66](https://github.com/mdolinin/gha-conductor/commit/665df664594837120af88a02a4f75cacbbd6d8c2))
+
 ## [1.20.2](https://github.com/mdolinin/gha-conductor/compare/v1.20.1...v1.20.2) (2024-11-06)
 
 
