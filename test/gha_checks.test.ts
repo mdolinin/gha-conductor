@@ -1,4 +1,4 @@
-import {GhaChecks, PRCheckAction, ReRunPayload} from "../src/gha_checks";
+import {GhaChecks, GITHUB_CHECK_TEXT_LIMIT, PRCheckAction, ReRunPayload} from "../src/gha_checks";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
@@ -937,5 +937,30 @@ describe('gha_checks', () => {
         expect(createCheckMock).toHaveBeenCalledTimes(1);
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
         expect(updateMock).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([0, 1, 10, 300, 1000])('github check summary for \'%s\' workflow runs should not go over limit', async (numberOfWorkflowRuns) => {
+        const veryLongString = "a".repeat(GITHUB_CHECK_TEXT_LIMIT + 100);
+        const octokit = {
+            actions: {
+                downloadJobLogsForWorkflowRun: jest.fn().mockImplementation(() => {
+                    return {
+                        data: veryLongString
+                    }
+                })
+            }
+        }
+        const randomWorkflowRuns = (amount: number) => Array.from({length: amount}, () => {
+            return {
+                status: "completed",
+                conclusion: "success",
+                workflow_job_id: 1,
+                workflow_run_url: `https://github.com/mdolinin/mono-repo-example/actions/runs/${Math.floor(Math.random() * 10000000000)}`,
+                workflow_run_inputs: {"PIPELINE_NAME": "namespace1-module1-hook1"}
+            }
+        });
+        // @ts-ignore
+        const summary = await checks.formatGHCheckSummaryAll(octokit, "test_owner", "test_repo", randomWorkflowRuns(numberOfWorkflowRuns), "completed");
+        expect(summary.length).toBeLessThanOrEqual(GITHUB_CHECK_TEXT_LIMIT);
     });
 });
