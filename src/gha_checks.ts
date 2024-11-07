@@ -111,7 +111,7 @@ export class GhaChecks {
                 workflow_run_url: `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${check.id}`
             });
         } catch (error) {
-            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`, error);
+            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
     }
 
@@ -148,7 +148,7 @@ export class GhaChecks {
             checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
             this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } catch (error) {
-            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`, error);
+            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
         return checkRunUrl;
     }
@@ -188,7 +188,7 @@ export class GhaChecks {
             checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
             this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } catch (error) {
-            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`, error);
+            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
         return checkRunUrl;
     }
@@ -253,7 +253,7 @@ export class GhaChecks {
                 pr_conclusion: "failure"
             });
         } catch (error) {
-            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`, error);
+            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
         return checkRunUrl;
     }
@@ -303,7 +303,7 @@ export class GhaChecks {
                 pr_check_id: checkRunId
             });
         } catch (error) {
-            this.log.error(`Failed to create ${checkName} check for PR #${pull_request.number}`, error);
+            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
         }
         return checkRunUrl;
     }
@@ -355,7 +355,7 @@ export class GhaChecks {
                     workflow_run_url: check.details_url
                 });
             } catch (error) {
-                this.log.error(`Failed to create ${checkName} check for workflow run ${workflowJob.name} as queued`, error);
+                this.log.error(error, `Failed to create ${checkName} check for workflow run ${workflowJob.name} as queued`);
             }
         }
     }
@@ -397,7 +397,7 @@ export class GhaChecks {
                     status: check.status,
                 });
             } catch (error) {
-                this.log.error(`Failed to update check run with id ${checkRunId} for workflow run ${workflowJob.name} in progress`, error);
+                this.log.error(error, `Failed to update check run with id ${checkRunId} for workflow run ${workflowJob.name} in progress`);
             }
         }
     }
@@ -445,7 +445,7 @@ export class GhaChecks {
                     conclusion: check.conclusion,
                 });
             } catch (error) {
-                this.log.error(`Failed to update check run with id ${checkRunId} for workflow run ${workflowJob.name} as completed`, error);
+                this.log.error(error, `Failed to update check run with id ${checkRunId} for workflow run ${workflowJob.name} as completed`);
             }
         }
     }
@@ -483,7 +483,7 @@ export class GhaChecks {
                 await octokit.checks.update(params);
                 this.log.info(`Updating pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number}` + " in progress");
             } catch (error) {
-                this.log.error(`Failed to update pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number} in progress`, error);
+                this.log.error(error, `Failed to update pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number} in progress`);
             }
         }
     }
@@ -654,7 +654,7 @@ export class GhaChecks {
                     });
                     await this.createPRCommentWithCheckUrlAfterMergeIfFailed(octokit, owner, repo, prNumber, allPRWorkflowRuns[0], conclusion, summary);
                 } catch (error) {
-                    this.log.error("Failed to update pr-status check with id " + prCheckId + " for PR #" + prNumber + "as completed", error);
+                    this.log.error(error, "Failed to update pr-status check with id " + prCheckId + " for PR #" + prNumber + "as completed");
                 }
             } else {
                 this.log.info("Some jobs not finished for pr #" + prNumber);
@@ -682,7 +682,7 @@ export class GhaChecks {
                 body: prComment
             });
         } catch (error) {
-            this.log.error(`Failed to create comment for PR #${prNumber}`, error);
+            this.log.error(error, `Failed to create comment for PR #${prNumber}`);
         }
     }
 
@@ -786,7 +786,7 @@ export class GhaChecks {
                 pr_conclusion: null
             });
         } catch (error) {
-            this.log.error(`Failed to create ${checkName} check for PR #${prRelatedWorkflowRun.pr_number}`, error);
+            this.log.error(error, `Failed to create ${checkName} check for PR #${prRelatedWorkflowRun.pr_number}`);
         }
     }
 
@@ -805,7 +805,7 @@ export class GhaChecks {
                 await octokit.actions.reRunWorkflow(params);
                 this.log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
             } catch (error) {
-                this.log.error(`Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`, error);
+                this.log.error(error, `Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`);
             }
         }
     }
