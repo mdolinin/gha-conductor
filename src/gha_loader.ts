@@ -44,45 +44,49 @@ export class GhaLoader {
     }
 
     async loadAllGhaHooksFromRepo(octokit: InstanceType<typeof ProbotOctokit>, full_name: string, branch: string, hooksFileName: string) {
-        const {token} = await octokit.auth({type: "installation"}) as Record<string, string>;
-        this.log.debug(`Repo full name is ${full_name}`);
-        // create temp dir
-        const target = path.join(process.env.TMPDIR || '/tmp/', full_name);
-        this.log.debug(`Temp dir is ${target}`);
-        if (fs.existsSync(target)) {
-            fs.rmSync(target, {recursive: true, force: true});
+        try {
+            const {token} = await octokit.auth({type: "installation"}) as Record<string, string>;
+            this.log.debug(`Repo full name is ${full_name}`);
+            // create temp dir
+            const target = path.join(process.env.TMPDIR || '/tmp/', full_name);
+            this.log.debug(`Temp dir is ${target}`);
+            if (fs.existsSync(target)) {
+                fs.rmSync(target, {recursive: true, force: true});
+            }
+            fs.mkdirSync(target, {recursive: true});
+            // clone repo
+            let remote = `https://x-access-token:${token}@github.com/${full_name}.git`;
+            this.log.debug(`Repo path is ${remote}`);
+            const cloneResp = await this.git.clone(remote, target);
+            if (cloneResp !== "") {
+                this.log.error(`Error cloning ${remote} repo ${cloneResp}`);
+                return;
+            }
+            // then set the working directory of the root instance - you want all future
+            // tasks run through `git` to be from the new directory, rather than just tasks
+            // chained off this task
+            await this.git.cwd({path: target, root: true});
+            if (branch !== "master" && branch !== "main") {
+                const checkoutResp = await this.git.checkoutBranch(branch, `origin/${branch}`);
+                this.log.debug("Checkout response is " + JSON.stringify(checkoutResp));
+            }
+            // find all hooks files in repo using glob lib
+            const ghaYamlFiles = await glob(`**/${hooksFileName}`, {cwd: target});
+            // parse yaml
+            let newHooks: GhaHook[] = [];
+            for (const ghaYamlFilePath of ghaYamlFiles) {
+                this.log.info(`Found ${hooksFileName} file ${ghaYamlFilePath}`);
+                const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
+                this.log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
+                const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, ghaYamlFilePath, full_name, branch);
+                newHooks = newHooks.concat(hooksFromFile);
+            }
+            this.log.debug(`Reinserting all ${newHooks.length} hooks`);
+            await gha_hooks(db).delete({repo_full_name: full_name, branch: branch});
+            await Promise.all(newHooks.map(hook => gha_hooks(db).insert(hook)));
+        } catch (e) {
+            this.log.error(e, `Error loading hooks for repo ${full_name} branch ${branch}`);
         }
-        fs.mkdirSync(target, {recursive: true});
-        // clone repo
-        let remote = `https://x-access-token:${token}@github.com/${full_name}.git`;
-        this.log.debug(`Repo path is ${remote}`);
-        const cloneResp = await this.git.clone(remote, target);
-        if (cloneResp !== "") {
-            this.log.error(`Error cloning ${remote} repo ${cloneResp}`);
-            return;
-        }
-        // then set the working directory of the root instance - you want all future
-        // tasks run through `git` to be from the new directory, rather than just tasks
-        // chained off this task
-        await this.git.cwd({path: target, root: true});
-        if (branch !== "master" && branch !== "main") {
-            const checkoutResp = await this.git.checkoutBranch(branch, `origin/${branch}`);
-            this.log.debug("Checkout response is " + JSON.stringify(checkoutResp));
-        }
-        // find all hooks files in repo using glob lib
-        const ghaYamlFiles = await glob(`**/${hooksFileName}`, {cwd: target});
-        // parse yaml
-        let newHooks: GhaHook[] = [];
-        for (const ghaYamlFilePath of ghaYamlFiles) {
-            this.log.info(`Found ${hooksFileName} file ${ghaYamlFilePath}`);
-            const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
-            this.log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
-            const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, ghaYamlFilePath, full_name, branch);
-            newHooks = newHooks.concat(hooksFromFile);
-        }
-        this.log.debug(`Reinserting all ${newHooks.length} hooks`);
-        await gha_hooks(db).delete({repo_full_name: full_name, branch: branch});
-        await Promise.all(newHooks.map(hook => gha_hooks(db).insert(hook)));
     }
 
     async validateGhaYamlFiles(octokit: InstanceType<typeof ProbotOctokit>, hooksFileName: string, data: components["schemas"]["diff-entry"][]) {
@@ -100,39 +104,19 @@ export class GhaLoader {
                 continue;
             }
             this.log.info(`Validating file ${file.filename}`);
-            const resp = await octokit.request(file.contents_url);
-            if (resp.status !== 200) {
-                this.log.error(`Error loading file ${file.filename}`);
-                continue;
-            }
-            const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
-            const lineCounter = new LineCounter()
             try {
-                const ghaFileDoc = parseDocument(ghaFileContent, {lineCounter})
-                if (ghaFileDoc.errors.length > 0) {
-                    ghaFileDoc.errors.forEach(error => {
-                        const {line, col} = lineCounter.linePos(error.pos[0]);
-                        this.log.warn(`${line}:${col} ${error.message}`);
-                        annotationsForCheck.push({
-                            annotation_level: "failure",
-                            message: error.message,
-                            path: file.filename,
-                            start_line: line,
-                            end_line: line,
-                            start_column: col,
-                            end_column: col
-                        });
-                    });
-                } else {
-                    validator(ghaFileDoc.toJSON())
-                    if (validator.errors) {
-                        validator.errors?.forEach(error => {
-                            const propertyPath = error.instancePath.split("/").slice(1);
-                            const node = ghaFileDoc.getIn(propertyPath, true);
-                            const {line, col} = this.getPosition(node, lineCounter);
+                const resp = await octokit.request(file.contents_url);
+                const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+                const lineCounter = new LineCounter()
+                try {
+                    const ghaFileDoc = parseDocument(ghaFileContent, {lineCounter})
+                    if (ghaFileDoc.errors.length > 0) {
+                        ghaFileDoc.errors.forEach(error => {
+                            const {line, col} = lineCounter.linePos(error.pos[0]);
+                            this.log.warn(`${line}:${col} ${error.message}`);
                             annotationsForCheck.push({
                                 annotation_level: "failure",
-                                message: error.message || "Unknown error",
+                                message: error.message,
                                 path: file.filename,
                                 start_line: line,
                                 end_line: line,
@@ -141,64 +125,84 @@ export class GhaLoader {
                             });
                         });
                     } else {
-                        // validate that pipeline unique prefix is unique `${teamNamespace}-${moduleName}-${name}`
-                        const teamNamespaceNode = ghaFileDoc.getIn(["teamNamespace"], true) as Node;
-                        const teamNamespace = teamNamespaceNode.toString();
-                        const moduleNameNode = ghaFileDoc.getIn(["moduleName"], true) as Node;
-                        const moduleName = moduleNameNode.toString();
-                        const names = new Set<string>();
-                        for (const hook of ["onPullRequest", "onBranchMerge", "onPullRequestClose", "onSlashCommand"]) {
-                            const onNode = ghaFileDoc.getIn([hook], true) as YAMLSeq;
-                            if (onNode === undefined) {
-                                continue;
-                            }
-                            for (const _ of onNode.items) {
-                                const index = onNode.items.indexOf(_);
-                                const nameNode = ghaFileDoc.getIn([hook, index, 'name'], true) as Node;
-                                const name = nameNode.toString();
-                                const pipelineUniquePrefix = `${teamNamespace}-${moduleName}-${name}`;
-                                const samePrefixHooks = await gha_hooks(db).find({
-                                    pipeline_unique_prefix: pipelineUniquePrefix,
-                                    path_to_gha_yaml: not(file.filename)
-                                }).all();
-                                if (samePrefixHooks.length > 0 || names.has(name)) {
-                                    const {line, col} = this.getPosition(nameNode, lineCounter);
-                                    let message = `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`;
-                                    if (names.has(name)) {
-                                        message = message + " (duplicate name in the same file)";
+                        validator(ghaFileDoc.toJSON())
+                        if (validator.errors) {
+                            validator.errors?.forEach(error => {
+                                const propertyPath = error.instancePath.split("/").slice(1);
+                                const node = ghaFileDoc.getIn(propertyPath, true);
+                                const {line, col} = this.getPosition(node, lineCounter);
+                                annotationsForCheck.push({
+                                    annotation_level: "failure",
+                                    message: error.message || "Unknown error",
+                                    path: file.filename,
+                                    start_line: line,
+                                    end_line: line,
+                                    start_column: col,
+                                    end_column: col
+                                });
+                            });
+                        } else {
+                            // validate that pipeline unique prefix is unique `${teamNamespace}-${moduleName}-${name}`
+                            const teamNamespaceNode = ghaFileDoc.getIn(["teamNamespace"], true) as Node;
+                            const teamNamespace = teamNamespaceNode.toString();
+                            const moduleNameNode = ghaFileDoc.getIn(["moduleName"], true) as Node;
+                            const moduleName = moduleNameNode.toString();
+                            const names = new Set<string>();
+                            for (const hook of ["onPullRequest", "onBranchMerge", "onPullRequestClose", "onSlashCommand"]) {
+                                const onNode = ghaFileDoc.getIn([hook], true) as YAMLSeq;
+                                if (onNode === undefined) {
+                                    continue;
+                                }
+                                for (const _ of onNode.items) {
+                                    const index = onNode.items.indexOf(_);
+                                    const nameNode = ghaFileDoc.getIn([hook, index, 'name'], true) as Node;
+                                    const name = nameNode.toString();
+                                    const pipelineUniquePrefix = `${teamNamespace}-${moduleName}-${name}`;
+                                    const samePrefixHooks = await gha_hooks(db).find({
+                                        pipeline_unique_prefix: pipelineUniquePrefix,
+                                        path_to_gha_yaml: not(file.filename)
+                                    }).all();
+                                    if (samePrefixHooks.length > 0 || names.has(name)) {
+                                        const {line, col} = this.getPosition(nameNode, lineCounter);
+                                        let message = `Pipeline unique prefix ${pipelineUniquePrefix} is not unique`;
+                                        if (names.has(name)) {
+                                            message = message + " (duplicate name in the same file)";
+                                        }
+                                        if (samePrefixHooks.length > 0) {
+                                            message = message + ` (same name used in ${samePrefixHooks.map(value => value.path_to_gha_yaml).join(',')} files)`;
+                                        }
+                                        annotationsForCheck.push({
+                                            annotation_level: "failure",
+                                            message: message,
+                                            path: file.filename,
+                                            start_line: line,
+                                            end_line: line,
+                                            start_column: col,
+                                            end_column: col
+                                        });
+                                    } else {
+                                        names.add(name);
+                                        this.log.debug(`Pipeline unique prefix ${pipelineUniquePrefix} is unique`);
                                     }
-                                    if (samePrefixHooks.length > 0) {
-                                        message = message + ` (same name used in ${samePrefixHooks.map(value => value.path_to_gha_yaml).join(',')} files)`;
-                                    }
-                                    annotationsForCheck.push({
-                                        annotation_level: "failure",
-                                        message: message,
-                                        path: file.filename,
-                                        start_line: line,
-                                        end_line: line,
-                                        start_column: col,
-                                        end_column: col
-                                    });
-                                } else {
-                                    names.add(name);
-                                    this.log.debug(`Pipeline unique prefix ${pipelineUniquePrefix} is unique`);
                                 }
                             }
+                            this.log.info(`Validation passed for file ${file.filename}`);
                         }
-                        this.log.info(`Validation passed for file ${file.filename}`);
                     }
+                } catch (e) {
+                    this.log.warn(e, `Error during validation of file ${file.filename}`);
+                    annotationsForCheck.push({
+                        annotation_level: "failure",
+                        message: String(e),
+                        path: file.filename,
+                        start_line: 1,
+                        end_line: 1,
+                        start_column: 1,
+                        end_column: 1
+                    })
                 }
             } catch (e) {
-                this.log.warn(e, `Error during validation of file ${file.filename}`);
-                annotationsForCheck.push({
-                    annotation_level: "failure",
-                    message: String(e),
-                    path: file.filename,
-                    start_line: 1,
-                    end_line: 1,
-                    start_column: 1,
-                    end_column: 1
-                })
+                this.log.error(e, `Error loading file from url ${file.contents_url}`);
             }
         }
         return annotationsForCheck;
@@ -228,50 +232,49 @@ export class GhaLoader {
             for (const addedFile of commit.added) {
                 if (addedFile.endsWith(ghaHooksFileName)) {
                     this.log.info(`Adding hooks for file ${addedFile}`);
-                    const resp = await octokit.repos.getContent({
-                        owner: repoFullName.split("/")[0],
-                        repo: repoFullName.split("/")[1],
-                        path: addedFile,
-                        ref: branchName
-                    });
-                    if (resp.status !== 200) {
-                        this.log.error(`Error loading file ${addedFile}`);
-                        continue;
+                    try {
+                        const resp = await octokit.repos.getContent({
+                            owner: repoFullName.split("/")[0],
+                            repo: repoFullName.split("/")[1],
+                            path: addedFile,
+                            ref: branchName
+                        });
+                        if ("content" in resp.data) {
+                            const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+                            const ghaFileYaml = load(ghaFileContent);
+                            const hooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml, addedFile, repoFullName, branchName);
+                            this.log.debug(`Inserting ${hooks.length} hooks for file ${addedFile}`);
+                            await Promise.all(hooks.map(hook => gha_hooks(db).insert(hook)));
+                        }
+                    } catch (e) {
+                        this.log.error(e, `Error loading file ${addedFile} from repo ${repoFullName} branch ${branchName}`);
                     }
-                    if ("content" in resp.data) {
-                        const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
-                        const ghaFileYaml = load(ghaFileContent);
-                        const hooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml, addedFile, repoFullName, branchName);
-                        this.log.debug(`Inserting ${hooks.length} hooks for file ${addedFile}`);
-                        await Promise.all(hooks.map(hook => gha_hooks(db).insert(hook)));
-                    }
-
                 }
             }
             for (const modifiedFile of commit.modified) {
                 if (modifiedFile.endsWith(ghaHooksFileName)) {
                     this.log.info(`Modifying hooks for file ${modifiedFile}`);
-                    const resp = await octokit.repos.getContent({
-                        owner: repoFullName.split("/")[0],
-                        repo: repoFullName.split("/")[1],
-                        path: modifiedFile,
-                        ref: branchName
-                    });
-                    if (resp.status !== 200) {
-                        this.log.error(`Error loading file ${modifiedFile}`);
-                        continue;
-                    }
-                    if ("content" in resp.data) {
-                        const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
-                        const ghaFileYaml = load(ghaFileContent);
-                        const hooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml, modifiedFile, repoFullName, branchName);
-                        this.log.debug(`Deleting and inserting ${hooks.length} hooks for file ${modifiedFile}`);
-                        await gha_hooks(db).delete({
-                            repo_full_name: repoFullName,
-                            branch: branchName,
-                            path_to_gha_yaml: modifiedFile
+                    try {
+                        const resp = await octokit.repos.getContent({
+                            owner: repoFullName.split("/")[0],
+                            repo: repoFullName.split("/")[1],
+                            path: modifiedFile,
+                            ref: branchName
                         });
-                        await Promise.all(hooks.map(hook => gha_hooks(db).insert(hook)));
+                        if ("content" in resp.data) {
+                            const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+                            const ghaFileYaml = load(ghaFileContent);
+                            const hooks = this.getGhaHooks(<TheRootSchema>ghaFileYaml, modifiedFile, repoFullName, branchName);
+                            this.log.debug(`Deleting and inserting ${hooks.length} hooks for file ${modifiedFile}`);
+                            await gha_hooks(db).delete({
+                                repo_full_name: repoFullName,
+                                branch: branchName,
+                                path_to_gha_yaml: modifiedFile
+                            });
+                            await Promise.all(hooks.map(hook => gha_hooks(db).insert(hook)));
+                        }
+                    } catch (e) {
+                        this.log.error(e, `Error loading file ${modifiedFile} from repo ${repoFullName} branch ${branchName}`);
                     }
                 }
             }
@@ -285,14 +288,14 @@ export class GhaLoader {
                 continue;
             }
             this.log.info(`Loading hooks for file ${file.filename}`);
-            const resp = await octokit.request(file.contents_url);
-            if (resp.status !== 200) {
-                this.log.error(`Error loading file ${file.filename}`);
-                continue;
+            try {
+                const resp = await octokit.request(file.contents_url);
+                const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
+                const ghaFileYaml = load(ghaFileContent);
+                hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml, file.filename));
+            } catch (e) {
+                this.log.error(e, `Error loading file from url ${file.contents_url}`);
             }
-            const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
-            const ghaFileYaml = load(ghaFileContent);
-            hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml, file.filename));
         }
         return hooks;
     }

@@ -114,11 +114,15 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
                         state: "open",
                         base: branchName
                     };
-                    const branchPRs = await context.octokit.pulls.list(params);
-                    if (branchPRs.data.length > 0) {
-                        loadHooks = true;
-                    } else {
-                        app.log.info(`No open PRs found for branch ${branchName}`);
+                    try {
+                        const branchPRs = await context.octokit.pulls.list(params);
+                        if (branchPRs.data.length > 0) {
+                            loadHooks = true;
+                        } else {
+                            app.log.info(`No open PRs found for branch ${branchName}`);
+                        }
+                    } catch (e) {
+                        app.log.error(e, `Failed to get open PRs for branch ${branchName} in repo ${repoFullName}`);
                     }
                 } else {
                     loadHooks = true;
@@ -219,11 +223,17 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             const eventType = context.payload.action;
             const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
-            const changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
-                owner: owner,
-                repo: repo,
-                pull_number: pullNumber
-            });
+            let changedFilesResp = [];
+            try {
+                changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
+                    owner: owner,
+                    repo: repo,
+                    pull_number: pullNumber
+                });
+            } catch (e) {
+                app.log.error(e, `Failed to get changed files for PR ${pullNumber} in repo ${repo_full_name}`);
+                return;
+            }
             const changedFiles = changedFilesResp.map((file) => file.filename);
             app.log.debug(`PR changed files are ${JSON.stringify(changedFiles)}`);
             const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, ghaHooksFileName, changedFilesResp);
@@ -257,29 +267,31 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     });
 
     app.on("workflow_job", async (context) => {
-        app.log.info(`workflow_job event received for ${context.payload.workflow_job.name}`);
-        const workflowJob = context.payload.workflow_job;
+        const payload = context.payload;
+        app.log.info(`workflow_job.${payload.action} event received for ${payload.workflow_job.name}`);
+        const workflowJob = payload.workflow_job;
         if (workflowJob.run_id) {
-            const workflowRun = await context.octokit.actions.getWorkflowRun({
-                owner: context.payload.repository.owner.login,
-                repo: context.payload.repository.name,
-                run_id: workflowJob.run_id
-            });
-            if (workflowRun) {
-                if (context.payload.action === "queued") {
-                    const payload = context.payload as WorkflowJobQueuedEvent;
-                    await checks.updateWorkflowRunCheckQueued(context.octokit, payload, workflowRun.data.id);
-                } else if (context.payload.action === "in_progress") {
-                    const payload = context.payload as WorkflowJobInProgressEvent;
-                    await checks.updateWorkflowRunCheckInProgress(context.octokit, payload);
-                    await checks.updatePRStatusCheckInProgress(context.octokit, payload);
-                } else {
-                    const payload = context.payload as WorkflowJobCompletedEvent;
-                    await checks.updateWorkflowRunCheckCompleted(context.octokit, payload);
-                    await checks.updatePRStatusCheckCompleted(context.octokit, payload);
+            try {
+                const workflowRun = await context.octokit.actions.getWorkflowRun({
+                    owner: payload.repository.owner.login,
+                    repo: payload.repository.name,
+                    run_id: workflowJob.run_id
+                });
+                switch (payload.action) {
+                    case "queued":
+                        await checks.updateWorkflowRunCheckQueued(context.octokit, payload as WorkflowJobQueuedEvent, workflowRun.data.id);
+                        break;
+                    case "in_progress":
+                        await checks.updateWorkflowRunCheckInProgress(context.octokit, payload as WorkflowJobInProgressEvent);
+                        await checks.updatePRStatusCheckInProgress(context.octokit, payload as WorkflowJobInProgressEvent);
+                        break;
+                    default:
+                        await checks.updateWorkflowRunCheckCompleted(context.octokit, payload as WorkflowJobCompletedEvent);
+                        await checks.updatePRStatusCheckCompleted(context.octokit, payload as WorkflowJobCompletedEvent);
+                        break;
                 }
-            } else {
-                app.log.error("Failed to get workflow run for " + workflowJob.run_id);
+            } catch (e) {
+                app.log.error(e, `Failed to get workflow run for ${workflowJob.run_id} in repo ${payload.repository.full_name}`);
             }
         }
     });
@@ -315,20 +327,24 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     app.on(["check_suite.rerequested"], async (context) => {
         app.log.info(`check_suite.rerequested event received for ${context.payload.check_suite.id}`);
         // get all check runs for this check suite
-        const checkRuns = await context.octokit.paginate(context.octokit.checks.listForSuite, {
-            owner: context.payload.repository.owner.login,
-            repo: context.payload.repository.name,
-            check_suite_id: context.payload.check_suite.id
-        });
-        for (const checkRun of checkRuns) {
-            if ((<any>Object).values(PRCheckName).includes(checkRun.name)) {
-                await checks.triggerReRunPRCheck(context.octokit, {
-                    check_run_id: checkRun.id,
-                    owner: context.payload.repository.owner.login,
-                    repo: context.payload.repository.name,
-                    requested_action_identifier: PRCheckAction.ReRun
-                });
+        try {
+            const checkRuns = await context.octokit.paginate(context.octokit.checks.listForSuite, {
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                check_suite_id: context.payload.check_suite.id
+            });
+            for (const checkRun of checkRuns) {
+                if ((<any>Object).values(PRCheckName).includes(checkRun.name)) {
+                    await checks.triggerReRunPRCheck(context.octokit, {
+                        check_run_id: checkRun.id,
+                        owner: context.payload.repository.owner.login,
+                        repo: context.payload.repository.name,
+                        requested_action_identifier: PRCheckAction.ReRun
+                    });
+                }
             }
+        } catch (e) {
+            app.log.error(e, `Failed to get check runs for check suite ${context.payload.check_suite.id} in repo ${context.payload.repository.full_name}`);
         }
     });
 
@@ -364,32 +380,35 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         const owner = context.payload.repository.owner.login;
         const repo = context.payload.repository.name;
         // check that the comment is from a user with write permissions
-        const permissions = await context.octokit.repos.getCollaboratorPermissionLevel({
-            owner: owner,
-            repo: repo,
-            username: issueComment.user.login
-        })
-        if (permissions.status !== 200) {
-            app.log.error(`Failed to get permissions for ${issueComment.user.login} in ${context.payload.repository.full_name}`)
-            return
-        }
-        app.log.debug(`Permissions for ${issueComment.user.login} in ${context.payload.repository.full_name} are ${permissions.data.permission}`)
-        if (permissions.data.permission !== 'write' && permissions.data.permission !== 'admin') {
-            app.log.debug('The comment is from a user without write permissions, ignoring.')
+        try {
+            const permissions = await context.octokit.repos.getCollaboratorPermissionLevel({
+                owner: owner,
+                repo: repo,
+                username: issueComment.user.login
+            })
+            app.log.debug(`Permissions for ${issueComment.user.login} in ${context.payload.repository.full_name} are ${permissions.data.permission}`)
+            if (permissions.data.permission !== 'write' && permissions.data.permission !== 'admin') {
+                app.log.debug('The comment is from a user without write permissions, ignoring.')
+                return
+            }
+        } catch (e) {
+            app.log.error(e, `Failed to get permissions for ${issueComment.user.login} in ${context.payload.repository.full_name}`)
             return
         }
         // check that is not from forked repo
         const prNumber = context.payload.issue.number
-        const response = await context.octokit.pulls.get({
-            owner: context.payload.repository.owner.login,
-            repo: context.payload.repository.name,
-            pull_number: prNumber
-        })
-        if (response.status !== 200) {
-            app.log.error(`Failed to get PR ${prNumber} from ${context.payload.repository.full_name}`)
+        let pr = null
+        try {
+            const response = await context.octokit.pulls.get({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                pull_number: prNumber
+            })
+            pr = response.data
+        } catch (e) {
+            app.log.error(e, `Failed to get PR ${prNumber} from ${context.payload.repository.full_name}`)
             return
         }
-        const pr = response.data
         if (pr.head.repo && pr.head.repo.fork) {
             app.log.debug('The comment is from a forked repo, ignoring.')
             return
@@ -411,20 +430,30 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         app.log.debug(`Command tokens: ${inspect(commandTokens)}`)
         // At this point, we have a valid slash command
         // Add the "eyes" reaction to the comment
-        await context.octokit.reactions.createForIssueComment({
-            owner: owner,
-            repo: repo,
-            comment_id: issueComment.id,
-            content: 'eyes'
-        })
+        try {
+            await context.octokit.reactions.createForIssueComment({
+                owner: owner,
+                repo: repo,
+                comment_id: issueComment.id,
+                content: 'eyes'
+            })
+        } catch (e) {
+            app.log.error(e, `Failed to add "eyes" reaction to comment ${issueComment.id} in ${context.payload.repository.full_name}`)
+        }
         const numOfChangedFiles = pr.changed_files;
         if (numOfChangedFiles > 0) {
             const repo_full_name = context.payload.repository.full_name;
-            const changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
-                owner: owner,
-                repo: repo,
-                pull_number: prNumber
-            });
+            let changedFilesResp = [];
+            try {
+                changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
+                    owner: owner,
+                    repo: repo,
+                    pull_number: prNumber
+                });
+            } catch (e) {
+                app.log.error(e, `Failed to get changed files for PR ${prNumber} in repo ${repo_full_name}`);
+                return;
+            }
             const changedFiles = changedFilesResp.map((file) => file.filename);
             app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, repo_full_name);

@@ -217,65 +217,76 @@ export class Hooks {
                     continue;
                 }
                 // download the workflow file to get the inputs
-                const workflowFileResp = await octokit.rest.repos.getContent({
-                    owner: owner,
-                    repo: repo,
-                    path: resp.data.path,
-                    ref: pipeline_ref
-                });
-                if ("content" in workflowFileResp.data) {
-                    const workflowFileContent = Buffer.from(workflowFileResp.data.content, 'base64').toString();
-                    const workflowYaml = load(workflowFileContent) as WorkflowDefinition;
-                    const workflowInputs = workflowYaml.on.workflow_dispatch.inputs
-                    for (const [key, value] of Object.entries(workflowInputs)) {
-                        workflowInputsMap.set(key, value);
-                    }
-                    // check if PIPELINE_NAME and SERIALIZED_VARIABLES are required
-                    if (!workflowInputsMap.has("PIPELINE_NAME") || !workflowInputsMap.has("SERIALIZED_VARIABLES")) {
-                        this.log.warn(`Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`);
+                try {
+                    const workflowFileResp = await octokit.rest.repos.getContent({
+                        owner: owner,
+                        repo: repo,
+                        path: resp.data.path,
+                        ref: pipeline_ref
+                    });
+                    if ("content" in workflowFileResp.data) {
+                        const workflowFileContent = Buffer.from(workflowFileResp.data.content, 'base64').toString();
+                        const workflowYaml = load(workflowFileContent) as WorkflowDefinition;
+                        const workflowInputs = workflowYaml.on.workflow_dispatch.inputs
+                        for (const [key, value] of Object.entries(workflowInputs)) {
+                            workflowInputsMap.set(key, value);
+                        }
+                        // check if PIPELINE_NAME and SERIALIZED_VARIABLES are required
+                        if (!workflowInputsMap.has("PIPELINE_NAME") || !workflowInputsMap.has("SERIALIZED_VARIABLES")) {
+                            this.log.warn(`Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`);
+                            await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
+                            triggeredPipelines.push({
+                                name: pipeline_name,
+                                inputs: inputs,
+                                error: `Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`
+                            });
+                            continue;
+                        }
+                        workflowInputsMap.delete("PIPELINE_NAME");
+                        workflowInputsMap.delete("SERIALIZED_VARIABLES");
+                        // add required inputs to inputs, if missing and no default value return error
+                        let missingInputs = false;
+                        for (const [key, value] of workflowInputsMap) {
+                            if (value.required) {
+                                if (serialized_variables[key] === undefined) {
+                                    if (!value.default) {
+                                        this.log.warn(`Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`);
+                                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
+                                        triggeredPipelines.push({
+                                            name: pipeline_name,
+                                            inputs: inputs,
+                                            error: `Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`
+                                        });
+                                        missingInputs = true;
+                                    }
+                                }
+                            }
+                        }
+                        if (missingInputs) {
+                            continue;
+                        }
+                    } else {
+                        this.log.warn(`Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
                         await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                         triggeredPipelines.push({
                             name: pipeline_name,
                             inputs: inputs,
-                            error: `Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`
+                            error: `Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`
                         });
                         continue;
                     }
-                    workflowInputsMap.delete("PIPELINE_NAME");
-                    workflowInputsMap.delete("SERIALIZED_VARIABLES");
-                    // add required inputs to inputs, if missing and no default value return error
-                    let missingInputs = false;
-                    for (const [key, value] of workflowInputsMap) {
-                        if (value.required) {
-                            if (serialized_variables[key] === undefined) {
-                                if (!value.default) {
-                                    this.log.warn(`Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`);
-                                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
-                                    triggeredPipelines.push({
-                                        name: pipeline_name,
-                                        inputs: inputs,
-                                        error: `Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`
-                                    });
-                                    missingInputs = true;
-                                }
-                            }
-                        }
-                    }
-                    if (missingInputs) {
-                        continue;
-                    }
-                } else {
-                    this.log.warn(`Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
+                } catch (e) {
+                    this.log.warn(e, `Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
                     await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: inputs,
-                        error: `Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`
+                        error: `Failed to get workflow ${workflow_id} content in repo ${owner}/${repo} with error ${e}`
                     });
                     continue;
                 }
             } catch (e) {
-                this.log.warn(`Failed to get workflow ${workflow_id} in repo ${owner}/${repo} with error ${e}`);
+                this.log.warn(e, `Failed to get workflow ${workflow_id} in repo ${owner}/${repo}`);
                 await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                 triggeredPipelines.push({
                     name: pipeline_name,
@@ -340,7 +351,7 @@ export class Hooks {
                 await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook);
                 triggeredPipelines.push({name: pipeline_name, inputs: inputs});
             } catch (e) {
-                this.log.error("Failed to trigger workflow " + pipelineUniquePrefix + " for PR#" + prNumber);
+                this.log.error(e, "Failed to trigger workflow " + pipelineUniquePrefix + " for PR#" + prNumber);
                 await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, hook.hook, true);
                 triggeredPipelines.push({
                     name: pipeline_name,

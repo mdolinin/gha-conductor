@@ -20,28 +20,32 @@ export class GhaReply {
             repo: context.payload.repository.name,
             comment_id: commentId,
         });
-        for (const react of reactions.data) {
-            if (react.content !== reaction) {
-                await context.octokit.reactions.deleteForIssueComment({
-                    owner: context.payload.repository.owner.login,
-                    repo: context.payload.repository.name,
-                    comment_id: commentId,
-                    reaction_id: react.id,
-                });
+        try {
+            for (const react of reactions.data) {
+                if (react.content !== reaction) {
+                    await context.octokit.reactions.deleteForIssueComment({
+                        owner: context.payload.repository.owner.login,
+                        repo: context.payload.repository.name,
+                        comment_id: commentId,
+                        reaction_id: react.id,
+                    });
+                }
             }
+            await context.octokit.reactions.createForIssueComment({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                comment_id: commentId,
+                content: reaction,
+            });
+            await context.octokit.issues.createComment({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                issue_number: context.payload.issue.number,
+                body: comment,
+            });
+        } catch (e) {
+            this.log.error(e, `Failed to reply to comment ${commentId} with reaction ${reaction} and comment ${comment}`);
         }
-        await context.octokit.reactions.createForIssueComment({
-            owner: context.payload.repository.owner.login,
-            repo: context.payload.repository.name,
-            comment_id: commentId,
-            content: reaction,
-        });
-        await context.octokit.issues.createComment({
-            owner: context.payload.repository.owner.login,
-            repo: context.payload.repository.name,
-            issue_number: context.payload.issue.number,
-            body: comment,
-        });
     }
 
 }
