@@ -551,6 +551,8 @@ export class GhaChecks {
     }
 
     async formatGHCheckSummaryAll(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, workflowRuns: GhaWorkflowRuns[], status: string = "") {
+        // to avoid github check summary limit issue, we need to reduce the log limit
+        const reduced_text_limit = GITHUB_CHECK_TEXT_LIMIT - 2000;
         let summaryWithoutLogs = ""
         for (const workflowRun of workflowRuns) {
             const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
@@ -558,7 +560,7 @@ export class GhaChecks {
             summaryWithoutLogs += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, "-");
             summaryWithoutLogs += "\n";
         }
-        if (summaryWithoutLogs.length > GITHUB_CHECK_TEXT_LIMIT) {
+        if (summaryWithoutLogs.length > reduced_text_limit) {
             // create simplified summary
             let summary = "";
             for (const workflowRun of workflowRuns) {
@@ -567,13 +569,13 @@ export class GhaChecks {
                 const workflowRunStatusIcon = this.getWorkflowStatusIcon(workflowRunConclusion, workflowRunStatus);
                 summary += `${workflowRunStatusIcon}: **[${workflowRun.name}](${workflowRun.workflow_run_url})**\n`;
             }
-            if (summary.length > GITHUB_CHECK_TEXT_LIMIT) {
-                return summary.slice(0, GITHUB_CHECK_TEXT_LIMIT);
+            if (summary.length > reduced_text_limit) {
+                return summary.slice(0, reduced_text_limit);
             }
             return summary;
         }
         let summary = "";
-        let log_max_size = GITHUB_CHECK_TEXT_LIMIT - summaryWithoutLogs.length;
+        let log_max_size = reduced_text_limit - summaryWithoutLogs.length;
         if (workflowRuns.length > 0) {
             log_max_size = Math.floor(log_max_size / workflowRuns.length);
         }
