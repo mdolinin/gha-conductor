@@ -1,3 +1,10 @@
+## [1.20.4](https://github.com/mdolinin/gha-conductor/compare/v1.20.3...v1.20.4) (2024-11-09)
+
+
+### Bug Fixes
+
+* **octokit:** correctly catch error from octokit ([#236](https://github.com/mdolinin/gha-conductor/issues/236)) ([62230f2](https://github.com/mdolinin/gha-conductor/commit/62230f28257c55d11166c4e2736a61a998732e21))
+
 ## [1.20.3](https://github.com/mdolinin/gha-conductor/compare/v1.20.2...v1.20.3) (2024-11-07)
 
 
