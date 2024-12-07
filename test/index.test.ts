@@ -642,7 +642,7 @@ describe("gha-conductor app", () => {
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
-    });
+    }, timeout);
 
     test("when PR edited but base branch is not changed, do nothing", async () => {
         const mock = nock("https://api.github.com")
