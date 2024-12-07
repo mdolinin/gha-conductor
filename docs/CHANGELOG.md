@@ -1,3 +1,10 @@
+## [1.20.5](https://github.com/mdolinin/gha-conductor/compare/v1.20.4...v1.20.5) (2024-12-07)
+
+
+### Bug Fixes
+
+* **test:** add timeout when mergeable is null ([#260](https://github.com/mdolinin/gha-conductor/issues/260)) ([d7f0bd8](https://github.com/mdolinin/gha-conductor/commit/d7f0bd8735468fda663549e16ba1e1916ade3a11))
+
 ## [1.20.4](https://github.com/mdolinin/gha-conductor/compare/v1.20.3...v1.20.4) (2024-11-09)
 
 
