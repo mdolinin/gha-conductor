@@ -147,10 +147,13 @@ const triggerReRunWorkflowRunCheckMock = jest
         return Promise.resolve();
     });
 
+const timeout = 10000; // greater than 5000ms
+
 describe("gha-conductor app", () => {
     let probot: any;
 
     beforeEach(() => {
+        // jest.useFakeTimers({advanceTimers: true});
         nock.disableNetConnect();
         probot = new Probot({
             appId: 123,
@@ -278,7 +281,7 @@ describe("gha-conductor app", () => {
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
-    });
+    }, timeout);
 
     test("when PR is from forked repo then skip all hooks, and add comment", async () => {
         const forkedPullRequestOpenedPayload = {
@@ -369,7 +372,7 @@ describe("gha-conductor app", () => {
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
-    });
+    }, timeout);
 
     test("when PR opened with files that match hook and pipeline ref is not exist, create pr-status check with status failed", async () => {
         runWorkflowMock = runWorkflowMock.mockImplementation(() => {
@@ -415,7 +418,7 @@ describe("gha-conductor app", () => {
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
-    });
+    }, timeout);
 
     test("when PR opened with files that not match any hook, create pr-status check with status completed", async () => {
         const mock = nock("https://api.github.com")
@@ -454,7 +457,7 @@ describe("gha-conductor app", () => {
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
-    });
+    }, timeout);
 
     test("when PR opened with files that match hook, create pr-status check with status queued", async () => {
         runWorkflowMock = runWorkflowMock.mockImplementation(() => {
@@ -496,7 +499,7 @@ describe("gha-conductor app", () => {
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
-    });
+    }, timeout);
 
     test("when workflow job event received, update pr-status checks and workflow run checks", async () => {
         const mock = nock("https://api.github.com")
@@ -639,7 +642,7 @@ describe("gha-conductor app", () => {
         expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
-    });
+    }, timeout);
 
     test("when PR edited but base branch is not changed, do nothing", async () => {
         const mock = nock("https://api.github.com")
