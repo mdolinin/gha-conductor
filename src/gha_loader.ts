@@ -281,10 +281,19 @@ export class GhaLoader {
         }
     }
 
-    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, hooksFileName: string, data: components["schemas"]["diff-entry"][]): Promise<GhaHook[]> {
+    async loadGhaHooks(octokit: InstanceType<typeof ProbotOctokit>, hooksFileName: string, data: components["schemas"]["diff-entry"][]): Promise<{
+        hooks: GhaHook[];
+        hookFilesModified: Set<string>
+    }> {
         let hooks: GhaHook[] = [];
+        const hookFilesModified = new Set<string>();
         for (const file of data) {
             if (!file.filename.endsWith(hooksFileName)) {
+                continue;
+            }
+            if (file.status === "removed") {
+                this.log.debug(`File ${file.filename} with hooks was removed`);
+                hookFilesModified.add(file.filename);
                 continue;
             }
             this.log.info(`Loading hooks for file ${file.filename}`);
@@ -293,11 +302,12 @@ export class GhaLoader {
                 const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
                 const ghaFileYaml = load(ghaFileContent);
                 hooks = hooks.concat(this.getGhaHooks(<TheRootSchema>ghaFileYaml, file.filename));
+                hookFilesModified.add(file.filename);
             } catch (e) {
                 this.log.error(e, `Error loading file from url ${file.contents_url}`);
             }
         }
-        return hooks;
+        return {hooks, hookFilesModified};
     }
 
     private getGhaHooks(ghaFileYaml: TheRootSchema, ghaYamlFilePath: string, repoFullName: string = "", branch: string = ""): GhaHook[] {

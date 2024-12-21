@@ -126,6 +126,11 @@ onSlashCommand:
 Files can be places in any directory in the repository.
 App uses `worfklow_dispatch` event to trigger GitHub Actions workflows.
 
+`fileChangesMatchAny` uses [minimatch](https://github.com/isaacs/minimatch) to match file changes.
+Uses default configuration for minimatch.
+Ignores filenames starting with a period. (e.g. `.gha.yaml`)
+If pattern starts with `!`, it will be ignored.
+
 GitHub Actions workflows should be defined in `.github/workflows` directory and should have `workflow_dispatch` trigger.
 Example of GitHub Actions workflow:
 
