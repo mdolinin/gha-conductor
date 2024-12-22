@@ -435,10 +435,28 @@ describe('gha loader', () => {
         ];
         // @ts-ignore
         await ghaLoader.loadGhaHooksFromCommits(octokit, "repo/full_name", "branch", ".gha.yaml", commits);
-        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(1, {owner: "repo", path: "folder1/.gha.yaml", ref: "branch", repo: "full_name"});
-        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(2, {owner: "repo", path: "folder1/subfolder1/.gha.yaml", ref: "branch", repo: "full_name"});
-        expect(deleteMock).toHaveBeenNthCalledWith(1, {repo_full_name: "repo/full_name", branch: "branch", path_to_gha_yaml: "folder2/.gha.yaml"});
-        expect(deleteMock).toHaveBeenNthCalledWith(2, {repo_full_name: "repo/full_name", branch: "branch", path_to_gha_yaml: "folder1/subfolder1/.gha.yaml"});
+        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(1, {
+            owner: "repo",
+            path: "folder1/.gha.yaml",
+            ref: "branch",
+            repo: "full_name"
+        });
+        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(2, {
+            owner: "repo",
+            path: "folder1/subfolder1/.gha.yaml",
+            ref: "branch",
+            repo: "full_name"
+        });
+        expect(deleteMock).toHaveBeenNthCalledWith(1, {
+            repo_full_name: "repo/full_name",
+            branch: "branch",
+            path_to_gha_yaml: "folder2/.gha.yaml"
+        });
+        expect(deleteMock).toHaveBeenNthCalledWith(2, {
+            repo_full_name: "repo/full_name",
+            branch: "branch",
+            path_to_gha_yaml: "folder1/subfolder1/.gha.yaml"
+        });
         expect(insertMock).toHaveBeenCalledTimes(10);
     });
 
@@ -455,89 +473,103 @@ describe('gha loader', () => {
         };
         const diffEntries = [
             {
+                filename: "file1",
+                contents_url: "file1_contents_url",
+                status: "added"
+            },
+            {
                 filename: ".gha.yaml",
-                contents_url: "contents_url",
+                contents_url: "modified_contents_url",
+                status: "modified"
+            },
+            {
+                filename: "remove/.gha.yaml",
+                contents_url: "remove_contents_url",
+                status: "removed"
             }
         ];
         // @ts-ignore
         const hooks = await ghaLoader.loadGhaHooks(octokit, ".gha.yaml", diffEntries);
-        expect(hooks).toEqual([
-            {
-                "branch": "",
-                "destination_branch_matcher": null,
-                "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
-                "hook": "onPullRequest",
-                "hook_name": "build",
-                "path_to_gha_yaml": ".gha.yaml",
-                "pipeline_name": "common-job",
-                "pipeline_params": {"COMMAND": "make build"},
-                "pipeline_ref": "main",
-                "pipeline_unique_prefix": "domain-b-example-c-build",
-                "repo_full_name": "",
-                "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
-                "slash_command": undefined
-            }, {
-                "branch": "",
-                "destination_branch_matcher": null,
-                "file_changes_matcher": "namespaces/domain-b/projects/example-c/tests/test.sh",
-                "hook": "onPullRequest",
-                "hook_name": "test",
-                "path_to_gha_yaml": ".gha.yaml",
-                "pipeline_name": "common-job",
-                "pipeline_params": {"COMMAND": "make test"},
-                "pipeline_ref": undefined,
-                "pipeline_unique_prefix": "domain-b-example-c-test",
-                "repo_full_name": "",
-                "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
-                "slash_command": undefined
-            }, {
-                "branch": "",
-                "destination_branch_matcher": "main",
-                "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
-                "hook": "onBranchMerge",
-                "hook_name": "release",
-                "path_to_gha_yaml": ".gha.yaml",
-                "pipeline_name": "common-job",
-                "pipeline_params": {"COMMAND": "make release"},
-                "pipeline_ref": undefined,
-                "pipeline_unique_prefix": "domain-b-example-c-release",
-                "repo_full_name": "",
-                "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
-                "slash_command": undefined
-            }, {
-                "branch": "",
-                "destination_branch_matcher": null,
-                "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
-                "hook": "onPullRequestClose",
-                "hook_name": "cleanup",
-                "path_to_gha_yaml": ".gha.yaml",
-                "pipeline_name": "common-job",
-                "pipeline_params": {"COMMAND": "make clean"},
-                "pipeline_ref": undefined,
-                "pipeline_unique_prefix": "domain-b-example-c-cleanup",
-                "repo_full_name": "",
-                "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
-                "slash_command": undefined
-            },
-            {
-                "branch": "",
-                "destination_branch_matcher": null,
-                "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
-                "hook": "onSlashCommand",
-                "hook_name": "validate-before-merge",
-                "path_to_gha_yaml": ".gha.yaml",
-                "pipeline_name": "generic-job",
-                "pipeline_params": {
-                    "COMMAND": "make ${command} ${args}"
+        expect(hooks).toEqual({
+            hookFilesModified: new Set([".gha.yaml", "remove/.gha.yaml"]), hooks: [
+                {
+                    "branch": "",
+                    "destination_branch_matcher": null,
+                    "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+                    "hook": "onPullRequest",
+                    "hook_name": "build",
+                    "path_to_gha_yaml": ".gha.yaml",
+                    "pipeline_name": "common-job",
+                    "pipeline_params": {"COMMAND": "make build"},
+                    "pipeline_ref": "main",
+                    "pipeline_unique_prefix": "domain-b-example-c-build",
+                    "repo_full_name": "",
+                    "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+                    "slash_command": undefined
+                }, {
+                    "branch": "",
+                    "destination_branch_matcher": null,
+                    "file_changes_matcher": "namespaces/domain-b/projects/example-c/tests/test.sh",
+                    "hook": "onPullRequest",
+                    "hook_name": "test",
+                    "path_to_gha_yaml": ".gha.yaml",
+                    "pipeline_name": "common-job",
+                    "pipeline_params": {"COMMAND": "make test"},
+                    "pipeline_ref": undefined,
+                    "pipeline_unique_prefix": "domain-b-example-c-test",
+                    "repo_full_name": "",
+                    "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+                    "slash_command": undefined
+                }, {
+                    "branch": "",
+                    "destination_branch_matcher": "main",
+                    "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+                    "hook": "onBranchMerge",
+                    "hook_name": "release",
+                    "path_to_gha_yaml": ".gha.yaml",
+                    "pipeline_name": "common-job",
+                    "pipeline_params": {"COMMAND": "make release"},
+                    "pipeline_ref": undefined,
+                    "pipeline_unique_prefix": "domain-b-example-c-release",
+                    "repo_full_name": "",
+                    "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+                    "slash_command": undefined
+                }, {
+                    "branch": "",
+                    "destination_branch_matcher": null,
+                    "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+                    "hook": "onPullRequestClose",
+                    "hook_name": "cleanup",
+                    "path_to_gha_yaml": ".gha.yaml",
+                    "pipeline_name": "common-job",
+                    "pipeline_params": {"COMMAND": "make clean"},
+                    "pipeline_ref": undefined,
+                    "pipeline_unique_prefix": "domain-b-example-c-cleanup",
+                    "repo_full_name": "",
+                    "shared_params": {"ROOT_DIR": "namespaces/domain-b/projects/example-c"},
+                    "slash_command": undefined
                 },
-                "pipeline_unique_prefix": "domain-b-example-c-validate-before-merge",
-                "repo_full_name": "",
-                "shared_params": {
-                    "ROOT_DIR": "namespaces/domain-b/projects/example-c"
-                },
-                "slash_command": "validate"
-            }]);
-        expect(octokit.request).toHaveBeenCalledWith("contents_url");
+                {
+                    "branch": "",
+                    "destination_branch_matcher": null,
+                    "file_changes_matcher": "namespaces/domain-b/projects/example-c/**",
+                    "hook": "onSlashCommand",
+                    "hook_name": "validate-before-merge",
+                    "path_to_gha_yaml": ".gha.yaml",
+                    "pipeline_name": "generic-job",
+                    "pipeline_params": {
+                        "COMMAND": "make ${command} ${args}"
+                    },
+                    "pipeline_unique_prefix": "domain-b-example-c-validate-before-merge",
+                    "repo_full_name": "",
+                    "shared_params": {
+                        "ROOT_DIR": "namespaces/domain-b/projects/example-c"
+                    },
+                    "slash_command": "validate"
+                }]
+        });
+        expect(octokit.request).toHaveBeenCalledTimes(1);
+        expect(octokit.request).toHaveBeenCalledWith("modified_contents_url");
     });
 
     it('should load gha yaml files for the branch, when there is no existing hooks for the branch', async () => {

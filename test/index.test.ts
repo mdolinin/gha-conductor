@@ -60,7 +60,7 @@ const loadAllGhaYamlForBranchIfNewMock = jest
 const loadGhaHooksMock = jest
     .spyOn(GhaLoader.prototype, 'loadGhaHooks')
     .mockImplementation(() => {
-        return Promise.resolve([])
+        return Promise.resolve({hooks: [], hookFilesModified: new Set([])});
     });
 
 const filterTriggeredHooksMock = jest
@@ -363,7 +363,7 @@ describe("gha-conductor app", () => {
         });
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
         expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckWithAnnotationsMock).toHaveBeenCalledWith(expect.anything(), expect.anything(),"onPullRequest", annotationsForCheck);
+        expect(createPRCheckWithAnnotationsMock).toHaveBeenCalledWith(expect.anything(), expect.anything(), "onPullRequest", annotationsForCheck);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(0);

@@ -8,6 +8,7 @@ import db, {gha_hooks, gha_workflow_runs} from "./db/database";
 import {GhaHook} from "./gha_loader";
 import {GhaHooks} from "./__generated__";
 import {load} from "js-yaml";
+import {anyOf, not} from "@databases/pg-typed";
 
 type workflowDispatchEventParameters = RestEndpointMethodTypes["actions"]["createWorkflowDispatch"]["parameters"];
 
@@ -40,20 +41,23 @@ export class Hooks {
     }
 
     async filterTriggeredHooks(repo_full_name: string, hookType: HookType,
-                               files_changed: string[], baseBranch: string, hooksChangedInPR: GhaHook[],
+                               files_changed: string[], baseBranch: string,
+                               hooksChangedInPR: { hooks: GhaHook[]; hookFilesModified: Set<string> },
                                slashCommand?: string | undefined
     ): Promise<Set<GhaHook>> {
         this.log.info(`Filtering hooks for ${hookType} on branch ${baseBranch} in repo ${repo_full_name}`);
         const triggeredHooks = new Set<GhaHook>();
         const allHooks = new Map<string, GhaHook[]>();
+        const {hooks: hooksFromPR, hookFilesModified} = hooksChangedInPR;
         if (hookType === "onBranchMerge") {
             const mainHooks = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
                 branch: baseBranch,
                 hook: hookType,
-                destination_branch_matcher: baseBranch
+                destination_branch_matcher: baseBranch,
+                path_to_gha_yaml: not(anyOf([...hookFilesModified])),
             }).all()
-            const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType && hook.destination_branch_matcher === baseBranch)
+            const prHooks = hooksFromPR.filter((hook) => hook.hook === hookType && hook.destination_branch_matcher === baseBranch)
             this.mergeHooksFromDbWithPRHooksByUniquePrefix(mainHooks, prHooks, allHooks);
         } else if (hookType === "onSlashCommand") {
             if (!slashCommand) {
@@ -64,17 +68,19 @@ export class Hooks {
                 repo_full_name: repo_full_name,
                 branch: baseBranch,
                 hook: hookType,
-                slash_command: slashCommand
+                slash_command: slashCommand,
+                path_to_gha_yaml: not(anyOf([...hookFilesModified])),
             }).all();
-            const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType && hook.slash_command === slashCommand)
+            const prHooks = hooksFromPR.filter((hook) => hook.hook === hookType && hook.slash_command === slashCommand)
             this.mergeHooksFromDbWithPRHooksByUniquePrefix(mainHooks, prHooks, allHooks);
         } else {
             const mainHooks = await gha_hooks(db).find({
                 repo_full_name: repo_full_name,
                 branch: baseBranch,
-                hook: hookType
+                hook: hookType,
+                path_to_gha_yaml: not(anyOf([...hookFilesModified])),
             }).all();
-            const prHooks = hooksChangedInPR.filter((hook) => hook.hook === hookType)
+            const prHooks = hooksFromPR.filter((hook) => hook.hook === hookType)
             this.mergeHooksFromDbWithPRHooksByUniquePrefix(mainHooks, prHooks, allHooks);
         }
         allHooks.forEach((hooks) => {
