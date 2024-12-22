@@ -1,3 +1,10 @@
+## [1.20.6](https://github.com/mdolinin/gha-conductor/compare/v1.20.5...v1.20.6) (2024-12-22)
+
+
+### Bug Fixes
+
+* **hooks:** do not trigger workflows for hooks removed in PR ([#266](https://github.com/mdolinin/gha-conductor/issues/266)) ([da6d331](https://github.com/mdolinin/gha-conductor/commit/da6d331850bfc32f660f28f855b8d6e544114181))
+
 ## [1.20.5](https://github.com/mdolinin/gha-conductor/compare/v1.20.4...v1.20.5) (2024-12-07)
 
 
