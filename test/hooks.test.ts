@@ -48,6 +48,7 @@ jest.mock('../src/db/database', () => {
 const logMock = {
     info: jest.fn(),
     warn: jest.fn(),
+    error: jest.fn(),
 };
 
 const workflowYamlValid = `
@@ -71,41 +72,35 @@ describe('gha hooks', () => {
         jest.clearAllMocks();
     });
 
-    it('find hooks to trigger, when matched files changed on branch merge', async () => {
+    it('find hooks to trigger, when matched files changed on branch merge and no hooks changed in PR', async () => {
         const hook = {
-            repo_full_name: "repo_full_name",
-            branch: "baseBranch",
             file_changes_matcher: "file1",
-            destination_branch_matcher: "baseBranch",
-            hook: "onBranchMerge" as HookType,
-            hook_name: "hook_name",
-            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
             pipeline_unique_prefix: "pipeline_unique_prefix",
-            pipeline_name: "pipeline_name",
-            pipeline_ref: "pipeline_ref",
-            pipeline_params: {},
-            shared_params: {},
-            slash_command: undefined
         };
         const triggeredHooks = await hooks.filterTriggeredHooks(
             "repo_full_name", "onBranchMerge", ["file1", "file2"], "baseBranch",
-            [
-                hook
-            ]);
+            {hooks: [], hookFilesModified: new Set([])});
         expect(triggeredHooks).toEqual(new Set([hook]));
         expect(findMock).toHaveBeenCalledWith(
             {
                 repo_full_name: "repo_full_name",
                 branch: "baseBranch",
                 hook: "onBranchMerge",
-                destination_branch_matcher: "baseBranch"
+                destination_branch_matcher: "baseBranch",
+                path_to_gha_yaml: expect.objectContaining({
+                    "__query": expect.anything(),
+                    "__special": {
+                        query: expect.anything(),
+                        type: "not",
+                    }
+                })
             }
         );
         expect(findAllMock).toHaveBeenCalledTimes(1);
     });
 
     it('find hooks to trigger, when matched files changed on pull request open', async () => {
-        let hook1 = {
+        const hook1 = {
             repo_full_name: "repo_full_name",
             branch: "baseBranch",
             file_changes_matcher: "file1",
@@ -120,7 +115,7 @@ describe('gha hooks', () => {
             shared_params: {},
             slash_command: undefined
         };
-        let hook2 = {
+        const hook2 = {
             repo_full_name: "repo_full_name",
             branch: "baseBranch",
             file_changes_matcher: "file2",
@@ -136,23 +131,29 @@ describe('gha hooks', () => {
             slash_command: undefined
         };
         const triggeredHookNames = await hooks.filterTriggeredHooks(
-            "repo_full_name", "onPullRequest", ["file1", "file2"], "baseBranch",
-            [
-                hook1, hook2
-            ]);
+            "repo_full_name", "onPullRequest", ["file1", "file2", "namespace1/module1/.gha.yaml"], "baseBranch",
+            {hooks: [hook1, hook2], hookFilesModified: new Set(["namespace1/module1/.gha.yaml"])});
         expect(triggeredHookNames).toEqual(new Set([hook1]));
         expect(findMock).toHaveBeenCalledWith(
             {
                 repo_full_name: "repo_full_name",
                 branch: "baseBranch",
                 hook: "onPullRequest",
+                path_to_gha_yaml: expect.objectContaining({
+                    "__query": expect.anything(),
+                    "__special": {
+                        query: expect.anything(),
+                        type: "not",
+                    }
+                })
+
             }
         );
         expect(findAllMock).toHaveBeenCalledTimes(1);
     });
 
     it('find hooks to trigger, when matched files changed on slash command received', async () => {
-        let hook = {
+        const hook = {
             repo_full_name: "repo_full_name",
             branch: "baseBranch",
             file_changes_matcher: "file1",
@@ -168,20 +169,49 @@ describe('gha hooks', () => {
             slash_command: 'validate'
         };
         const triggeredHookNames = await hooks.filterTriggeredHooks(
-            "repo_full_name", "onSlashCommand", ["file1", "file2"], "baseBranch",
-            [
-                hook
-            ], 'validate');
+            "repo_full_name", "onSlashCommand", ["file1", "file2", "namespace1/module1/.gha.yaml"], "baseBranch",
+            {hooks: [hook], hookFilesModified: new Set(["namespace1/module1/.gha.yaml"])}, 'validate');
         expect(triggeredHookNames).toEqual(new Set([hook]));
         expect(findMock).toHaveBeenCalledWith(
             {
                 repo_full_name: "repo_full_name",
                 branch: "baseBranch",
                 hook: "onSlashCommand",
-                slash_command: 'validate'
+                slash_command: 'validate',
+                path_to_gha_yaml: expect.objectContaining({
+                    "__query": expect.anything(),
+                    "__special": {
+                        query: expect.anything(),
+                        type: "not",
+                    }
+                })
             }
         );
         expect(findAllMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not find hooks to trigger, when matched files changed on slash command not received', async () => {
+        const hook = {
+            repo_full_name: "repo_full_name",
+            branch: "baseBranch",
+            file_changes_matcher: "file1",
+            destination_branch_matcher: "baseBranch",
+            hook: "onSlashCommand" as HookType,
+            hook_name: "hook_name",
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
+            pipeline_unique_prefix: "pipeline_unique_prefix",
+            pipeline_name: "pipeline_name",
+            pipeline_ref: "pipeline_ref",
+            pipeline_params: {},
+            shared_params: {},
+            slash_command: 'validate'
+        };
+        const triggeredHookNames = await hooks.filterTriggeredHooks(
+            "repo_full_name", "onSlashCommand", ["file1", "file2", "namespace1/module1/.gha.yaml"], "baseBranch",
+            {hooks: [hook], hookFilesModified: new Set(["namespace1/module1/.gha.yaml"])});
+        expect(triggeredHookNames).toEqual(new Set([]));
+        expect(findMock).not.toHaveBeenCalled();
+        expect(findAllMock).not.toHaveBeenCalled();
     });
 
     it('should trigger correct workflow, when list of hooks provided', async () => {
