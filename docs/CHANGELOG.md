@@ -1,3 +1,10 @@
+## [1.20.7](https://github.com/mdolinin/gha-conductor/compare/v1.20.6...v1.20.7) (2024-12-30)
+
+
+### Bug Fixes
+
+* **pr-checks:** create check before trigger new workflows ([#267](https://github.com/mdolinin/gha-conductor/issues/267)) ([94d2d52](https://github.com/mdolinin/gha-conductor/commit/94d2d5259adb3512e1020a51ae04562ec8e99f6a))
+
 ## [1.20.6](https://github.com/mdolinin/gha-conductor/compare/v1.20.5...v1.20.6) (2024-12-22)
 
 
