@@ -215,6 +215,7 @@ describe('gha hooks', () => {
     });
 
     it('should trigger correct workflow, when list of hooks provided', async () => {
+        const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdef";
         const workflowDispatchMock = jest.fn().mockImplementation(() => {
             return {
@@ -313,7 +314,7 @@ describe('gha hooks', () => {
         triggeredHooks.add(hook1);
         triggeredHooks.add(hook2);
         // @ts-ignore
-        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
+        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha, prCheckId, undefined, ".yaml");
         expect(getWorkflowMock).toHaveBeenCalledWith({
             owner: "owner_login",
             repo: "repo_name",
@@ -369,6 +370,7 @@ describe('gha hooks', () => {
     });
 
     it('should trigger workflow with substituted command and args, for onSlashCommand when list of command tokens provided', async () => {
+        const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdef";
         const workflowDispatchMock = jest.fn().mockImplementation(() => {
             return {
@@ -445,7 +447,7 @@ describe('gha hooks', () => {
         };
         triggeredHooks.add(hook1);
         // @ts-ignore
-        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha, ['validate', 'arg1', 'arg2']);
+        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha, prCheckId, ['validate', 'arg1', 'arg2'], ".yaml");
         expect(getWorkflowMock).toHaveBeenCalledWith({
             owner: "owner_login",
             repo: "repo_name",
@@ -478,6 +480,7 @@ describe('gha hooks', () => {
     });
 
     it('should not trigger workflow, when workflow is not exist or inactive', async () => {
+        const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdej";
         const workflowDispatchMock = jest.fn().mockImplementation(() => {
             return {
@@ -539,7 +542,7 @@ describe('gha hooks', () => {
         };
         triggeredHooks.add(hook1);
         // @ts-ignore
-        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
+        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha, prCheckId, undefined, ".yaml");
         expect(getWorkflowMock).toHaveBeenCalledWith({
             owner: "owner_login",
             repo: "repo_name",
@@ -561,6 +564,7 @@ describe('gha hooks', () => {
     });
 
     it('should not trigger workflow, when workflow required inputs are missing in context', async () => {
+        const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdej";
         const workflowDispatchMock = jest.fn().mockImplementation(() => {
             return {
@@ -654,7 +658,7 @@ describe('gha hooks', () => {
         };
         triggeredHooks.add(hook1);
         // @ts-ignore
-        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha);
+        const triggeredPipelineNames = await hooks.runWorkflow(octokit, pull_request, "opened", triggeredHooks, merge_commit_sha, prCheckId, undefined, ".yaml");
         expect(getWorkflowMock).toHaveBeenCalledWith({
             owner: "owner_login",
             repo: "repo_name",
@@ -682,8 +686,9 @@ describe('gha hooks', () => {
         const pipeline_name = `${pipelineUniquePrefix}-${headSha}`;
         const inputs = {};
         const prNumber = 1;
+        const prCheckId = 2;
         const HookType = "onPullRequest";
-        await hooks.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, HookType, true);
+        await hooks.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, HookType, true);
         expect(insertMock).toHaveBeenCalledWith({
             name: 'gha-checks',
             head_sha: headSha,
@@ -691,6 +696,7 @@ describe('gha hooks', () => {
             pipeline_run_name: pipeline_name,
             workflow_run_inputs: inputs,
             pr_number: prNumber,
+            pr_check_id: prCheckId,
             hook: 'onPullRequest',
             status: 'completed',
             conclusion: 'failure',

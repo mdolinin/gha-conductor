@@ -241,7 +241,7 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             app.log.debug(`PR changed files are ${JSON.stringify(changedFiles)}`);
             const prCheck = await checks.createPRCheck(context.octokit, pr, hookType, merge_commit_sha);
             if (prCheck.checkRunId === 0) {
-                app.log.error(`Failed to create PR check for ${hookType} in repo ${repo_full_name} for PR ${pullNumber}`);
+                app.log.warn(`Failed to create PR check for ${hookType} in repo ${repo_full_name} for PR ${pullNumber}`);
                 return;
             }
             const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, ghaHooksFileName, changedFilesResp);
@@ -264,7 +264,7 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             } else if (allTriggeredHasError) {
                 await checks.updatePRCheckForAllErroredPipelines(context.octokit, context.payload.pull_request, prCheck, triggeredWorkflows);
             } else {
-                await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, prCheck);
+                await checks.updatePRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, prCheck);
             }
         } else {
             app.log.info("No files changed in PR. No hooks will be triggered");
@@ -467,6 +467,10 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             const hookType = "onSlashCommand"
             const prCheck = await checks.createPRCheck(context.octokit, pr, hookType, merge_commit_sha);
+            if (prCheck.checkRunId === 0) {
+                app.log.warn(`Failed to create PR check for ${hookType} in repo ${repo_full_name} for PR ${prNumber}`);
+                return;
+            }
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, repo_full_name);
             const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp);
             const baseBranch = pr.base.ref;
@@ -487,7 +491,7 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
                 const checkRunUrl = await checks.updatePRCheckForAllErroredPipelines(context.octokit, pr, prCheck, triggeredWorkflows);
                 await reply.replyToCommentWithReactionAndComment(context, `❌All pipelines errored. [Check](${checkRunUrl})`, 'confused');
             } else {
-                const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, prCheck);
+                const checkRunUrl = await checks.updatePRCheckForTriggeredPipelines(context.octokit, pr, prCheck);
                 await reply.replyToCommentWithReactionAndComment(context, `🏁Pipelines triggered. [Check](${checkRunUrl})`, 'rocket');
             }
         } else {

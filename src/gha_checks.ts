@@ -274,7 +274,7 @@ export class GhaChecks {
         return prCheck.checkRunUrl;
     }
 
-    async createPRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+    async updatePRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
         number: number,
         head: { sha: string },
         base: {
@@ -295,6 +295,7 @@ export class GhaChecks {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
             check_run_id: Number(prCheck.checkRunId),
+            status: "queued",
             output: {
                 title: "Workflow runs are queued",
                 summary: summary
