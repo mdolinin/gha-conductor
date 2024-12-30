@@ -25,7 +25,7 @@ const privateKey = fs.readFileSync(
 );
 import {GhaHook, GhaLoader} from "../src/gha_loader";
 import {Hooks} from "../src/hooks";
-import {GhaChecks} from "../src/gha_checks";
+import {GhaChecks, PRCheckName} from "../src/gha_checks";
 
 const loadAllGhaYamlMock = jest
     .spyOn(GhaLoader.prototype, 'loadAllGhaHooksFromRepo')
@@ -81,26 +81,39 @@ const createWorkflowRunCheckErroredMock = jest
         return Promise.resolve();
     });
 
-const createPRCheckNoPipelinesTriggeredMock = jest
-    .spyOn(GhaChecks.prototype, 'createPRCheckNoPipelinesTriggered')
+const prCheckMock = {
+    checkRunId: 1,
+    checkName: "pr-status" as PRCheckName,
+    checkRunUrl: "https://gh-check.com/",
+    hookType: "onPullRequest" as "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
+};
+
+let createPRCheckMock = jest
+    .spyOn(GhaChecks.prototype, 'createPRCheck')
+    .mockImplementation(() => {
+        return Promise.resolve(prCheckMock);
+    });
+
+const updatePRCheckNoPipelinesTriggeredMock = jest
+    .spyOn(GhaChecks.prototype, 'updatePRCheckNoPipelinesTriggered')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const createPRCheckWithAnnotationsMock = jest
-    .spyOn(GhaChecks.prototype, 'createPRCheckWithAnnotations')
+const updatePRCheckWithAnnotationsMock = jest
+    .spyOn(GhaChecks.prototype, 'updatePRCheckWithAnnotations')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const createPRCheckForAllErroredPipelinesMock = jest
-    .spyOn(GhaChecks.prototype, 'createPRCheckForAllErroredPipelines')
+const updatePRCheckForAllErroredPipelinesMock = jest
+    .spyOn(GhaChecks.prototype, 'updatePRCheckForAllErroredPipelines')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const createPRCheckForTriggeredPipelinesMock = jest
-    .spyOn(GhaChecks.prototype, 'createPRCheckForTriggeredPipelines')
+const updatePRCheckForTriggeredPipelinesMock = jest
+    .spyOn(GhaChecks.prototype, 'updatePRCheckForTriggeredPipelines')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
@@ -318,19 +331,16 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when PR opened with not valid .gha.yaml files, create pr-status check with status failed and annotate failures in PR changes", async () => {
-        const annotationsForCheck = [{
-            annotation_level: "failure" as "failure" | "warning" | "notice",
-            message: "Unknown error",
-            path: ".gha.yaml",
-            start_line: 1,
-            end_line: 1,
-            start_column: 1,
-            end_column: 1
-        }];
-        validateGhaYamlFilesMock = validateGhaYamlFilesMock.mockImplementation(() => {
-            return Promise.resolve(annotationsForCheck);
+    test("when PR opened, but fail to create pr-status check do nothing", async () => {
+        createPRCheckMock = createPRCheckMock.mockImplementation(() => {
+            return Promise.resolve({
+                checkRunId: 0,
+                checkName: "pr-status" as PRCheckName,
+                checkRunUrl: "",
+                hookType: "onPullRequest"
+            });
         });
+        const mergeCommitSha = "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8";
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -344,7 +354,65 @@ describe("gha-conductor app", () => {
             .get("/repos/mdolinin/mono-repo-example/pulls/27")
             .reply(200, {
                 mergeable: true,
-                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                merge_commit_sha: mergeCommitSha,
+                base: {
+                    ref: "main",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ]);
+
+        await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
+        // restore mock implementation
+        createPRCheckMock = createPRCheckMock.mockImplementation(() => {
+            return Promise.resolve(prCheckMock);
+        });
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckMock).toHaveBeenCalledWith(expect.anything(), pullRequestOpenedPayload.pull_request, "onPullRequest", mergeCommitSha);
+        expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckWithAnnotationsMock).toHaveBeenCalledTimes(0);
+        expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
+        expect(runWorkflowMock).toHaveBeenCalledTimes(0);
+        expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    }, timeout);
+
+    test("when PR opened with not valid .gha.yaml files, create pr-status check with status failed and annotate failures in PR changes", async () => {
+        const annotationsForCheck = [{
+            annotation_level: "failure" as "failure" | "warning" | "notice",
+            message: "Unknown error",
+            path: ".gha.yaml",
+            start_line: 1,
+            end_line: 1,
+            start_column: 1,
+            end_column: 1
+        }];
+        validateGhaYamlFilesMock = validateGhaYamlFilesMock.mockImplementation(() => {
+            return Promise.resolve(annotationsForCheck);
+        });
+        const mergeCommitSha = "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8";
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
+            .get("/repos/mdolinin/mono-repo-example/pulls/27")
+            .reply(200, {
+                mergeable: true,
+                merge_commit_sha: mergeCommitSha,
                 base: {
                     ref: "main",
                 },
@@ -362,15 +430,16 @@ describe("gha-conductor app", () => {
             return Promise.resolve([]);
         });
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckMock).toHaveBeenCalledWith(expect.anything(), pullRequestOpenedPayload.pull_request, "onPullRequest", mergeCommitSha);
         expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckWithAnnotationsMock).toHaveBeenCalledWith(expect.anything(), expect.anything(), "onPullRequest", annotationsForCheck);
+        expect(updatePRCheckWithAnnotationsMock).toHaveBeenCalledWith(expect.anything(), pullRequestOpenedPayload.pull_request, prCheckMock, annotationsForCheck);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(0);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(0);
         expect(runWorkflowMock).toHaveBeenCalledTimes(0);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
@@ -409,14 +478,15 @@ describe("gha-conductor app", () => {
             return Promise.resolve([]);
         });
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckMock).toHaveBeenCalledTimes(1);
         expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(1);
+        expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
@@ -448,14 +518,15 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckMock).toHaveBeenCalledTimes(1)
         expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(1);
-        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(1);
+        expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
@@ -490,14 +561,15 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "pull_request", payload: pullRequestOpenedPayload});
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckMock).toHaveBeenCalledTimes(1)
         expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
+        expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
@@ -538,12 +610,12 @@ describe("gha-conductor app", () => {
         expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
     });
 
-    test(" when user click re-run link on failed check, trigger workflow again", async () => {
+    test("when user click re-run link on failed check, trigger workflow again", async () => {
         await probot.receive({name: "check_run", payload: checkRunReRequestedPayload});
         expect(triggerReRunWorkflowRunCheckMock).toHaveBeenCalledTimes(1);
     });
 
-    test(" when user click re-run link on failed pr-status, trigger all pr workflows again", async () => {
+    test("when user click re-run link on failed pr-status, trigger all pr workflows again", async () => {
         await probot.receive({name: "check_run", payload: prStatuscheckRunReRequestedPayload});
         expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
     });
@@ -634,13 +706,14 @@ describe("gha-conductor app", () => {
 
         await probot.receive({name: "issue_comment", payload: slashCommandIssueCommentPayload});
         expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(0);
+        expect(createPRCheckMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
+        expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
@@ -709,13 +782,14 @@ describe("gha-conductor app", () => {
         });
         expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
         expect(validateGhaYamlFilesMock).toHaveBeenCalledTimes(1);
+        expect(createPRCheckMock).toHaveBeenCalledTimes(1);
         expect(loadGhaHooksMock).toHaveBeenCalledTimes(1);
         expect(filterTriggeredHooksMock).toHaveBeenCalledTimes(1);
         expect(runWorkflowMock).toHaveBeenCalledTimes(1);
         expect(createWorkflowRunCheckErroredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
-        expect(createPRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
+        expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
+        expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 

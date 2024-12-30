@@ -1,4 +1,4 @@
-import {GhaChecks, GITHUB_CHECK_TEXT_LIMIT, PRCheckAction, ReRunPayload} from "../src/gha_checks";
+import {GhaChecks, GITHUB_CHECK_TEXT_LIMIT, PRCheckAction, PRCheckName, ReRunPayload} from "../src/gha_checks";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
@@ -125,12 +125,14 @@ describe('gha_checks', () => {
         });
     });
 
-    it('create pr-status check if no pipelines triggered', async () => {
+    it('create pr-status check with status queued for PR event', async () => {
+        const checkRunId = 1234;
+        const hookType = 'onBranchMerge';
         const merge_commit_sha = '1234567890';
         let createCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 1,
+                    id: checkRunId,
                 },
                 status: 201,
             }
@@ -141,12 +143,69 @@ describe('gha_checks', () => {
             }
         }
         // @ts-ignore
-        const checkRunUrl = await checks.createPRCheckNoPipelinesTriggered(octokit, pullRequestOpenedPayload.pull_request, 'onBranchMerge', merge_commit_sha);
-        expect(createCheckMock).toHaveBeenCalled();
-        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
+        const checkRun = await checks.createPRCheck(octokit, pullRequestOpenedPayload.pull_request, hookType, merge_commit_sha);
+        expect(createCheckMock).toHaveBeenCalledWith({
+            owner: pullRequestOpenedPayload.repository.owner.login,
+            repo: pullRequestOpenedPayload.repository.name,
+            name: PRCheckName.PRMerge,
+            head_sha: merge_commit_sha,
+            status: "queued",
+            started_at: expect.anything(),
+            output: {
+                title: "Processing hooks",
+                summary: `Processing hooks for ${hookType} to determine workflows to run`,
+            }
+        })
+        expect(checkRun.checkRunId).toBe(checkRunId);
+        expect(checkRun.checkName).toBe(PRCheckName.PRMerge);
+        expect(checkRun.checkRunUrl).toBe(`https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=${checkRunId}`);
+        expect(checkRun.hookType).toBe(hookType);
     });
 
-    it('create pr-status check with annotations if yaml validation failed', async () => {
+    it('update pr-status check if no pipelines triggered', async () => {
+        const prCheck = {
+            checkRunId: 1,
+            checkName: PRCheckName.PRMerge,
+            checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1',
+            hookType: 'onBranchMerge'
+        }
+        let updateCheckMock = jest.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: prCheck.checkRunId,
+                },
+                status: 201,
+            }
+        });
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            }
+        }
+        // @ts-ignore
+        const checkRunUrl = await checks.updatePRCheckNoPipelinesTriggered(octokit, pullRequestOpenedPayload.pull_request, prCheck);
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            owner: pullRequestOpenedPayload.repository.owner.login,
+            repo: pullRequestOpenedPayload.repository.name,
+            check_run_id: prCheck.checkRunId,
+            status: "completed",
+            conclusion: "success",
+            completed_at: expect.anything(),
+            output: {
+                title: "No workflows to run",
+                summary: `No workflows to run for hook ${prCheck.hookType}`
+            },
+        })
+        expect(checkRunUrl).toBe(prCheck.checkRunUrl);
+    });
+
+    it('update pr-status check with annotations if yaml validation failed', async () => {
+        const prCheck = {
+            checkRunId: 1,
+            checkName: PRCheckName.PRStatus,
+            checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1',
+            hookType: 'onPullRequest'
+        }
         const annotationsForCheck = [{
             annotation_level: "failure" as "failure" | "warning" | "notice",
             message: "Unknown error",
@@ -157,44 +216,48 @@ describe('gha_checks', () => {
             end_column: 1
         }];
         // const merge_commit_sha = '1234567890';
-        let createCheckMock = jest.fn().mockImplementation(() => {
+        let updateCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 1,
+                    id: prCheck.checkRunId,
                 },
                 status: 201,
             }
         });
         const octokit = {
             checks: {
-                create: createCheckMock
+                update: updateCheckMock
             }
         }
         // @ts-ignore
-        const checkRunUrl = await checks.createPRCheckWithAnnotations(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', annotationsForCheck);
-        expect(createCheckMock).toHaveBeenCalledWith({
-            completed_at: expect.anything(),
+        const checkRunUrl = await checks.updatePRCheckWithAnnotations(octokit, pullRequestOpenedPayload.pull_request, prCheck, annotationsForCheck);
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            owner: pullRequestOpenedPayload.repository.owner.login,
+            repo: pullRequestOpenedPayload.repository.name,
+            check_run_id: prCheck.checkRunId,
+            status: "completed",
             conclusion: "failure",
-            head_sha: pullRequestOpenedPayload.pull_request.head.sha,
-            name: "pr-status",
+            completed_at: expect.anything(),
             output: {
                 summary: "Issues found in .gha.yml files",
                 title: "Issues found in .gha.yml files",
                 annotations: annotationsForCheck
             },
-            owner: "mdolinin",
-            repo: "mono-repo-example",
-            status: "completed",
         });
-        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
+        expect(checkRunUrl).toBe(prCheck.checkRunUrl);
     });
 
     it('create pr-status check when all pipelines failed to start', async () => {
-        const merge_commit_sha = '1234567890';
-        const createCheckMock = jest.fn().mockImplementation(() => {
+        const prCheck = {
+            checkRunId: 2,
+            checkName: PRCheckName.PRStatus,
+            checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=2',
+            hookType: 'onPullRequest'
+        }
+        const updateCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 2,
+                    id: prCheck.checkRunId,
                 },
                 status: 201,
             }
@@ -207,7 +270,7 @@ describe('gha_checks', () => {
         });
         const octokit = {
             checks: {
-                create: createCheckMock
+                update: updateCheckMock
             },
             actions: {
                 downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
@@ -221,37 +284,40 @@ describe('gha_checks', () => {
             error: "ref feature/2 is not exist"
         }];
         // @ts-ignore
-        const checkRunUrl = await checks.createPRCheckForAllErroredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha, erroredWorkflows);
-        expect(createCheckMock).toHaveBeenCalledWith({
-            completed_at: expect.anything(),
+        const checkRunUrl = await checks.updatePRCheckForAllErroredPipelines(octokit, pullRequestOpenedPayload.pull_request, prCheck, erroredWorkflows);
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            owner: pullRequestOpenedPayload.repository.owner.login,
+            repo: pullRequestOpenedPayload.repository.name,
+            check_run_id: prCheck.checkRunId,
+            status: "completed",
             conclusion: "failure",
-            head_sha: pullRequestOpenedPayload.pull_request.head.sha,
-            name: "pr-status",
+            completed_at: expect.anything(),
             output: {
                 summary: expect.stringContaining("ref feature/2 is not exist"),
                 title: "All workflows errored. Nothing to do"
             },
-            owner: "mdolinin",
-            repo: "mono-repo-example",
-            status: "completed",
         });
         expect(updateMock).toHaveBeenCalledWith({
             hook: 'onPullRequest',
-            pr_check_id: null,
+            pr_check_id: prCheck.checkRunId,
             pr_number: pullRequestOpenedPayload.pull_request.number,
         }, {
-            pr_check_id: 2,
             pr_conclusion: "failure",
         });
-        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=2');
+        expect(checkRunUrl).toBe(prCheck.checkRunUrl);
     });
 
-    it('create pr-status check for triggered pipelines', async () => {
-        const merge_commit_sha = '1234567890';
-        const createCheckMock = jest.fn().mockImplementation(() => {
+    it('update pr-status check for triggered pipelines', async () => {
+        const prCheck = {
+            checkRunId: 3,
+            checkName: PRCheckName.PRStatus,
+            checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=3',
+            hookType: 'onPullRequest'
+        }
+        const updateCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 3,
+                    id: prCheck.checkRunId,
                 },
                 status: 201,
             }
@@ -264,24 +330,33 @@ describe('gha_checks', () => {
         });
         const octokit = {
             checks: {
-                create: createCheckMock
+                update: updateCheckMock
             },
             actions: {
                 downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
             }
         }
         // @ts-ignore
-        const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequest', merge_commit_sha);
+        const checkRunUrl = await checks.updatePRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, prCheck);
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
-            pr_check_id: null,
+            pr_check_id: prCheck.checkRunId,
             hook: 'onPullRequest'
         });
         expect(findAllMock).toHaveBeenCalled();
-        expect(createCheckMock).toHaveBeenCalledTimes(1);
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            owner: pullRequestOpenedPayload.repository.owner.login,
+            repo: pullRequestOpenedPayload.repository.name,
+            check_run_id: prCheck.checkRunId,
+            status: "queued",
+            output: {
+                title: "Workflow runs are queued",
+                summary: expect.anything()
+            },
+        });
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
-        expect(updateMock).toHaveBeenCalledTimes(1);
-        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=3');
+        expect(updateMock).toHaveBeenCalledTimes(0);
+        expect(checkRunUrl).toBe(prCheck.checkRunUrl);
     });
 
     it('should update check, when workflow run queued', async () => {
@@ -863,12 +938,17 @@ describe('gha_checks', () => {
         });
     });
 
-    it('create pr-close check when PR closed hook triggered', async () => {
-        const merge_commit_sha = '1234567890';
-        const createCheckMock = jest.fn().mockImplementation(() => {
+    it('update pr-close check when PR closed hook triggered', async () => {
+        const prCheck = {
+            checkRunId: 4,
+            checkName: PRCheckName.PRClose,
+            checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=4',
+            hookType: 'onPullRequestClose'
+        }
+        const updateCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 1,
+                    id: prCheck.checkRunId,
                 },
                 status: 201,
             }
@@ -881,32 +961,37 @@ describe('gha_checks', () => {
         });
         const octokit = {
             checks: {
-                create: createCheckMock
+                update: updateCheckMock
             },
             actions: {
                 downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
             }
         }
         // @ts-ignore
-        const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onPullRequestClose', merge_commit_sha);
-        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1');
+        const checkRunUrl = await checks.updatePRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, prCheck);
+        expect(checkRunUrl).toBe(prCheck.checkRunUrl);
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
-            pr_check_id: null,
+            pr_check_id: prCheck.checkRunId,
             hook: 'onPullRequestClose'
         });
         expect(findAllMock).toHaveBeenCalled();
-        expect(createCheckMock).toHaveBeenCalledTimes(1);
+        expect(updateCheckMock).toHaveBeenCalledTimes(1);
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
-        expect(updateMock).toHaveBeenCalledTimes(1);
+        expect(updateMock).toHaveBeenCalledTimes(0);
     });
 
-    it('create pr-slash-command check when slash command hook triggered', async () => {
-        const merge_commit_sha = '1234567890';
-        const createCheckMock = jest.fn().mockImplementation(() => {
+    it('update pr-slash-command check when slash command hook triggered', async () => {
+        const prCheck = {
+            checkRunId: 5,
+            checkName: PRCheckName.PRSlashCommand,
+            checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=5',
+            hookType: 'onSlashCommand'
+        }
+        const updateCheckMock = jest.fn().mockImplementation(() => {
             return {
                 data: {
-                    id: 2,
+                    id: prCheck.checkRunId,
                 },
                 status: 201,
             }
@@ -919,24 +1004,24 @@ describe('gha_checks', () => {
         });
         const octokit = {
             checks: {
-                create: createCheckMock
+                update: updateCheckMock
             },
             actions: {
                 downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
             }
         }
         // @ts-ignore
-        const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, 'onSlashCommand', merge_commit_sha);
-        expect(checkRunUrl).toBe('https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=2');
+        const checkRunUrl = await checks.updatePRCheckForTriggeredPipelines(octokit, pullRequestOpenedPayload.pull_request, prCheck);
+        expect(checkRunUrl).toBe(prCheck.checkRunUrl);
         expect(findMock).toHaveBeenCalledWith({
             pr_number: pullRequestOpenedPayload.pull_request.number,
-            pr_check_id: null,
+            pr_check_id: prCheck.checkRunId,
             hook: 'onSlashCommand'
         });
         expect(findAllMock).toHaveBeenCalled();
-        expect(createCheckMock).toHaveBeenCalledTimes(1);
+        expect(updateCheckMock).toHaveBeenCalledTimes(1);
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
-        expect(updateMock).toHaveBeenCalledTimes(1);
+        expect(updateMock).toHaveBeenCalledTimes(0);
     });
 
     it.each([0, 1, 10, 300, 1000])('github check summary for \'%s\' workflow runs should not go over limit', async (numberOfWorkflowRuns) => {

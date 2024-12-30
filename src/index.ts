@@ -197,6 +197,9 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
                 return;
             }
         }
+        if (merge_commit_sha === null) {
+            merge_commit_sha = context.payload.pull_request.head.sha;
+        }
         if (!mergeable && !pr.merged) {
             app.log.info(`PR is not mergeable. All checks are skipped`);
             return;
@@ -236,18 +239,20 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             const changedFiles = changedFilesResp.map((file) => file.filename);
             app.log.debug(`PR changed files are ${JSON.stringify(changedFiles)}`);
+            const prCheck = await checks.createPRCheck(context.octokit, pr, hookType, merge_commit_sha);
+            if (prCheck.checkRunId === 0) {
+                app.log.warn(`Failed to create PR check for ${hookType} in repo ${repo_full_name} for PR ${pullNumber}`);
+                return;
+            }
             const annotationsForCheck = await ghaLoader.validateGhaYamlFiles(context.octokit, ghaHooksFileName, changedFilesResp);
             if (annotationsForCheck.length > 0) {
-                await checks.createPRCheckWithAnnotations(context.octokit, pr, hookType, annotationsForCheck);
+                await checks.updatePRCheckWithAnnotations(context.octokit, pr, prCheck, annotationsForCheck);
                 return;
             }
             const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp);
             const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR);
-            if (merge_commit_sha === null) {
-                merge_commit_sha = context.payload.pull_request.head.sha;
-            }
             const workflowFileExtension = await getValueFromConfig(context, repo_full_name, "workflow_file_extension");
-            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha, undefined, workflowFileExtension);
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha, prCheck.checkRunId, undefined, workflowFileExtension);
             for (const triggeredWorkflow of triggeredWorkflows) {
                 if (triggeredWorkflow.error) {
                     await checks.createWorkflowRunCheckErrored(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, triggeredWorkflow);
@@ -255,11 +260,11 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             const allTriggeredHasError = triggeredWorkflows.every(workflow => workflow.error);
             if (triggeredWorkflows.length === 0) {
-                await checks.createPRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request, hookType, merge_commit_sha);
+                await checks.updatePRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request, prCheck);
             } else if (allTriggeredHasError) {
-                await checks.createPRCheckForAllErroredPipelines(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, triggeredWorkflows);
+                await checks.updatePRCheckForAllErroredPipelines(context.octokit, context.payload.pull_request, prCheck, triggeredWorkflows);
             } else {
-                await checks.createPRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, hookType, merge_commit_sha);
+                await checks.updatePRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, prCheck);
             }
         } else {
             app.log.info("No files changed in PR. No hooks will be triggered");
@@ -456,18 +461,23 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             const changedFiles = changedFilesResp.map((file) => file.filename);
             app.log.info(`PR changed files are ${JSON.stringify(changedFiles)}`);
-            const ghaHooksFileName = await getHooksFileNameFromConfig(context, repo_full_name);
-            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp);
-            const hookType = "onSlashCommand"
-            const baseBranch = pr.base.ref;
-            const command = commandTokens[0]
-            const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR, command);
             let merge_commit_sha = pr.merge_commit_sha;
             if (merge_commit_sha === null) {
                 merge_commit_sha = pr.head.sha;
             }
+            const hookType = "onSlashCommand"
+            const prCheck = await checks.createPRCheck(context.octokit, pr, hookType, merge_commit_sha);
+            if (prCheck.checkRunId === 0) {
+                app.log.warn(`Failed to create PR check for ${hookType} in repo ${repo_full_name} for PR ${prNumber}`);
+                return;
+            }
+            const ghaHooksFileName = await getHooksFileNameFromConfig(context, repo_full_name);
+            const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp);
+            const baseBranch = pr.base.ref;
+            const command = commandTokens[0]
+            const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR, command);
             const workflowFileExtension = await getValueFromConfig(context, repo_full_name, "workflow_file_extension");
-            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, commandTokens, workflowFileExtension);
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, prCheck.checkRunId, commandTokens, workflowFileExtension);
             for (const triggeredWorkflow of triggeredWorkflows) {
                 if (triggeredWorkflow.error) {
                     await checks.createWorkflowRunCheckErrored(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflow);
@@ -475,13 +485,13 @@ export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             const allTriggeredHasError = triggeredWorkflows.every(workflow => workflow.error);
             if (triggeredWorkflows.length === 0) {
-                const checkRunUrl = await checks.createPRCheckNoPipelinesTriggered(context.octokit, pr, hookType, merge_commit_sha);
+                const checkRunUrl = await checks.updatePRCheckNoPipelinesTriggered(context.octokit, pr, prCheck);
                 await reply.replyToCommentWithReactionAndComment(context, `🫤No pipelines triggered. [Check](${checkRunUrl})`, '+1');
             } else if (allTriggeredHasError) {
-                const checkRunUrl = await checks.createPRCheckForAllErroredPipelines(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflows);
+                const checkRunUrl = await checks.updatePRCheckForAllErroredPipelines(context.octokit, pr, prCheck, triggeredWorkflows);
                 await reply.replyToCommentWithReactionAndComment(context, `❌All pipelines errored. [Check](${checkRunUrl})`, 'confused');
             } else {
-                const checkRunUrl = await checks.createPRCheckForTriggeredPipelines(context.octokit, pr, hookType, merge_commit_sha);
+                const checkRunUrl = await checks.updatePRCheckForTriggeredPipelines(context.octokit, pr, prCheck);
                 await reply.replyToCommentWithReactionAndComment(context, `🏁Pipelines triggered. [Check](${checkRunUrl})`, 'rocket');
             }
         } else {
