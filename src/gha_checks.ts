@@ -60,6 +60,39 @@ export class GhaChecks {
         }
     }
 
+    async createPRCheck(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        number: number;
+        head: { sha: string };
+        base: { repo: { name: string; owner: { login: string } } }
+    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
+        const checkName = this.hookToCheckName(hookType);
+        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
+        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+            owner: pull_request.base.repo.owner.login,
+            repo: pull_request.base.repo.name,
+            name: checkName,
+            head_sha: sha,
+            status: "queued",
+            started_at: new Date().toISOString(),
+            output: {
+                title: "Processing hooks",
+                summary: `Processing hooks for ${hookType} to determine workflows to run`
+            }
+        }
+        let checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks`;
+        let checkRunId = 0;
+        try {
+            const resp = await octokit.checks.create(params);
+            checkRunId = resp.data.id;
+            checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
+            this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+        } catch (error) {
+            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
+        }
+        return {checkRunId, checkName, checkRunUrl, hookType};
+    }
+
     async createWorkflowRunCheckErrored(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
         number: number;
         head: { sha: string };
@@ -115,7 +148,7 @@ export class GhaChecks {
         }
     }
 
-    async createPRCheckNoPipelinesTriggered(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+    async updatePRCheckNoPipelinesTriggered(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
         number: number,
         head: { sha: string },
         base: {
@@ -124,54 +157,46 @@ export class GhaChecks {
                 owner: { login: string }
             },
         },
-    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
-        const checkName = this.hookToCheckName(hookType);
-        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
-        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
-        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+    }, prCheck: { checkRunId: number; checkName: string, checkRunUrl: string, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand" }) {
+        this.log.info(`Update ${prCheck.checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
-            name: checkName,
-            head_sha: sha,
+            check_run_id: Number(prCheck.checkRunId),
             status: "completed",
             conclusion: "success",
             completed_at: new Date().toISOString(),
             output: {
                 title: "No workflows to run",
-                summary: `No workflows to run for hook ${hookType}`
+                summary: `No workflows to run for hook ${prCheck.hookType}`
             }
         };
-        let checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks`;
         try {
-            const resp = await octokit.checks.create(params);
+            const resp = await octokit.checks.update(params);
             const checkRunId = resp.data.id;
-            checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
-            this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+            this.log.info(`${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } catch (error) {
-            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
+            this.log.error(error, `Failed to create ${prCheck.checkName} check for PR #${pull_request.number}`);
         }
-        return checkRunUrl;
+        return prCheck.checkRunUrl;
     }
 
-    async createPRCheckWithAnnotations(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+    async updatePRCheckWithAnnotations(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
         number: number;
         head: { sha: string };
         base: { repo: { name: string; owner: { login: string } } }
-    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", annotationsForCheck: {
+    }, prCheck: { checkRunId: number; checkName: string, checkRunUrl: string }, annotationsForCheck: {
         annotation_level: "failure" | "notice" | "warning";
         message: string;
         path: string;
         start_line: number;
         end_line: number
     }[]) {
-        const checkName = this.hookToCheckName(hookType);
-        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
-        const sha = pull_request.head.sha;
-        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+        this.log.info(`Update  ${prCheck.checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
+        const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
-            name: checkName,
-            head_sha: sha,
+            check_run_id: Number(prCheck.checkRunId),
             status: "completed",
             conclusion: "failure",
             completed_at: new Date().toISOString(),
@@ -181,27 +206,22 @@ export class GhaChecks {
                 annotations: annotationsForCheck,
             }
         };
-        let checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks`;
         try {
-            const resp = await octokit.checks.create(params);
+            const resp = await octokit.checks.update(params);
             const checkRunId = resp.data.id;
-            checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
-            this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+            this.log.info(`${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } catch (error) {
-            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
+            this.log.error(error, `Failed to create ${prCheck.checkName} check for PR #${pull_request.number}`);
         }
-        return checkRunUrl;
+        return prCheck.checkRunUrl;
     }
 
-
-    async createPRCheckForAllErroredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+    async updatePRCheckForAllErroredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
         number: number;
         head: { sha: string };
         base: { repo: { name: string; owner: { login: string } } }
-    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string, erroredWorkflows: TriggeredWorkflow[]) {
-        const checkName = this.hookToCheckName(hookType);
-        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
-        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
+    }, prCheck: { checkRunId: number; checkName: string, checkRunUrl: string, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand" }, erroredWorkflows: TriggeredWorkflow[]) {
+        this.log.info(`Update ${prCheck.checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         let summary = "❌Errored workflows:\n"
         for (const triggeredWorkflow of erroredWorkflows) {
             summary += `## ${triggeredWorkflow.name}\n` +
@@ -225,11 +245,10 @@ export class GhaChecks {
                 `\n`;
 
         }
-        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+        const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
-            name: checkName,
-            head_sha: sha,
+            check_run_id: Number(prCheck.checkRunId),
             status: "completed",
             conclusion: "failure",
             completed_at: new Date().toISOString(),
@@ -238,24 +257,21 @@ export class GhaChecks {
                 summary: summary
             }
         };
-        let checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks`;
         try {
-            const resp = await octokit.checks.create(params);
+            const resp = await octokit.checks.update(params);
             const checkRunId = resp.data.id;
-            checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
-            this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
+            this.log.info(`${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
             await gha_workflow_runs(db).update({
                 pr_number: pull_request.number,
-                pr_check_id: null,
-                hook: hookType
-            }, {
                 pr_check_id: checkRunId,
+                hook: prCheck.hookType
+            }, {
                 pr_conclusion: "failure"
             });
         } catch (error) {
-            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
+            this.log.error(error, `Failed to create ${prCheck.checkName} check for PR #${pull_request.number}`);
         }
-        return checkRunUrl;
+        return prCheck.checkRunUrl;
     }
 
     async createPRCheckForTriggeredPipelines(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
@@ -267,45 +283,31 @@ export class GhaChecks {
                 owner: { login: string }
             },
         },
-    }, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand", merge_commit_sha: string) {
-        const checkName = this.hookToCheckName(hookType);
-        this.log.info(`Creating ${checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
-        const sha = hookType === "onBranchMerge" ? merge_commit_sha : pull_request.head.sha;
+    }, prCheck: { checkRunId: number; checkName: string, checkRunUrl: string, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand" }) {
+        this.log.info(`Update ${prCheck.checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const workflowRuns = await gha_workflow_runs(db).find({
             pr_number: pull_request.number,
-            pr_check_id: null,
-            hook: hookType
+            pr_check_id: prCheck.checkRunId,
+            hook: prCheck.hookType
         }).all();
         const summary = await this.formatGHCheckSummaryAll(octokit, pull_request.base.repo.owner.login, pull_request.base.repo.name, workflowRuns);
-        const params: RestEndpointMethodTypes["checks"]["create"]["parameters"] = {
+        const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
             repo: pull_request.base.repo.name,
-            name: checkName,
-            head_sha: sha,
-            status: "queued",
-            started_at: new Date().toISOString(),
+            check_run_id: Number(prCheck.checkRunId),
             output: {
                 title: "Workflow runs are queued",
                 summary: summary
             }
         };
-        let checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks`;
         try {
-            const resp = await octokit.checks.create(params);
+            const resp = await octokit.checks.update(params);
             const checkRunId = resp.data.id;
-            checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
-            this.log.info(`Updating ${checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
-            await gha_workflow_runs(db).update({
-                pr_number: pull_request.number,
-                pr_check_id: null,
-                hook: hookType
-            }, {
-                pr_check_id: checkRunId
-            });
+            this.log.info(`Updated ${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
         } catch (error) {
-            this.log.error(error, `Failed to create ${checkName} check for PR #${pull_request.number}`);
+            this.log.error(error, `Failed to create ${prCheck.checkName} check for PR #${pull_request.number}`);
         }
-        return checkRunUrl;
+        return prCheck.checkRunUrl;
     }
 
     private parseHeadShaFromJobName(jobName: string): { headSha: string | undefined, checkName: string } {
