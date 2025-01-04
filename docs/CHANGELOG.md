@@ -1,3 +1,10 @@
+## [1.20.8](https://github.com/mdolinin/gha-conductor/compare/v1.20.7...v1.20.8) (2025-01-04)
+
+
+### Bug Fixes
+
+* **gha-checks:** reduce summary size to not go over limit ([#272](https://github.com/mdolinin/gha-conductor/issues/272)) ([ed97e03](https://github.com/mdolinin/gha-conductor/commit/ed97e033893a46565da75cb08b01755fdb61ac8f))
+
 ## [1.20.7](https://github.com/mdolinin/gha-conductor/compare/v1.20.6...v1.20.7) (2024-12-30)
 
 
