@@ -157,7 +157,12 @@ export class GhaChecks {
                 owner: { login: string }
             },
         },
-    }, prCheck: { checkRunId: number; checkName: string, checkRunUrl: string, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand" }) {
+    }, prCheck: {
+        checkRunId: number;
+        checkName: string,
+        checkRunUrl: string,
+        hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand"
+    }) {
         this.log.info(`Update ${prCheck.checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
             owner: pull_request.base.repo.owner.login,
@@ -220,7 +225,12 @@ export class GhaChecks {
         number: number;
         head: { sha: string };
         base: { repo: { name: string; owner: { login: string } } }
-    }, prCheck: { checkRunId: number; checkName: string, checkRunUrl: string, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand" }, erroredWorkflows: TriggeredWorkflow[]) {
+    }, prCheck: {
+        checkRunId: number;
+        checkName: string,
+        checkRunUrl: string,
+        hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand"
+    }, erroredWorkflows: TriggeredWorkflow[]) {
         this.log.info(`Update ${prCheck.checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         let summary = "❌Errored workflows:\n"
         for (const triggeredWorkflow of erroredWorkflows) {
@@ -283,7 +293,12 @@ export class GhaChecks {
                 owner: { login: string }
             },
         },
-    }, prCheck: { checkRunId: number; checkName: string, checkRunUrl: string, hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand" }) {
+    }, prCheck: {
+        checkRunId: number;
+        checkName: string,
+        checkRunUrl: string,
+        hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand"
+    }) {
         this.log.info(`Update ${prCheck.checkName} check for ${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}#${pull_request.number}`);
         const workflowRuns = await gha_workflow_runs(db).find({
             pr_number: pull_request.number,
@@ -415,9 +430,18 @@ export class GhaChecks {
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
-            const log_max_size = GITHUB_CHECK_TEXT_LIMIT - 2000;
-            const workflowJobLog = await this.getWorkflowJobLog(octokit, payload.repository.owner.login, payload.repository.name, workflowJob.id, log_max_size);
-            const summary = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", workflowJobLog);
+            let summary = "";
+            // to avoid github check summary limit issue, we need to reduce the log limit
+            const reduced_text_limit = GITHUB_CHECK_TEXT_LIMIT - 2000;
+            const summaryWithoutLogs = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", "-");
+            if (summaryWithoutLogs.length >= reduced_text_limit) {
+                // create simplified summary
+                summary = `${this.getWorkflowStatusIcon(payload.workflow_job.conclusion, "completed")}: **[${workflowJob.name}](${workflowRun.workflow_run_url})**`;
+            } else {
+                const log_max_size = reduced_text_limit - summaryWithoutLogs.length;
+                const workflowJobLog = await this.getWorkflowJobLog(octokit, payload.repository.owner.login, payload.repository.name, workflowJob.id, log_max_size);
+                summary = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", workflowJobLog);
+            }
             const checkRunId = workflowRun.check_run_id;
             if (!checkRunId) {
                 this.log.warn(`Check run id is not exist for workflow run ${workflowJob.name}`);
