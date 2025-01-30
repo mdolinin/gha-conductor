@@ -529,10 +529,10 @@
     node-addon-api "^6.1.0"
     node-gyp-build "^3.9.0"
 
-"@datadog/pprof@5.4.1":
-  version "5.4.1"
-  resolved "https://registry.yarnpkg.com/@datadog/pprof/-/pprof-5.4.1.tgz#08c9bcf5d8efb2eeafdfc9f5bb5402f79fb41266"
-  integrity sha512-IvpL96e/cuh8ugP5O8Czdup7XQOLHeIDgM5pac5W7Lc1YzGe5zTtebKFpitvb1CPw1YY+1qFx0pWGgKP2kOfHg==
+"@datadog/pprof@5.5.0":
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/@datadog/pprof/-/pprof-5.5.0.tgz#48fff2d70c5d2975e1f7a2b00b45160d89cdeb06"
+  integrity sha512-+53v76BDLr6o9MWC8dj7FIhnUwNGeCxPwJcT2ZlioyKWHJqpbPQ0Pc92visXg/QI4s6Vpz7mZbThvD2kIe57Ng==
   dependencies:
     delay "^5.0.0"
     node-gyp-build "<4.0"
@@ -3580,17 +3580,17 @@ dc-polyfill@^0.1.4:
   resolved "https://registry.yarnpkg.com/dc-polyfill/-/dc-polyfill-0.1.6.tgz#c2940fa68ffb24a7bf127cc6cfdd15b39f0e7f02"
   integrity sha512-UV33cugmCC49a5uWAApM+6Ev9ZdvIUMTrtCO9fj96TPGOQiea54oeO3tiEVdVeo3J9N2UdJEmbS4zOkkEA35uQ==
 
-dd-trace@^5.32.0:
-  version "5.32.0"
-  resolved "https://registry.yarnpkg.com/dd-trace/-/dd-trace-5.32.0.tgz#a2b4d3aa69819c948bc2677358567d278a74d51e"
-  integrity sha512-PrYzSfEkMB1QfGsjqM6E8uIdyY94EtizX+0ynOvtJb0gL2IGb7DfCzSba/4VsCw7V48oBdHrJlqriBPuA3E0fw==
+dd-trace@^5.33.0:
+  version "5.33.0"
+  resolved "https://registry.yarnpkg.com/dd-trace/-/dd-trace-5.33.0.tgz#07addeb3cd363418a170453be8ef5a4390696074"
+  integrity sha512-SDsCEw73WfvGD2hlGcbBZcnUBy2cnLgct+nMzoUqZuDG41rn1phs6Cix8dqPYOpYCP3s5gI5+JVjD2/us+83/Q==
   dependencies:
     "@datadog/libdatadog" "^0.4.0"
     "@datadog/native-appsec" "8.4.0"
     "@datadog/native-iast-rewriter" "2.6.1"
     "@datadog/native-iast-taint-tracking" "3.2.0"
     "@datadog/native-metrics" "^3.1.0"
-    "@datadog/pprof" "5.4.1"
+    "@datadog/pprof" "5.5.0"
     "@datadog/sketches-js" "^2.1.0"
     "@isaacs/ttlcache" "^1.4.1"
     "@opentelemetry/api" ">=1.0.0 <1.9.0"
