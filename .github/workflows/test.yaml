@@ -10,7 +10,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
+      - name: Enable corepack
+        run: corepack enable
       - name: Install dependencies
-        run: yarn --frozen-lockfile
+        run: yarn install --immutable
       - name: Run tests
         run: yarn test

@@ -8,3 +8,4 @@ lib
 .idea
 
 .vercel
+/.yarn/install-state.gz
