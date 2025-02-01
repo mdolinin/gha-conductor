@@ -1,5 +1,5 @@
 import {Transform} from "readable-stream";
-import prettyFactory from "pino-pretty"
+import {prettyFactory} from "pino-pretty"
 
 const LEVEL_MAP = new Map<number, string>([
     [10, "trace"],
