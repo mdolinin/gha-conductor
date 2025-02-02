@@ -4,9 +4,9 @@ import path from "path";
 import * as fs from "fs";
 import {glob} from "glob";
 import {load} from "js-yaml";
-import db, {gha_hooks} from "./db/database";
-import {TheRootSchema} from "./gha_yaml";
-import {HookType} from "./__generated__/_enums";
+import db, {gha_hooks} from "./db/database.js";
+import {TheRootSchema} from "./gha_yaml.js";
+import {HookType} from "./__generated__/_enums.js";
 import {components} from "@octokit/openapi-types";
 import Ajv from "ajv";
 import {isNode, LineCounter, Node, parseDocument, YAMLSeq} from "yaml";
@@ -127,7 +127,7 @@ export class GhaLoader {
                     } else {
                         validator(ghaFileDoc.toJSON())
                         if (validator.errors) {
-                            validator.errors?.forEach(error => {
+                            validator.errors?.forEach((error: { instancePath: string; message: any; }) => {
                                 const propertyPath = error.instancePath.split("/").slice(1);
                                 const node = ghaFileDoc.getIn(propertyPath, true);
                                 const {line, col} = this.getPosition(node, lineCounter);
@@ -169,7 +169,7 @@ export class GhaLoader {
                                             message = message + " (duplicate name in the same file)";
                                         }
                                         if (samePrefixHooks.length > 0) {
-                                            message = message + ` (same name used in ${samePrefixHooks.map(value => value.path_to_gha_yaml).join(',')} files)`;
+                                            message = message + ` (same name used in ${samePrefixHooks.map((value: { path_to_gha_yaml: any; }) => value.path_to_gha_yaml).join(',')} files)`;
                                         }
                                         annotationsForCheck.push({
                                             annotation_level: "failure",

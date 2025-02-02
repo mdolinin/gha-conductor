@@ -1,8 +1,8 @@
 import {ApplicationFunctionOptions, Probot} from "probot";
-import {GhaLoader} from "./gha_loader";
-import {GhaReply} from "./gha_reply";
-import {Hooks} from "./hooks";
-import {GhaChecks, PRCheckAction, PRCheckName} from "./gha_checks";
+import {GhaLoader} from "./gha_loader.js";
+import {GhaReply} from "./gha_reply.js";
+import {Hooks} from "./hooks.js";
+import {GhaChecks, PRCheckAction, PRCheckName} from "./gha_checks.js";
 import {
     CheckRunRerequestedEvent,
     WorkflowJobCompletedEvent,
@@ -11,10 +11,10 @@ import {
 } from "@octokit/webhooks-types";
 import {
     RestEndpointMethodTypes
-} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
+} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js";
 import {inspect} from "node:util";
-import {MergeOptions} from "probot/lib/context";
-import {loadPackageJson} from "probot/lib/helpers/load-package-json";
+import {MergeOptions} from "probot/lib/context.js";
+import {loadPackageJson} from "probot/lib/helpers/load-package-json.js";
 import {resolve} from "node:path";
 
 const APP_CONFIG_FILE = process.env.APP_CONFIG_FILE || "gha-conductor-config.yaml";
@@ -24,7 +24,7 @@ const DEFAULT_WORKFLOW_FILE_EXTENSION = process.env.DEFAULT_WORKFLOW_FILE_EXTENS
 const TOKENISE_REGEX =
     /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
 
-export = (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
+export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
 
     if (getRouter) {
         const pkg = loadPackageJson(resolve(process.cwd(), "package.json"));
