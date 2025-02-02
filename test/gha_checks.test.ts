@@ -1,16 +1,17 @@
-import {GhaChecks, GITHUB_CHECK_TEXT_LIMIT, PRCheckAction, PRCheckName, ReRunPayload} from "../src/gha_checks";
-import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
-import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
-import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
-import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
-import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
-import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
+import {vi, describe, afterEach, expect, it} from "vitest";
+import {GhaChecks, GITHUB_CHECK_TEXT_LIMIT, PRCheckAction, PRCheckName, ReRunPayload} from "../src/gha_checks.js";
+import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json" with {type: "json"};
+import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json" with {type: "json"};
+import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json" with {type: "json"};
+import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json" with {type: "json"};
+import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json" with {type: "json"};
+import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json" with {type: "json"};
 
-import {TriggeredWorkflow} from "../src/hooks";
+import {TriggeredWorkflow} from "../src/hooks.js";
 import {Logger} from "probot";
 
-const insertMock = jest.fn();
-const findAllSuccess = jest.fn().mockImplementation(() => {
+const insertMock = vi.fn();
+const findAllSuccess = vi.fn().mockImplementation(() => {
     return [
         {
             id: 1,
@@ -29,7 +30,7 @@ const findAllSuccess = jest.fn().mockImplementation(() => {
     ]
 });
 let findAllMock = findAllSuccess;
-const findOneMock = jest.fn().mockImplementation(() => {
+const findOneMock = vi.fn().mockImplementation(() => {
     return {
         id: 1,
         name: 'gha-checks-1234567890',
@@ -43,16 +44,19 @@ const findOneMock = jest.fn().mockImplementation(() => {
         pr_check_id: 3,
     }
 });
-const findMock = jest.fn().mockImplementation(() => {
+const findMock = vi.fn().mockImplementation(() => {
     return {
         all: findAllMock
     }
 });
-const updateMock = jest.fn();
+const updateMock = vi.fn();
 
-jest.mock('../src/db/database', () => {
+vi.mock('../src/db/database', async (importOriginal) => {
+    const mod = await importOriginal();
     return {
-        gha_workflow_runs: jest.fn(() => {
+        // @ts-ignore
+        ...mod,
+        gha_workflow_runs: vi.fn(() => {
             return {
                 insert: insertMock,
                 find: findMock,
@@ -64,21 +68,21 @@ jest.mock('../src/db/database', () => {
 });
 
 const logMock = {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
 };
 
 describe('gha_checks', () => {
     const checks = new GhaChecks(logMock as unknown as Logger);
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should create check if workflow run got error on attempt to trigger', async () => {
         const merge_commit_sha = '1234567890';
-        let mock = jest.fn().mockImplementation(() => {
+        let mock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 1,
@@ -129,7 +133,7 @@ describe('gha_checks', () => {
         const checkRunId = 1234;
         const hookType = 'onBranchMerge';
         const merge_commit_sha = '1234567890';
-        let createCheckMock = jest.fn().mockImplementation(() => {
+        let createCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: checkRunId,
@@ -169,7 +173,7 @@ describe('gha_checks', () => {
             checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=1',
             hookType: 'onBranchMerge'
         }
-        let updateCheckMock = jest.fn().mockImplementation(() => {
+        let updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: prCheck.checkRunId,
@@ -216,7 +220,7 @@ describe('gha_checks', () => {
             end_column: 1
         }];
         // const merge_commit_sha = '1234567890';
-        let updateCheckMock = jest.fn().mockImplementation(() => {
+        let updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: prCheck.checkRunId,
@@ -254,7 +258,7 @@ describe('gha_checks', () => {
             checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=2',
             hookType: 'onPullRequest'
         }
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: prCheck.checkRunId,
@@ -262,7 +266,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -314,7 +318,7 @@ describe('gha_checks', () => {
             checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=3',
             hookType: 'onPullRequest'
         }
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: prCheck.checkRunId,
@@ -322,7 +326,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -360,7 +364,7 @@ describe('gha_checks', () => {
     });
 
     it('should update check, when workflow run queued', async () => {
-        const createCheckMock = jest.fn().mockImplementation(() => {
+        const createCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 1,
@@ -370,7 +374,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -414,7 +418,7 @@ describe('gha_checks', () => {
     });
 
     it('should update check, when workflow run in progress', async () => {
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 2,
@@ -453,7 +457,7 @@ describe('gha_checks', () => {
     });
 
     it('should update check, when workflow run completed', async () => {
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 2,
@@ -464,7 +468,7 @@ describe('gha_checks', () => {
                 status: 200,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -505,7 +509,7 @@ describe('gha_checks', () => {
     });
 
     it('should update pr-status check, when workflow run in progress', async () => {
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 2,
@@ -515,7 +519,7 @@ describe('gha_checks', () => {
                 status: 200,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -554,7 +558,7 @@ describe('gha_checks', () => {
     });
 
     it('should update pr-status check, when workflow run completed', async () => {
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 2,
@@ -565,7 +569,7 @@ describe('gha_checks', () => {
                 status: 200,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -616,7 +620,7 @@ describe('gha_checks', () => {
     });
 
     it('should update pr-merge check and add comment to PR, when workflow run completed with failure', async () => {
-        findAllMock = jest.fn().mockImplementation(() => {
+        findAllMock = vi.fn().mockImplementation(() => {
             return [
                 {
                     id: 1,
@@ -634,7 +638,7 @@ describe('gha_checks', () => {
                 }
             ]
         });
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 3,
@@ -645,13 +649,13 @@ describe('gha_checks', () => {
                 status: 200,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
             }
         });
-        const createCommentMock = jest.fn();
+        const createCommentMock = vi.fn();
         const octokit = {
             checks: {
                 update: updateCheckMock
@@ -719,7 +723,7 @@ describe('gha_checks', () => {
             repo: checkRunRequestedActionPayload.repository.name,
             requested_action_identifier: PRCheckAction.ReRun,
         };
-        const createCheckMock = jest.fn().mockImplementation(() => {
+        const createCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 21439086478,
@@ -729,7 +733,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const reRunWorkflowMock = jest.fn().mockImplementation(() => {
+        const reRunWorkflowMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 21439086478,
@@ -795,7 +799,7 @@ describe('gha_checks', () => {
             repo: checkRunRequestedActionPayload.repository.name,
             requested_action_identifier: PRCheckAction.ReRunFailed,
         };
-        const createCheckMock = jest.fn().mockImplementation(() => {
+        const createCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 21439086479,
@@ -805,7 +809,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const reRunWorkflowMock = jest.fn().mockImplementation(() => {
+        const reRunWorkflowMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 21439086478,
@@ -869,7 +873,7 @@ describe('gha_checks', () => {
     });
 
     it('should trigger re-run of all workflows, when re-all link clicked', async () => {
-        const createCheckMock = jest.fn().mockImplementation(() => {
+        const createCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 21439086478,
@@ -879,7 +883,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const reRunWorkflowMock = jest.fn().mockImplementation(() => {
+        const reRunWorkflowMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: 21439086478,
@@ -945,7 +949,7 @@ describe('gha_checks', () => {
             checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=4',
             hookType: 'onPullRequestClose'
         }
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: prCheck.checkRunId,
@@ -953,7 +957,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -988,7 +992,7 @@ describe('gha_checks', () => {
             checkRunUrl: 'https://github.com/mdolinin/mono-repo-example/pull/27/checks?check_run_id=5',
             hookType: 'onSlashCommand'
         }
-        const updateCheckMock = jest.fn().mockImplementation(() => {
+        const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {
                     id: prCheck.checkRunId,
@@ -996,7 +1000,7 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = jest.fn().mockImplementation(() => {
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
             return {
                 data: 'logs',
                 status: 200,
@@ -1028,7 +1032,7 @@ describe('gha_checks', () => {
         const veryLongString = "a".repeat(GITHUB_CHECK_TEXT_LIMIT + 100);
         const octokit = {
             actions: {
-                downloadJobLogsForWorkflowRun: jest.fn().mockImplementation(() => {
+                downloadJobLogsForWorkflowRun: vi.fn().mockImplementation(() => {
                     return {
                         data: veryLongString
                     }

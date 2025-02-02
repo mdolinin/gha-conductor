@@ -1,14 +1,14 @@
-import {GhaLoader} from "../src/gha_loader";
+import {vi, describe, beforeEach, afterEach, expect, it} from "vitest";
+import {GhaLoader} from "../src/gha_loader.js";
 import {Logger} from "probot";
-import fs from "fs";
 
-const cloneMock = jest.fn().mockReturnValue(Promise.resolve(""));
-const cwdMock = jest.fn();
-const checkoutBranchMock = jest.fn();
-const globMock = jest.fn().mockImplementation(() => {
+const cloneMock = vi.fn().mockReturnValue(Promise.resolve(""));
+const cwdMock = vi.fn();
+const checkoutBranchMock = vi.fn();
+const globMock = vi.fn().mockImplementation(() => {
     return ["folder1/.gha.yaml", "folder2/.gha.yaml"];
 });
-const findAllMock = jest.fn().mockReturnValue([
+const findAllMock = vi.fn().mockReturnValue([
     {
         repo_full_name: "repo_full_name",
         branch: "branch",
@@ -36,25 +36,28 @@ const findAllMock = jest.fn().mockReturnValue([
         path_to_gha_yaml: "folder2/.gha.yaml"
     }
 ]);
-const findMock = jest.fn().mockImplementation(() => {
+const findMock = vi.fn().mockImplementation(() => {
     return {
         all: findAllMock
     }
 });
-const deleteMock = jest.fn();
-const updateMock = jest.fn();
-const insertMock = jest.fn();
-const countMock = jest.fn().mockReturnValue(0);
+const deleteMock = vi.fn();
+const updateMock = vi.fn();
+const insertMock = vi.fn();
+const countMock = vi.fn().mockReturnValue(0);
 
-jest.mock('glob', () => {
+vi.mock('glob', () => {
     return {
         glob: () => globMock()
     }
 });
 
-jest.mock('../src/db/database', () => {
+vi.mock('../src/db/database', async (importOriginal) => {
+    const mod = await importOriginal();
     return {
-        gha_hooks: jest.fn(() => {
+        // @ts-ignore
+        ...mod,
+        gha_hooks: vi.fn(() => {
             return {
                 find: findMock,
                 delete: deleteMock,
@@ -136,35 +139,42 @@ onSlashCommand:
       fileChangesMatchAny: *defaultFileChangeTrigger
 `;
 
-jest.mock('fs', () => {
+let readFileSyncMockCounter = 0;
+
+vi.mock('fs', async (importOriginal) => {
+    const mod = await importOriginal();
     return {
-        existsSync: jest.fn().mockReturnValue(true),
-        rmSync: jest.fn(),
-        mkdirSync: jest.fn(),
-        write: jest.requireActual('fs').write,
-        writeSync: jest.requireActual('fs').writeSync,
-        readFileSync: jest.fn().mockImplementation((path: string, options: string) => {
+        // @ts-ignore
+        ...mod,
+        existsSync: vi.fn().mockReturnValue(true),
+        rmSync: vi.fn(),
+        mkdirSync: vi.fn(),
+        // @ts-ignore
+        write: vi.importActual('fs').write,
+        // @ts-ignore
+        writeSync: vi.importActual('fs').writeSync,
+        readFileSync: vi.fn().mockImplementation((path: string, options: string) => {
+            readFileSyncMockCounter++;
             if (path.includes(".gha.yaml")) {
                 return ghaYamlExample;
             }
-            return jest.requireActual('fs').readFileSync(path, options);
+            // @ts-ignore
+            return vi.importActual('fs').readFileSync(path, options);
         }),
-        statSync: jest.fn().mockImplementation(() => {
+        statSync: vi.fn().mockImplementation(() => {
             return {
-                isFile: jest.fn().mockReturnValue(false),
-                isDirectory: jest.fn().mockReturnValue(true)
+                isFile: vi.fn().mockReturnValue(false),
+                isDirectory: vi.fn().mockReturnValue(true)
             }
         })
     }
 });
 
-const readFileSyncMock = jest.spyOn(fs, 'readFileSync');
-
 const logMock = {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
 };
 
 describe('gha loader', () => {
@@ -180,12 +190,13 @@ describe('gha loader', () => {
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        readFileSyncMockCounter = 0;
+        vi.clearAllMocks();
     });
 
     it('should load all gha yaml files from github repo and reinsert all hooks into db, when repo and branch provided to loader', async () => {
         const octokit = {
-            auth: jest.fn().mockImplementation(() => {
+            auth: vi.fn().mockImplementation(() => {
                 return {
                     token: "token"
                 }
@@ -198,7 +209,7 @@ describe('gha loader', () => {
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
-        expect(readFileSyncMock).toHaveBeenCalledTimes(3);
+        expect(readFileSyncMockCounter).toBe(2);
         expect(deleteMock).toHaveBeenCalledTimes(1)
         expect(insertMock).toHaveBeenCalledTimes(10);
     });
@@ -229,7 +240,7 @@ describe('gha loader', () => {
         onBranchMerge: []
         `;
         const octokit = {
-            request: jest.fn().mockImplementation(() => {
+            request: vi.fn().mockImplementation(() => {
                 return {
                     data: {
                         content: Buffer.from(ghaYamlNotValid).toString('base64'),
@@ -291,7 +302,7 @@ describe('gha loader', () => {
         onBranchMerge: []
         `;
         const octokit = {
-            request: jest.fn().mockImplementation(() => {
+            request: vi.fn().mockImplementation(() => {
                 return {
                     data: {
                         content: Buffer.from(ghaYamlMissingRequiredParam).toString('base64'),
@@ -362,7 +373,7 @@ describe('gha loader', () => {
         onBranchMerge: []
         `;
         const octokit = {
-            request: jest.fn().mockImplementation(() => {
+            request: vi.fn().mockImplementation(() => {
                 return {
                     data: {
                         content: Buffer.from(ghaYamlWithNonUniqueNames).toString('base64'),
@@ -411,7 +422,7 @@ describe('gha loader', () => {
     it('should load all hooks, when at least one of gha yaml changes in commit', async () => {
         const octokit = {
             repos: {
-                getContent: jest.fn().mockImplementation(() => {
+                getContent: vi.fn().mockImplementation(() => {
                     return {
                         data: {
                             content: Buffer.from(ghaYamlExample).toString('base64'),
@@ -462,7 +473,7 @@ describe('gha loader', () => {
 
     it('should load all hooks, when one of gha yaml changes in the PR', async () => {
         const octokit = {
-            request: jest.fn().mockImplementation(() => {
+            request: vi.fn().mockImplementation(() => {
                 return {
                     data: {
                         content: Buffer.from(ghaYamlExample).toString('base64'),
@@ -574,7 +585,7 @@ describe('gha loader', () => {
 
     it('should load gha yaml files for the branch, when there is no existing hooks for the branch', async () => {
         const octokit = {
-            auth: jest.fn().mockImplementation(() => {
+            auth: vi.fn().mockImplementation(() => {
                 return {
                     token: "token2"
                 }
@@ -589,7 +600,7 @@ describe('gha loader', () => {
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
         expect(deleteMock).toHaveBeenCalledTimes(1)
-        expect(readFileSyncMock).toHaveBeenCalledTimes(2);
+        expect(readFileSyncMockCounter).toBe(2);
         expect(insertMock).toHaveBeenCalledTimes(10);
     });
 

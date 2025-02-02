@@ -1,10 +1,11 @@
-import {Hooks} from "../src/hooks";
-import {HookType} from "../src/__generated__/_enums";
-import {GhaHook} from "../src/gha_loader";
+import {vi, describe, afterEach, expect, it} from "vitest";
+import {Hooks} from "../src/hooks.js";
+import {HookType} from "../src/__generated__/_enums.js";
+import {GhaHook} from "../src/gha_loader.js";
 import {Logger} from "probot";
 
-const insertMock = jest.fn();
-const findAllMock = jest.fn().mockImplementation(() => {
+const insertMock = vi.fn();
+const findAllMock = vi.fn().mockImplementation(() => {
     return [
         {
             file_changes_matcher: "file1",
@@ -17,27 +18,30 @@ const findAllMock = jest.fn().mockImplementation(() => {
     ]
 
 });
-const selectMock = jest.fn().mockImplementation(() => {
+const selectMock = vi.fn().mockImplementation(() => {
     return {
         all: findAllMock
     }
 
 });
-const findMock = jest.fn().mockImplementation(() => {
+const findMock = vi.fn().mockImplementation(() => {
     return {
         select: selectMock,
         all: findAllMock
     }
 });
 
-jest.mock('../src/db/database', () => {
+vi.mock('../src/db/database', async (importOriginal) => {
+    const mod = await importOriginal();
     return {
-        gha_hooks: jest.fn(() => {
+        // @ts-ignore
+        ...mod,
+        gha_hooks: vi.fn(() => {
             return {
                 find: findMock,
             };
         }),
-        gha_workflow_runs: jest.fn(() => {
+        gha_workflow_runs: vi.fn(() => {
             return {
                 insert: insertMock,
             };
@@ -46,9 +50,9 @@ jest.mock('../src/db/database', () => {
 });
 
 const logMock = {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
 };
 
 const workflowYamlValid = `
@@ -69,7 +73,7 @@ describe('gha hooks', () => {
     const hooks = new Hooks(logMock as unknown as Logger);
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('find hooks to trigger, when matched files changed on branch merge and no hooks changed in PR', async () => {
@@ -217,12 +221,12 @@ describe('gha hooks', () => {
     it('should trigger correct workflow, when list of hooks provided', async () => {
         const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdef";
-        const workflowDispatchMock = jest.fn().mockImplementation(() => {
+        const workflowDispatchMock = vi.fn().mockImplementation(() => {
             return {
                 status: 204
             }
         });
-        const getWorkflowMock = jest.fn().mockImplementation(() => {
+        const getWorkflowMock = vi.fn().mockImplementation(() => {
             return {
                 status: 200,
                 data: {
@@ -237,7 +241,7 @@ describe('gha hooks', () => {
                     getWorkflow: getWorkflowMock
                 },
                 repos: {
-                    getContent: jest.fn().mockImplementation(() => {
+                    getContent: vi.fn().mockImplementation(() => {
                         return {
                             status: 200,
                             data: {
@@ -372,12 +376,12 @@ describe('gha hooks', () => {
     it('should trigger workflow with substituted command and args, for onSlashCommand when list of command tokens provided', async () => {
         const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdef";
-        const workflowDispatchMock = jest.fn().mockImplementation(() => {
+        const workflowDispatchMock = vi.fn().mockImplementation(() => {
             return {
                 status: 204
             }
         });
-        const getWorkflowMock = jest.fn().mockImplementation(() => {
+        const getWorkflowMock = vi.fn().mockImplementation(() => {
             return {
                 status: 200,
                 data: {
@@ -392,7 +396,7 @@ describe('gha hooks', () => {
                     getWorkflow: getWorkflowMock
                 },
                 repos: {
-                    getContent: jest.fn().mockImplementation(() => {
+                    getContent: vi.fn().mockImplementation(() => {
                         return {
                             status: 200,
                             data: {
@@ -482,12 +486,12 @@ describe('gha hooks', () => {
     it('should not trigger workflow, when workflow is not exist or inactive', async () => {
         const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdej";
-        const workflowDispatchMock = jest.fn().mockImplementation(() => {
+        const workflowDispatchMock = vi.fn().mockImplementation(() => {
             return {
                 status: 204
             }
         });
-        const getWorkflowMock = jest.fn().mockImplementation(() => {
+        const getWorkflowMock = vi.fn().mockImplementation(() => {
             throw new Error("Workflow not found")
         });
         const octokit = {
@@ -566,12 +570,12 @@ describe('gha hooks', () => {
     it('should not trigger workflow, when workflow required inputs are missing in context', async () => {
         const prCheckId = 1;
         const merge_commit_sha = "0123456789abcdej";
-        const workflowDispatchMock = jest.fn().mockImplementation(() => {
+        const workflowDispatchMock = vi.fn().mockImplementation(() => {
             return {
                 status: 204
             }
         });
-        const getWorkflowMock = jest.fn().mockImplementation(() => {
+        const getWorkflowMock = vi.fn().mockImplementation(() => {
             return {
                 status: 200,
                 data: {
@@ -603,7 +607,7 @@ describe('gha hooks', () => {
                     getWorkflow: getWorkflowMock
                 },
                 repos: {
-                    getContent: jest.fn().mockImplementation(() => {
+                    getContent: vi.fn().mockImplementation(() => {
                         return {
                             status: 200,
                             data: {

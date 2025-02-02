@@ -1,20 +1,21 @@
+import {vi, describe, beforeEach, afterEach, expect, test} from "vitest";
 import nock from "nock";
 // Requiring our app implementation
-import myProbotApp from "../src";
+import myProbotApp from "../src/index.js";
 import {Probot, ProbotOctokit} from "probot";
 // Requiring our fixtures
-import pushGhaYamlChangedPayload from "./fixtures/push.gha_yaml_changed.json";
-import deleteBranchPayload from "./fixtures/delete.branch.json";
-import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json";
-import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
-import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
-import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
-import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
-import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
-import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
-import prStatuscheckRunReRequestedPayload from "./fixtures/pr_status.check_run.rerequested.json";
-import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json";
-import slashCommandIssueCommentPayload from "./fixtures/slash_command.issue_comment.created.json";
+import pushGhaYamlChangedPayload from "./fixtures/push.gha_yaml_changed.json" with {type: "json"};
+import deleteBranchPayload from "./fixtures/delete.branch.json" with {type: "json"};
+import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json" with {type: "json"};
+import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json" with {type: "json"};
+import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json" with {type: "json"};
+import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json" with {type: "json"};
+import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json" with {type: "json"};
+import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json" with {type: "json"};
+import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json" with {type: "json"};
+import prStatuscheckRunReRequestedPayload from "./fixtures/pr_status.check_run.rerequested.json" with {type: "json"};
+import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json" with {type: "json"};
+import slashCommandIssueCommentPayload from "./fixtures/slash_command.issue_comment.created.json" with {type: "json"};
 
 import fs from "fs";
 import path from "path";
@@ -23,59 +24,59 @@ const privateKey = fs.readFileSync(
     path.join(__dirname, "fixtures/mock-cert.pem"),
     "utf-8"
 );
-import {GhaHook, GhaLoader} from "../src/gha_loader";
-import {Hooks} from "../src/hooks";
-import {GhaChecks, PRCheckName} from "../src/gha_checks";
+import {GhaHook, GhaLoader} from "../src/gha_loader.js";
+import {Hooks} from "../src/hooks.js";
+import {GhaChecks, PRCheckName} from "../src/gha_checks.js";
 
-const loadAllGhaYamlMock = jest
+const loadAllGhaYamlMock = vi
     .spyOn(GhaLoader.prototype, 'loadAllGhaHooksFromRepo')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-let validateGhaYamlFilesMock = jest
+let validateGhaYamlFilesMock = vi
     .spyOn(GhaLoader.prototype, 'validateGhaYamlFiles')
     .mockImplementation(() => {
         return Promise.resolve([]);
     });
 
-const loadGhaHooksFromCommitsMock = jest
+const loadGhaHooksFromCommitsMock = vi
     .spyOn(GhaLoader.prototype, 'loadGhaHooksFromCommits')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const deleteAllGhaHooksForBranchMock = jest
+const deleteAllGhaHooksForBranchMock = vi
     .spyOn(GhaLoader.prototype, 'deleteAllGhaHooksForBranch')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const loadAllGhaYamlForBranchIfNewMock = jest
+const loadAllGhaYamlForBranchIfNewMock = vi
     .spyOn(GhaLoader.prototype, 'loadAllGhaYamlForBranchIfNew')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const loadGhaHooksMock = jest
+const loadGhaHooksMock = vi
     .spyOn(GhaLoader.prototype, 'loadGhaHooks')
     .mockImplementation(() => {
         return Promise.resolve({hooks: [], hookFilesModified: new Set([])});
     });
 
-const filterTriggeredHooksMock = jest
+const filterTriggeredHooksMock = vi
     .spyOn(Hooks.prototype, 'filterTriggeredHooks')
     .mockImplementation(() => {
         return Promise.resolve(new Set<GhaHook>());
     });
 
-let runWorkflowMock = jest
+let runWorkflowMock = vi
     .spyOn(Hooks.prototype, 'runWorkflow')
     .mockImplementation(() => {
         return Promise.resolve([]);
     });
 
-const createWorkflowRunCheckErroredMock = jest
+const createWorkflowRunCheckErroredMock = vi
     .spyOn(GhaChecks.prototype, 'createWorkflowRunCheckErrored')
     .mockImplementation(() => {
         return Promise.resolve();
@@ -88,73 +89,73 @@ const prCheckMock = {
     hookType: "onPullRequest" as "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
 };
 
-let createPRCheckMock = jest
+let createPRCheckMock = vi
     .spyOn(GhaChecks.prototype, 'createPRCheck')
     .mockImplementation(() => {
         return Promise.resolve(prCheckMock);
     });
 
-const updatePRCheckNoPipelinesTriggeredMock = jest
+const updatePRCheckNoPipelinesTriggeredMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckNoPipelinesTriggered')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updatePRCheckWithAnnotationsMock = jest
+const updatePRCheckWithAnnotationsMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckWithAnnotations')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updatePRCheckForAllErroredPipelinesMock = jest
+const updatePRCheckForAllErroredPipelinesMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckForAllErroredPipelines')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updatePRCheckForTriggeredPipelinesMock = jest
+const updatePRCheckForTriggeredPipelinesMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckForTriggeredPipelines')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updateWorkflowRunCheckQueuedMock = jest
+const updateWorkflowRunCheckQueuedMock = vi
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckQueued')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updateWorkflowRunCheckInProgressMock = jest
+const updateWorkflowRunCheckInProgressMock = vi
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckInProgress')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updatePRStatusCheckInProgressMock = jest
+const updatePRStatusCheckInProgressMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRStatusCheckInProgress')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updateWorkflowRunCheckCompletedMock = jest
+const updateWorkflowRunCheckCompletedMock = vi
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckCompleted')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updatePRStatusCheckCompletedMock = jest
+const updatePRStatusCheckCompletedMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRStatusCheckCompleted')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const triggerReRunPRCheckMock = jest
+const triggerReRunPRCheckMock = vi
     .spyOn(GhaChecks.prototype, 'triggerReRunPRCheck')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const triggerReRunWorkflowRunCheckMock = jest
+const triggerReRunWorkflowRunCheckMock = vi
     .spyOn(GhaChecks.prototype, 'triggerReRunWorkflowRunCheck')
     .mockImplementation(() => {
         return Promise.resolve();
@@ -166,7 +167,7 @@ describe("gha-conductor app", () => {
     let probot: any;
 
     beforeEach(() => {
-        // jest.useFakeTimers({advanceTimers: true});
+        // vi.useFakeTimers({advanceTimers: true});
         nock.disableNetConnect();
         probot = new Probot({
             appId: 123,
@@ -183,7 +184,7 @@ describe("gha-conductor app", () => {
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     test("delete all related gha hooks, when branch is deleted", async () => {
@@ -798,12 +799,3 @@ describe("gha-conductor app", () => {
         nock.enableNetConnect();
     });
 });
-
-// For more information about testing with Jest see:
-// https://facebook.github.io/jest/
-
-// For more information about using TypeScript in your tests, Jest recommends:
-// https://github.com/kulshekhar/ts-jest
-
-// For more information about testing with Nock see:
-// https://github.com/nock/nock
