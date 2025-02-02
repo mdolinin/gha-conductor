@@ -1,5 +1,5 @@
 import {Logger, ProbotOctokit} from "probot";
-import simpleGit from "simple-git";
+import {simpleGit} from "simple-git";
 import path from "path";
 import * as fs from "fs";
 import {glob} from "glob";
@@ -8,7 +8,7 @@ import db, {gha_hooks} from "./db/database.js";
 import {TheRootSchema} from "./gha_yaml.js";
 import {HookType} from "./__generated__/_enums.js";
 import {components} from "@octokit/openapi-types";
-import Ajv from "ajv";
+import {Ajv} from "ajv";
 import {isNode, LineCounter, Node, parseDocument, YAMLSeq} from "yaml";
 import {not} from "@databases/pg-typed";
 import {Commit} from "@octokit/webhooks-types";
@@ -127,7 +127,7 @@ export class GhaLoader {
                     } else {
                         validator(ghaFileDoc.toJSON())
                         if (validator.errors) {
-                            validator.errors?.forEach((error: { instancePath: string; message: any; }) => {
+                            validator.errors?.forEach((error) => {
                                 const propertyPath = error.instancePath.split("/").slice(1);
                                 const node = ghaFileDoc.getIn(propertyPath, true);
                                 const {line, col} = this.getPosition(node, lineCounter);
