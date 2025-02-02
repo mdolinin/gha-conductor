@@ -649,7 +649,7 @@ export class GhaChecks {
         if (allPRWorkflowRuns.length === 0) {
             this.log.warn(`No workflow runs for ${payload.repository.full_name} pr #${prNumber} found with pr_check_id ${prCheckId} and pr_status_conclusion is null in db`);
         } else {
-            const finished = allPRWorkflowRuns.every((run: { status: string; }) => run.status === "completed");
+            const finished = allPRWorkflowRuns.every((run) => run.status === "completed");
             if (finished) {
                 this.log.info("All jobs finished for pr #" + prNumber);
                 const conclusion = this.getConclusion(allPRWorkflowRuns);
