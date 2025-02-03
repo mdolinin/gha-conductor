@@ -5219,9 +5219,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.33.1":
-  version: 5.33.1
-  resolution: "dd-trace@npm:5.33.1"
+"dd-trace@npm:^5.34.0":
+  version: 5.34.0
+  resolution: "dd-trace@npm:5.34.0"
   dependencies:
     "@datadog/libdatadog": "npm:^0.4.0"
     "@datadog/native-appsec": "npm:8.4.0"
@@ -5255,7 +5255,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/2bf06f21d882a4f64256e5b63ad4aa78bcee6b40f3984925872468b42655a86260bfaec890d633e755351a1aa5d41a98495706ab5a2c622a47c765e80b8d591e
+  checksum: 10c0/ecc8f3b2948efc699d09f30787dddb42c15df8955c0282cc7ea3e7577f3e9e6ca12089f0d495ec0e8c5dc984d7a6f6c6694634607cbbe3392e89da9bda8c75b8
   languageName: node
   linkType: hard
 
@@ -6300,7 +6300,7 @@ __metadata:
     "@types/readable-stream": "npm:^4.0.18"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.33.1"
+    dd-trace: "npm:^5.34.0"
     glob: "npm:^11.0.1"
     jest: "npm:^29.0.0"
     js-yaml: "npm:^4.1.0"
