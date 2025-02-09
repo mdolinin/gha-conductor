@@ -7,11 +7,11 @@ import {
 import {Logger, ProbotOctokit} from "probot";
 import {
     RestEndpointMethodTypes
-} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
-import db, {gha_workflow_runs} from "./db/database";
-import {GhaWorkflowRuns} from "./__generated__";
+} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js";
+import db, {gha_workflow_runs} from "./db/database.js";
+import {GhaWorkflowRuns} from "./__generated__/index.js";
 import {anyOf, not} from "@databases/pg-typed";
-import {TriggeredWorkflow} from "./hooks";
+import {TriggeredWorkflow} from "./hooks.js";
 
 export const GITHUB_CHECK_TEXT_LIMIT = 65535;
 const ansiPattern = [
@@ -762,7 +762,7 @@ export class GhaChecks {
     }
 
     async triggerReRunPRCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: ReRunPayload) {
-        let prRelatedWorkflowRuns: string | GhaWorkflowRuns[] = []
+        let prRelatedWorkflowRuns: GhaWorkflowRuns[] = []
         const actionIdentifier = payload.requested_action_identifier;
         const checkId = payload.check_run_id;
         if (actionIdentifier === PRCheckAction.ReRun) {

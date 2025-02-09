@@ -8,7 +8,7 @@
 /* eslint-disable */
 // tslint:disable
 
-import {HookType} from './_enums'
+import {HookType} from './_enums.js'
 
 interface GhaWorkflowRuns {
   check_run_id: (number) | null

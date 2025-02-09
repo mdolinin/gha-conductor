@@ -1,18 +1,18 @@
-import createConnectionPool, {sql} from '@databases/pg';
-import tables from '@databases/pg-typed';
-import DatabaseSchema from './../__generated__';
+import pg from '@databases/pg';
+import {sql} from '@databases/pg';
+import pgTyped from '@databases/pg-typed';
+import DatabaseSchema from './../__generated__/index.js';
+import schema from './../__generated__/schema.json' with {type: "json"};
 
 export {sql};
 
-// DATABASE_URL = postgresql://my-user:my-password@localhost/my-db
-const db = createConnectionPool({
+const db = pg.default({
     connectionString: process.env.DATABASE_URL,
     bigIntMode: 'bigint'
 });
 export default db;
 
-// You can list whatever tables you actually have here:
-const {gha_hooks, gha_workflow_runs} = tables<DatabaseSchema>({
-    databaseSchema: require('./../__generated__/schema.json'),
+const {gha_hooks, gha_workflow_runs} = pgTyped.default<DatabaseSchema>({
+    databaseSchema: schema,
 });
 export {gha_hooks, gha_workflow_runs};

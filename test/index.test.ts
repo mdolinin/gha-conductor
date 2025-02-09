@@ -1,20 +1,21 @@
+import {vi, describe, beforeEach, afterEach, expect, it} from "vitest";
 import nock from "nock";
 // Requiring our app implementation
-import myProbotApp from "../src";
+import myProbotApp from "../src/index.js";
 import {Probot, ProbotOctokit} from "probot";
 // Requiring our fixtures
-import pushGhaYamlChangedPayload from "./fixtures/push.gha_yaml_changed.json";
-import deleteBranchPayload from "./fixtures/delete.branch.json";
-import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json";
-import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json";
-import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json";
-import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json";
-import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json";
-import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json";
-import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json";
-import prStatuscheckRunReRequestedPayload from "./fixtures/pr_status.check_run.rerequested.json";
-import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json";
-import slashCommandIssueCommentPayload from "./fixtures/slash_command.issue_comment.created.json";
+import pushGhaYamlChangedPayload from "./fixtures/push.gha_yaml_changed.json" with {type: "json"};
+import deleteBranchPayload from "./fixtures/delete.branch.json" with {type: "json"};
+import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json" with {type: "json"};
+import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json" with {type: "json"};
+import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json" with {type: "json"};
+import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json" with {type: "json"};
+import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json" with {type: "json"};
+import checkRunRequestedActionPayload from "./fixtures/check_run.requested_action.json" with {type: "json"};
+import checkRunReRequestedPayload from "./fixtures/check_run.rerequested.json" with {type: "json"};
+import prStatuscheckRunReRequestedPayload from "./fixtures/pr_status.check_run.rerequested.json" with {type: "json"};
+import checkSuiteRerequestedPayload from "./fixtures/check_suite.rerequested.json" with {type: "json"};
+import slashCommandIssueCommentPayload from "./fixtures/slash_command.issue_comment.created.json" with {type: "json"};
 
 import fs from "fs";
 import path from "path";
@@ -23,59 +24,59 @@ const privateKey = fs.readFileSync(
     path.join(__dirname, "fixtures/mock-cert.pem"),
     "utf-8"
 );
-import {GhaHook, GhaLoader} from "../src/gha_loader";
-import {Hooks} from "../src/hooks";
-import {GhaChecks, PRCheckName} from "../src/gha_checks";
+import {GhaHook, GhaLoader} from "../src/gha_loader.js";
+import {Hooks} from "../src/hooks.js";
+import {GhaChecks, PRCheckName} from "../src/gha_checks.js";
 
-const loadAllGhaYamlMock = jest
+const loadAllGhaYamlMock = vi
     .spyOn(GhaLoader.prototype, 'loadAllGhaHooksFromRepo')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-let validateGhaYamlFilesMock = jest
+let validateGhaYamlFilesMock = vi
     .spyOn(GhaLoader.prototype, 'validateGhaYamlFiles')
     .mockImplementation(() => {
         return Promise.resolve([]);
     });
 
-const loadGhaHooksFromCommitsMock = jest
+const loadGhaHooksFromCommitsMock = vi
     .spyOn(GhaLoader.prototype, 'loadGhaHooksFromCommits')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const deleteAllGhaHooksForBranchMock = jest
+const deleteAllGhaHooksForBranchMock = vi
     .spyOn(GhaLoader.prototype, 'deleteAllGhaHooksForBranch')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const loadAllGhaYamlForBranchIfNewMock = jest
+const loadAllGhaYamlForBranchIfNewMock = vi
     .spyOn(GhaLoader.prototype, 'loadAllGhaYamlForBranchIfNew')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const loadGhaHooksMock = jest
+const loadGhaHooksMock = vi
     .spyOn(GhaLoader.prototype, 'loadGhaHooks')
     .mockImplementation(() => {
         return Promise.resolve({hooks: [], hookFilesModified: new Set([])});
     });
 
-const filterTriggeredHooksMock = jest
+const filterTriggeredHooksMock = vi
     .spyOn(Hooks.prototype, 'filterTriggeredHooks')
     .mockImplementation(() => {
         return Promise.resolve(new Set<GhaHook>());
     });
 
-let runWorkflowMock = jest
+let runWorkflowMock = vi
     .spyOn(Hooks.prototype, 'runWorkflow')
     .mockImplementation(() => {
         return Promise.resolve([]);
     });
 
-const createWorkflowRunCheckErroredMock = jest
+const createWorkflowRunCheckErroredMock = vi
     .spyOn(GhaChecks.prototype, 'createWorkflowRunCheckErrored')
     .mockImplementation(() => {
         return Promise.resolve();
@@ -88,73 +89,73 @@ const prCheckMock = {
     hookType: "onPullRequest" as "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
 };
 
-let createPRCheckMock = jest
+let createPRCheckMock = vi
     .spyOn(GhaChecks.prototype, 'createPRCheck')
     .mockImplementation(() => {
         return Promise.resolve(prCheckMock);
     });
 
-const updatePRCheckNoPipelinesTriggeredMock = jest
+const updatePRCheckNoPipelinesTriggeredMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckNoPipelinesTriggered')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updatePRCheckWithAnnotationsMock = jest
+const updatePRCheckWithAnnotationsMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckWithAnnotations')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updatePRCheckForAllErroredPipelinesMock = jest
+const updatePRCheckForAllErroredPipelinesMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckForAllErroredPipelines')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updatePRCheckForTriggeredPipelinesMock = jest
+const updatePRCheckForTriggeredPipelinesMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRCheckForTriggeredPipelines')
     .mockImplementation(() => {
         return Promise.resolve("");
     });
 
-const updateWorkflowRunCheckQueuedMock = jest
+const updateWorkflowRunCheckQueuedMock = vi
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckQueued')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updateWorkflowRunCheckInProgressMock = jest
+const updateWorkflowRunCheckInProgressMock = vi
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckInProgress')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updatePRStatusCheckInProgressMock = jest
+const updatePRStatusCheckInProgressMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRStatusCheckInProgress')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updateWorkflowRunCheckCompletedMock = jest
+const updateWorkflowRunCheckCompletedMock = vi
     .spyOn(GhaChecks.prototype, 'updateWorkflowRunCheckCompleted')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const updatePRStatusCheckCompletedMock = jest
+const updatePRStatusCheckCompletedMock = vi
     .spyOn(GhaChecks.prototype, 'updatePRStatusCheckCompleted')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const triggerReRunPRCheckMock = jest
+const triggerReRunPRCheckMock = vi
     .spyOn(GhaChecks.prototype, 'triggerReRunPRCheck')
     .mockImplementation(() => {
         return Promise.resolve();
     });
 
-const triggerReRunWorkflowRunCheckMock = jest
+const triggerReRunWorkflowRunCheckMock = vi
     .spyOn(GhaChecks.prototype, 'triggerReRunWorkflowRunCheck')
     .mockImplementation(() => {
         return Promise.resolve();
@@ -166,7 +167,6 @@ describe("gha-conductor app", () => {
     let probot: any;
 
     beforeEach(() => {
-        // jest.useFakeTimers({advanceTimers: true});
         nock.disableNetConnect();
         probot = new Probot({
             appId: 123,
@@ -183,15 +183,15 @@ describe("gha-conductor app", () => {
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
-    test("delete all related gha hooks, when branch is deleted", async () => {
+    it("delete all related gha hooks, when branch is deleted", async () => {
         await probot.receive({name: "push", payload: deleteBranchPayload});
         expect(deleteAllGhaHooksForBranchMock).toHaveBeenCalledTimes(1);
     });
 
-    test("when pushed changes with gha-conductor-config.yaml and branch is base, reload config from file", async () => {
+    it("when pushed changes with gha-conductor-config.yaml and branch is base, reload config from file", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -209,7 +209,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when pushed changes with .gha.yaml and branch is base for at least one PR, load it into db", async () => {
+    it("when pushed changes with .gha.yaml and branch is base for at least one PR, load it into db", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -237,7 +237,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("load all gha yaml files into db when PR labeled with gha-conductor:load", async () => {
+    it("load all gha yaml files into db when PR labeled with gha-conductor:load", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -253,7 +253,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when PR opened but is not mergeable, do nothing", async () => {
+    it("when PR opened but is not mergeable, do nothing", async () => {
         const mock = nock("https://api.github.com")
         const unmergeablePullRequestOpenedPayload = {
             ...pullRequestOpenedPayload,
@@ -270,7 +270,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when PR opened but is not mergeable after checking mergeability, do nothing", async () => {
+    it("when PR opened but is not mergeable after checking mergeability, do nothing", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -296,7 +296,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
-    test("when PR is from forked repo then skip all hooks, and add comment", async () => {
+    it("when PR is from forked repo then skip all hooks, and add comment", async () => {
         const forkedPullRequestOpenedPayload = {
             ...pullRequestOpenedPayload,
             pull_request: {
@@ -331,7 +331,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when PR opened, but fail to create pr-status check do nothing", async () => {
+    it("when PR opened, but fail to create pr-status check do nothing", async () => {
         createPRCheckMock = createPRCheckMock.mockImplementation(() => {
             return Promise.resolve({
                 checkRunId: 0,
@@ -385,7 +385,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
-    test("when PR opened with not valid .gha.yaml files, create pr-status check with status failed and annotate failures in PR changes", async () => {
+    it("when PR opened with not valid .gha.yaml files, create pr-status check with status failed and annotate failures in PR changes", async () => {
         const annotationsForCheck = [{
             annotation_level: "failure" as "failure" | "warning" | "notice",
             message: "Unknown error",
@@ -443,7 +443,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
-    test("when PR opened with files that match hook and pipeline ref is not exist, create pr-status check with status failed", async () => {
+    it("when PR opened with files that match hook and pipeline ref is not exist, create pr-status check with status failed", async () => {
         runWorkflowMock = runWorkflowMock.mockImplementation(() => {
             return Promise.resolve([{name: "test", inputs: {}, error: "ref not found"}]);
         });
@@ -490,7 +490,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
-    test("when PR opened with files that not match any hook, create pr-status check with status completed", async () => {
+    it("when PR opened with files that not match any hook, create pr-status check with status completed", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -530,7 +530,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
-    test("when PR opened with files that match hook, create pr-status check with status queued", async () => {
+    it("when PR opened with files that match hook, create pr-status check with status queued", async () => {
         runWorkflowMock = runWorkflowMock.mockImplementation(() => {
             return Promise.resolve([{name: "test", inputs: {}}]);
         });
@@ -573,7 +573,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
-    test("when workflow job event received, update pr-status checks and workflow run checks", async () => {
+    it("when workflow job event received, update pr-status checks and workflow run checks", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -605,22 +605,22 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when user click re-run button on managed check, trigger workflow again", async () => {
+    it("when user click re-run button on managed check, trigger workflow again", async () => {
         await probot.receive({name: "check_run", payload: checkRunRequestedActionPayload});
         expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
     });
 
-    test("when user click re-run link on failed check, trigger workflow again", async () => {
+    it("when user click re-run link on failed check, trigger workflow again", async () => {
         await probot.receive({name: "check_run", payload: checkRunReRequestedPayload});
         expect(triggerReRunWorkflowRunCheckMock).toHaveBeenCalledTimes(1);
     });
 
-    test("when user click re-run link on failed pr-status, trigger all pr workflows again", async () => {
+    it("when user click re-run link on failed pr-status, trigger all pr workflows again", async () => {
         await probot.receive({name: "check_run", payload: prStatuscheckRunReRequestedPayload});
         expect(triggerReRunPRCheckMock).toHaveBeenCalledTimes(1);
     });
 
-    test("when user click re-run checks button on PR, trigger workflows again", async () => {
+    it("when user click re-run checks button on PR, trigger workflows again", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -644,7 +644,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when comment with slash command received, trigger workflow", async () => {
+    it("when comment with slash command received, trigger workflow", async () => {
         runWorkflowMock = runWorkflowMock.mockImplementation(() => {
             return Promise.resolve([{name: "test", inputs: {}}]);
         });
@@ -717,7 +717,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
-    test("when PR edited but base branch is not changed, do nothing", async () => {
+    it("when PR edited but base branch is not changed, do nothing", async () => {
         const mock = nock("https://api.github.com")
         const prTitleEditedPayload = {
             ...pullRequestOpenedPayload,
@@ -736,7 +736,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    test("when PR edited but base branch is changed, load all hooks from new branch and continue", async () => {
+    it("when PR edited but base branch is changed, load all hooks from new branch and continue", async () => {
         runWorkflowMock = runWorkflowMock.mockImplementation(() => {
             return Promise.resolve([{name: "test", inputs: {}}]);
         });
@@ -798,12 +798,3 @@ describe("gha-conductor app", () => {
         nock.enableNetConnect();
     });
 });
-
-// For more information about testing with Jest see:
-// https://facebook.github.io/jest/
-
-// For more information about using TypeScript in your tests, Jest recommends:
-// https://github.com/kulshekhar/ts-jest
-
-// For more information about testing with Nock see:
-// https://github.com/nock/nock

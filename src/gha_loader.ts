@@ -1,17 +1,18 @@
 import {Logger, ProbotOctokit} from "probot";
-import simpleGit from "simple-git";
+import {simpleGit} from "simple-git";
 import path from "path";
 import * as fs from "fs";
 import {glob} from "glob";
 import {load} from "js-yaml";
-import db, {gha_hooks} from "./db/database";
-import {TheRootSchema} from "./gha_yaml";
-import {HookType} from "./__generated__/_enums";
+import db, {gha_hooks} from "./db/database.js";
+import {TheRootSchema} from "./gha_yaml.js";
+import {HookType} from "./__generated__/_enums.js";
 import {components} from "@octokit/openapi-types";
-import Ajv from "ajv";
+import {Ajv} from "ajv";
 import {isNode, LineCounter, Node, parseDocument, YAMLSeq} from "yaml";
 import {not} from "@databases/pg-typed";
 import {Commit} from "@octokit/webhooks-types";
+import schema from './schemas/gha_yaml_schema.json' with { type: "json" };
 
 export interface GhaHook {
     repo_full_name: string,
@@ -29,9 +30,8 @@ export interface GhaHook {
     slash_command: string | undefined
 }
 
-const schemaJson = JSON.parse(fs.readFileSync(path.join(__dirname, "schemas/gha_yaml_schema.json"), "utf8"));
 const ajv = new Ajv({allErrors: true});
-const validator = ajv.compile(schemaJson);
+const validator = ajv.compile(schema);
 
 export class GhaLoader {
 
@@ -127,7 +127,7 @@ export class GhaLoader {
                     } else {
                         validator(ghaFileDoc.toJSON())
                         if (validator.errors) {
-                            validator.errors?.forEach(error => {
+                            validator.errors?.forEach((error) => {
                                 const propertyPath = error.instancePath.split("/").slice(1);
                                 const node = ghaFileDoc.getIn(propertyPath, true);
                                 const {line, col} = this.getPosition(node, lineCounter);
@@ -169,7 +169,7 @@ export class GhaLoader {
                                             message = message + " (duplicate name in the same file)";
                                         }
                                         if (samePrefixHooks.length > 0) {
-                                            message = message + ` (same name used in ${samePrefixHooks.map(value => value.path_to_gha_yaml).join(',')} files)`;
+                                            message = message + ` (same name used in ${samePrefixHooks.map((value: { path_to_gha_yaml: any; }) => value.path_to_gha_yaml).join(',')} files)`;
                                         }
                                         annotationsForCheck.push({
                                             annotation_level: "failure",

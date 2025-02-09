@@ -2,11 +2,11 @@ import {minimatch} from "minimatch";
 import {Logger, ProbotOctokit} from "probot";
 import {
     RestEndpointMethodTypes
-} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
-import {HookType} from "./__generated__/_enums";
-import db, {gha_hooks, gha_workflow_runs} from "./db/database";
-import {GhaHook} from "./gha_loader";
-import {GhaHooks} from "./__generated__";
+} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js";
+import {HookType} from "./__generated__/_enums.js";
+import db, {gha_hooks, gha_workflow_runs} from "./db/database.js";
+import {GhaHook} from "./gha_loader.js";
+import {GhaHooks} from "./__generated__/index.js";
 import {load} from "js-yaml";
 import {anyOf, not} from "@databases/pg-typed";
 

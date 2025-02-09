@@ -3,12 +3,12 @@ import {config as dotenvConfig} from "dotenv";
 dotenvConfig();
 import 'dd-trace/init';
 import {Server, Probot, Options} from "probot";
-import {defaultApp} from "probot/lib/apps/default";
-import app from "./index";
-import {ServerOptions} from "probot/lib/types";
-import {readEnvOptions} from "probot/lib/bin/read-env-options";
-import {getTransformStream} from "./log/log"
-import {rebindLog} from "probot/lib/helpers/rebind-log";
+import {defaultApp} from "probot/lib/apps/default.js";
+import app from "./index.js";
+import {ServerOptions} from "probot/lib/types.js";
+import {readEnvOptions} from "probot/lib/bin/read-env-options.js";
+import {getTransformStream} from "./log/log.js"
+import {rebindLog} from "probot/lib/helpers/rebind-log.js";
 import {pino} from "pino";
 import type {LoggerOptions} from "pino";
 

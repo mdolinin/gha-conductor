@@ -8,10 +8,10 @@
 /* eslint-disable */
 // tslint:disable
 
-import AtdatabasesMigrationsApplied, {AtdatabasesMigrationsApplied_InsertParameters} from './atdatabases_migrations_applied'
-import AtdatabasesMigrationsVersion, {AtdatabasesMigrationsVersion_InsertParameters} from './atdatabases_migrations_version'
-import GhaHooks, {GhaHooks_InsertParameters} from './gha_hooks'
-import GhaWorkflowRuns, {GhaWorkflowRuns_InsertParameters} from './gha_workflow_runs'
+import AtdatabasesMigrationsApplied, {AtdatabasesMigrationsApplied_InsertParameters} from './atdatabases_migrations_applied.js'
+import AtdatabasesMigrationsVersion, {AtdatabasesMigrationsVersion_InsertParameters} from './atdatabases_migrations_version.js'
+import GhaHooks, {GhaHooks_InsertParameters} from './gha_hooks.js'
+import GhaWorkflowRuns, {GhaWorkflowRuns_InsertParameters} from './gha_workflow_runs.js'
 
 interface DatabaseSchema {
   atdatabases_migrations_applied: {record: AtdatabasesMigrationsApplied, insert: AtdatabasesMigrationsApplied_InsertParameters};
