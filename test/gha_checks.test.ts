@@ -219,7 +219,6 @@ describe('gha_checks', () => {
             start_column: 1,
             end_column: 1
         }];
-        // const merge_commit_sha = '1234567890';
         let updateCheckMock = vi.fn().mockImplementation(() => {
             return {
                 data: {

@@ -149,17 +149,13 @@ vi.mock('fs', async (importOriginal) => {
         existsSync: vi.fn().mockReturnValue(true),
         rmSync: vi.fn(),
         mkdirSync: vi.fn(),
-        // @ts-ignore
-        write: vi.importActual('fs').write,
-        // @ts-ignore
-        writeSync: vi.importActual('fs').writeSync,
         readFileSync: vi.fn().mockImplementation((path: string, options: string) => {
             readFileSyncMockCounter++;
             if (path.includes(".gha.yaml")) {
                 return ghaYamlExample;
             }
             // @ts-ignore
-            return vi.importActual('fs').readFileSync(path, options);
+            return mod.readFileSync(path, options);
         }),
         statSync: vi.fn().mockImplementation(() => {
             return {
