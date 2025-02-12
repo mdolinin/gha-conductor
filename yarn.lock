@@ -359,13 +359,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/native-iast-rewriter@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@datadog/native-iast-rewriter@npm:2.6.1"
+"@datadog/native-iast-rewriter@npm:2.8.0":
+  version: 2.8.0
+  resolution: "@datadog/native-iast-rewriter@npm:2.8.0"
   dependencies:
     lru-cache: "npm:^7.14.0"
     node-gyp-build: "npm:^4.5.0"
-  checksum: 10c0/1c03298ae117e5a3675beb0caf5173a3df06a5205f3c1113a9cf19265533ebd37af470c601e579d9101793b4ae529d85a054a2a172985ce51ab813b268cdf12c
+  checksum: 10c0/cf44151eb9ac8f55b5df544fa4eb7bb333a33c861a0347f04d638458ae6d1455de5b4aa4c0d75e522f408b38eacf808eec3091216cbab80a0cbeaa39c55fcd16
   languageName: node
   linkType: hard
 
@@ -4782,13 +4782,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.35.0":
-  version: 5.35.0
-  resolution: "dd-trace@npm:5.35.0"
+"dd-trace@npm:^5.36.0":
+  version: 5.36.0
+  resolution: "dd-trace@npm:5.36.0"
   dependencies:
     "@datadog/libdatadog": "npm:^0.4.0"
     "@datadog/native-appsec": "npm:8.4.0"
-    "@datadog/native-iast-rewriter": "npm:2.6.1"
+    "@datadog/native-iast-rewriter": "npm:2.8.0"
     "@datadog/native-iast-taint-tracking": "npm:3.2.0"
     "@datadog/native-metrics": "npm:^3.1.0"
     "@datadog/pprof": "npm:5.5.1"
@@ -4818,7 +4818,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/7fcd2046461a76905e766104157cfe1303363938cea01ede9d3bcd5691424f740146a3a6e31eab35079785a1c0c080087141a8970d3732bcbd1a7a69e42d9854
+  checksum: 10c0/2e24d8b120fea78b78c130beb35391f8e32003feea3bbc02658cf289b34e72ed14a6b2eb0023105bc1ca27d616f7267a4e120eac055633e7f35991d5085825e9
   languageName: node
   linkType: hard
 
@@ -5868,7 +5868,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.0.5"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.35.0"
+    dd-trace: "npm:^5.36.0"
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
