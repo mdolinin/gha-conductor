@@ -369,13 +369,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/native-iast-taint-tracking@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@datadog/native-iast-taint-tracking@npm:3.2.0"
+"@datadog/native-iast-taint-tracking@npm:3.3.0":
+  version: 3.3.0
+  resolution: "@datadog/native-iast-taint-tracking@npm:3.3.0"
   dependencies:
     node-gyp: "npm:latest"
     node-gyp-build: "npm:^3.9.0"
-  checksum: 10c0/e2d1d0b50df9dc860f1fd2e8513c3549fc6b94b1390fec827cac0676eb90b7e556118cba823469f4ac7f58fff13015bd64e60ef98154e883ea54daf5a1703e78
+  checksum: 10c0/6acfb122ef64da1495f41db917d499fbac886d8999b02d6f7cefde37297dd9da9a4dd527506dbcffe6244abb733c3a8188573ddd6712148b98c083f4a33dcb7a
   languageName: node
   linkType: hard
 
@@ -4771,14 +4771,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.36.0":
-  version: 5.36.0
-  resolution: "dd-trace@npm:5.36.0"
+"dd-trace@npm:^5.37.0":
+  version: 5.37.0
+  resolution: "dd-trace@npm:5.37.0"
   dependencies:
     "@datadog/libdatadog": "npm:^0.4.0"
     "@datadog/native-appsec": "npm:8.4.0"
     "@datadog/native-iast-rewriter": "npm:2.8.0"
-    "@datadog/native-iast-taint-tracking": "npm:3.2.0"
+    "@datadog/native-iast-taint-tracking": "npm:3.3.0"
     "@datadog/native-metrics": "npm:^3.1.0"
     "@datadog/pprof": "npm:5.5.1"
     "@datadog/sketches-js": "npm:^2.1.0"
@@ -4802,12 +4802,12 @@ __metadata:
     protobufjs: "npm:^7.2.5"
     retry: "npm:^0.13.1"
     rfdc: "npm:^1.3.1"
-    semver: "npm:^7.5.4"
+    semifies: "npm:^1.0.0"
     shell-quote: "npm:^1.8.1"
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/2e24d8b120fea78b78c130beb35391f8e32003feea3bbc02658cf289b34e72ed14a6b2eb0023105bc1ca27d616f7267a4e120eac055633e7f35991d5085825e9
+  checksum: 10c0/c530fa3012c09596764cbc8a3bacac557f322a80de4a8af759d3b964163c924f2be38036479455fd49f4acacad2aa33d15d04923a9e5a0e32e304d64b212f158
   languageName: node
   linkType: hard
 
@@ -5857,7 +5857,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.0.5"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.36.0"
+    dd-trace: "npm:^5.37.0"
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
@@ -10038,6 +10038,13 @@ __metadata:
   bin:
     semantic-release: bin/semantic-release.js
   checksum: 10c0/75c6657429bbd31c60e2a4982a9081de0d840dce7d0910b5f93e45bf717c921847d1cbc1f1c9e40a10ae20b6b8a61e9fc6d837623832f113c05468eb15ebb8f8
+  languageName: node
+  linkType: hard
+
+"semifies@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "semifies@npm:1.0.0"
+  checksum: 10c0/d93d5e8d2c0b7d5f972b9378736ed5cc1f2ab40d043234b4156665872f08cb0da914ee8c8b35c59dc6b17880a4c5502588c7515c6bb4dbc3ce5565746428d31d
   languageName: node
   linkType: hard
 
