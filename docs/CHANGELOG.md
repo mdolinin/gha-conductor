@@ -1,3 +1,10 @@
+## [1.20.9](https://github.com/mdolinin/gha-conductor/compare/v1.20.8...v1.20.9) (2025-02-20)
+
+
+### Bug Fixes
+
+* **gha-checks:** truncate workflow logs to GitHub bytesize limit of 65535 ([#314](https://github.com/mdolinin/gha-conductor/issues/314)) ([bb0b118](https://github.com/mdolinin/gha-conductor/commit/bb0b1186d7130b06f79d3456c8268552ff3148d0))
+
 ## [1.20.8](https://github.com/mdolinin/gha-conductor/compare/v1.20.7...v1.20.8) (2025-01-04)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "gha-conductor",
-  "version": "1.20.8",
+  "version": "1.20.9",
   "private": true,
   "description": "Github Actions for monorepo setup",
   "author": "mdolinin",
