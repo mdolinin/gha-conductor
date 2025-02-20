@@ -13,7 +13,7 @@ import {GhaWorkflowRuns} from "./__generated__/index.js";
 import {anyOf, not} from "@databases/pg-typed";
 import {TriggeredWorkflow} from "./hooks.js";
 
-export const GITHUB_CHECK_TEXT_LIMIT = 65535;
+export const GITHUB_CHECK_BYTESIZE_LIMIT = 65535;
 const ansiPattern = [
     '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
     '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]))'
@@ -431,15 +431,15 @@ export class GhaChecks {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             let summary = "";
-            // to avoid github check summary limit issue, we need to reduce the log limit
-            const reduced_text_limit = GITHUB_CHECK_TEXT_LIMIT - 2000;
+            const textEncoder = new TextEncoder();
             const summaryWithoutLogs = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", "-");
-            if (summaryWithoutLogs.length >= reduced_text_limit) {
+            const summaryWithoutLogsByteSize = textEncoder.encode(summaryWithoutLogs).length;
+            if (summaryWithoutLogsByteSize >= GITHUB_CHECK_BYTESIZE_LIMIT) {
                 // create simplified summary
                 summary = `${this.getWorkflowStatusIcon(payload.workflow_job.conclusion, "completed")}: **[${workflowJob.name}](${workflowRun.workflow_run_url})**`;
             } else {
-                const log_max_size = reduced_text_limit - summaryWithoutLogs.length;
-                const workflowJobLog = await this.getWorkflowJobLog(octokit, payload.repository.owner.login, payload.repository.name, workflowJob.id, log_max_size);
+                const logMaxBytesize = GITHUB_CHECK_BYTESIZE_LIMIT - summaryWithoutLogsByteSize;
+                const workflowJobLog = await this.getWorkflowJobLog(octokit, payload.repository.owner.login, payload.repository.name, workflowJob.id, logMaxBytesize);
                 summary = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", workflowJobLog);
             }
             const checkRunId = workflowRun.check_run_id;
@@ -519,7 +519,18 @@ export class GhaChecks {
         return text.replace(ansiRegex, '');
     }
 
-    private async getWorkflowJobLog(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, jobId: number, log_max_size: number) {
+    private truncateStringToByteLength(str: string, maxLengthBytes: number): string {
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+        const bytes = encoder.encode(str);
+        if (bytes.length <= maxLengthBytes) {
+            return str; // No need to truncate
+        }
+        const truncatedBytes = bytes.slice(bytes.length - maxLengthBytes);
+        return decoder.decode(truncatedBytes).replace(/\uFFFD/g, "");
+    }
+
+    private async getWorkflowJobLog(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, jobId: number, logMaxBytesize: number) {
         let workflowJobLog = null;
         try {
             const workflowJobLogResp = await octokit.actions.downloadJobLogsForWorkflowRun({
@@ -528,7 +539,7 @@ export class GhaChecks {
                 job_id: Number(jobId)
             });
             const data = String(workflowJobLogResp.data);
-            workflowJobLog = data.slice(-log_max_size);
+            workflowJobLog = this.truncateStringToByteLength(data, logMaxBytesize);
         } catch (error) {
             this.log.warn(`Failed to get workflow job log for ${jobId} with`, error);
         }
@@ -578,8 +589,6 @@ export class GhaChecks {
     }
 
     async formatGHCheckSummaryAll(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, workflowRuns: GhaWorkflowRuns[], status: string = "") {
-        // to avoid github check summary limit issue, we need to reduce the log limit
-        const reduced_text_limit = GITHUB_CHECK_TEXT_LIMIT - 2000;
         let summaryWithoutLogs = ""
         for (const workflowRun of workflowRuns) {
             const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
@@ -587,7 +596,9 @@ export class GhaChecks {
             summaryWithoutLogs += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, "-");
             summaryWithoutLogs += "\n";
         }
-        if (summaryWithoutLogs.length > reduced_text_limit) {
+        const textEncoder = new TextEncoder();
+        const summaryWithoutLogsByteSize = textEncoder.encode(summaryWithoutLogs).length;
+        if (summaryWithoutLogsByteSize >= GITHUB_CHECK_BYTESIZE_LIMIT) {
             // create simplified summary
             let summary = "";
             for (const workflowRun of workflowRuns) {
@@ -596,22 +607,23 @@ export class GhaChecks {
                 const workflowRunStatusIcon = this.getWorkflowStatusIcon(workflowRunConclusion, workflowRunStatus);
                 summary += `${workflowRunStatusIcon}: **[${workflowRun.name}](${workflowRun.workflow_run_url})**\n`;
             }
-            if (summary.length > reduced_text_limit) {
-                return summary.slice(0, reduced_text_limit);
+            const summaryByteSize = textEncoder.encode(summary).length;
+            if (summaryByteSize >= GITHUB_CHECK_BYTESIZE_LIMIT) {
+                return this.truncateStringToByteLength(summary, GITHUB_CHECK_BYTESIZE_LIMIT);
             }
             return summary;
         }
         let summary = "";
-        let log_max_size = reduced_text_limit - summaryWithoutLogs.length;
+        let logMaxBytesize = GITHUB_CHECK_BYTESIZE_LIMIT - summaryWithoutLogsByteSize;
         if (workflowRuns.length > 0) {
-            log_max_size = Math.floor(log_max_size / workflowRuns.length);
+            logMaxBytesize = Math.floor(logMaxBytesize / workflowRuns.length);
         }
         for (const workflowRun of workflowRuns) {
             const workflowRunConclusion = workflowRun.conclusion ? workflowRun.conclusion : "";
             const workflowRunStatus = workflowRun.status ? workflowRun.status : status;
             let workflowJobLog: string | null = null;
-            if (workflowRun.workflow_job_id !== null && log_max_size > 0) {
-                workflowJobLog = await this.getWorkflowJobLog(octokit, owner, repo, workflowRun.workflow_job_id, log_max_size);
+            if (workflowRun.workflow_job_id !== null && logMaxBytesize > 0) {
+                workflowJobLog = await this.getWorkflowJobLog(octokit, owner, repo, workflowRun.workflow_job_id, logMaxBytesize);
             }
             summary += this.formatGHCheckSummary(workflowRun, workflowRunConclusion, workflowRunStatus, workflowJobLog);
             summary += "\n";
