@@ -1,3 +1,10 @@
+## [1.20.10](https://github.com/mdolinin/gha-conductor/compare/v1.20.9...v1.20.10) (2025-02-20)
+
+
+### Bug Fixes
+
+* **main:** use correct import for dd-trace ([#316](https://github.com/mdolinin/gha-conductor/issues/316)) ([3c88efb](https://github.com/mdolinin/gha-conductor/commit/3c88efb62f8e03a42deb996d716eef8d3594cce9))
+
 ## [1.20.9](https://github.com/mdolinin/gha-conductor/compare/v1.20.8...v1.20.9) (2025-02-20)
 
 
