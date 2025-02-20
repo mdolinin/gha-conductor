@@ -5325,13 +5325,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eventsource@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "eventsource@npm:2.0.2"
-  checksum: 10c0/0b8c70b35e45dd20f22ff64b001be9d530e33b92ca8bdbac9e004d0be00d957ab02ef33c917315f59bf2f20b178c56af85c52029bc8e6cc2d61c31d87d943573
-  languageName: node
-  linkType: hard
-
 "execa@npm:^5.0.0":
   version: 5.1.1
   resolution: "execa@npm:5.1.1"
@@ -5865,7 +5858,7 @@ __metadata:
     probot: "npm:^13.4.3"
     semantic-release: "npm:^24.2.3"
     simple-git: "npm:^3.27.0"
-    smee-client: "npm:^2.0.4"
+    smee-client: "npm:^3.0.0"
     tsc-hooks: "npm:^1.1.2"
     typescript: "npm:^5.7.3"
     vitest: "npm:^3.0.6"
@@ -10313,16 +10306,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smee-client@npm:^2.0.4":
-  version: 2.0.4
-  resolution: "smee-client@npm:2.0.4"
+"smee-client@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "smee-client@npm:3.0.0"
   dependencies:
     commander: "npm:^12.0.0"
-    eventsource: "npm:^2.0.2"
+    undici: "npm:^6.19.8"
     validator: "npm:^13.11.0"
   bin:
     smee: bin/smee.js
-  checksum: 10c0/4e578ebf88731fb6eb5e933192c533b2520c3265426d97fe63dee0555d7502efdb1a1127f721b23165c3a08641a3b622b8bfec81509d0a89c54da0f669f26d03
+  checksum: 10c0/30f46d817505e1faa2e58eb1b1a2efbfe66eef9674f24e0ce4736cf0e2bcc63b2aaa52d844c800f7f5551a68bb74518a1349e89c970915c77df3f0800bf90a77
   languageName: node
   linkType: hard
 
@@ -11098,6 +11091,13 @@ __metadata:
   version: 6.20.0
   resolution: "undici-types@npm:6.20.0"
   checksum: 10c0/68e659a98898d6a836a9a59e6adf14a5d799707f5ea629433e025ac90d239f75e408e2e5ff086afc3cace26f8b26ee52155293564593fbb4a2f666af57fc59bf
+  languageName: node
+  linkType: hard
+
+"undici@npm:^6.19.8":
+  version: 6.21.1
+  resolution: "undici@npm:6.21.1"
+  checksum: 10c0/d604080e4f8db89b35a63b483b5f96a5f8b19ec9f716e934639345449405809d2997e1dd7212d67048f210e54534143384d712bd9075e4394f0788895ef9ca8e
   languageName: node
   linkType: hard
 
