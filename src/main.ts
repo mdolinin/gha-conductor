@@ -1,7 +1,7 @@
 import {config as dotenvConfig} from "dotenv";
 
 dotenvConfig();
-import 'dd-trace/init';
+import 'dd-trace/init.js';
 import {Server, Probot, Options} from "probot";
 import {defaultApp} from "probot/lib/apps/default.js";
 import app from "./index.js";
