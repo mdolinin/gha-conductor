@@ -1,5 +1,5 @@
-import {vi, describe, afterEach, expect, it} from "vitest";
-import {GhaChecks, GITHUB_CHECK_TEXT_LIMIT, PRCheckAction, PRCheckName, ReRunPayload} from "../src/gha_checks.js";
+import {afterEach, describe, expect, it, vi} from "vitest";
+import {GhaChecks, GITHUB_CHECK_BYTESIZE_LIMIT, PRCheckAction, PRCheckName, ReRunPayload} from "../src/gha_checks.js";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json" with {type: "json"};
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json" with {type: "json"};
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json" with {type: "json"};
@@ -1028,7 +1028,7 @@ describe('gha_checks', () => {
     });
 
     it.each([0, 1, 10, 300, 1000])('github check summary for \'%s\' workflow runs should not go over limit', async (numberOfWorkflowRuns) => {
-        const veryLongString = "a".repeat(GITHUB_CHECK_TEXT_LIMIT + 100);
+        const veryLongString = "😀".repeat(GITHUB_CHECK_BYTESIZE_LIMIT + 1000);
         const octokit = {
             actions: {
                 downloadJobLogsForWorkflowRun: vi.fn().mockImplementation(() => {
@@ -1049,6 +1049,7 @@ describe('gha_checks', () => {
         });
         // @ts-ignore
         const summary = await checks.formatGHCheckSummaryAll(octokit, "test_owner", "test_repo", randomWorkflowRuns(numberOfWorkflowRuns), "completed");
-        expect(summary.length).toBeLessThanOrEqual(GITHUB_CHECK_TEXT_LIMIT);
+        const summaryBytes = new TextEncoder().encode(summary);
+        expect(summaryBytes.length).toBeLessThanOrEqual(GITHUB_CHECK_BYTESIZE_LIMIT);
     });
 });
