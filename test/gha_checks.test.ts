@@ -608,6 +608,11 @@ describe('gha_checks', () => {
                     description: "Re-run all workflows",
                     identifier: "re-run",
                     label: "Re-run",
+                },
+                {
+                    description: "Sync current workflow status",
+                    identifier: "sync-status", 
+                    label: "Sync status",
                 }
             ]
         });
@@ -694,6 +699,11 @@ describe('gha_checks', () => {
                     description: "Re-run all workflows",
                     identifier: "re-run",
                     label: "Re-run",
+                },
+                {
+                    description: "Sync current workflow status",
+                    identifier: "sync-status",
+                    label: "Sync status", 
                 },
                 {
                     description: "Re-run failed workflows",
