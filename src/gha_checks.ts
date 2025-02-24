@@ -40,6 +40,12 @@ export interface ReRunPayload {
     requested_action_identifier: PRCheckAction
 }
 
+export interface SyncStatusPayload {
+    owner: string,
+    repo: string,
+    check_run_id: number
+}
+
 export class GhaChecks {
 
     log: Logger;
@@ -780,14 +786,13 @@ export class GhaChecks {
         }
     }
 
+    async syncPRCheckStatus(octokit: InstanceType<typeof ProbotOctokit>, payload: SyncStatusPayload) {
+        await this.syncWorkflowStatus(octokit, payload.owner, payload.repo, payload.check_run_id);
+    }
+
     async triggerReRunPRCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: ReRunPayload) {
         const actionIdentifier = payload.requested_action_identifier;
         const checkId = payload.check_run_id;
-
-        if (actionIdentifier === PRCheckAction.SyncStatus) {
-            await this.syncWorkflowStatus(octokit, payload.owner, payload.repo, checkId);
-            return;
-        }
 
         let prRelatedWorkflowRuns: GhaWorkflowRuns[] = []
         if (actionIdentifier === PRCheckAction.ReRun) {

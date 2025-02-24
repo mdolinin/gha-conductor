@@ -304,7 +304,14 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     app.on(["check_run.requested_action"], async (context) => {
         const identifier = context.payload.requested_action.identifier;
         app.log.info(`check_run.requested_action event received for ${context.payload.check_run.name} with identifier ${identifier}`);
-        if (identifier === PRCheckAction.ReRun || identifier === PRCheckAction.ReRunFailed) {
+        
+        if (identifier === PRCheckAction.SyncStatus) {
+            await checks.syncPRCheckStatus(context.octokit, {
+                check_run_id: context.payload.check_run.id,
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name
+            });
+        } else if (identifier === PRCheckAction.ReRun || identifier === PRCheckAction.ReRunFailed) {
             await checks.triggerReRunPRCheck(context.octokit, {
                 check_run_id: context.payload.check_run.id,
                 owner: context.payload.repository.owner.login,
