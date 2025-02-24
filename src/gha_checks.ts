@@ -880,25 +880,64 @@ export class GhaChecks {
             return;
         }
 
+        // Update status for each workflow run
+        for (const workflowRun of prRelatedWorkflowRuns) {
+            if (workflowRun.workflow_run_id) {
+                try {
+                    const response = await octokit.actions.getWorkflowRun({
+                        owner: owner,
+                        repo: repo,
+                        run_id: Number(workflowRun.workflow_run_id)
+                    });
+                    
+                    const currentStatus = response.data.status;
+                    const currentConclusion = response.data.conclusion;
+
+                    // Update workflow run status in database
+                    await gha_workflow_runs(db).update(
+                        { workflow_run_id: workflowRun.workflow_run_id },
+                        {
+                            status: currentStatus,
+                            conclusion: currentConclusion
+                        }
+                    );
+                } catch (error) {
+                    this.log.error(error, `Failed to get current status for workflow run ${workflowRun.workflow_run_id}`);
+                }
+            }
+        }
+
+        // Refresh workflow runs data after updates
+        const updatedWorkflowRuns = await gha_workflow_runs(db).find({
+            pr_check_id: checkId,
+        }).all();
+
+        // Check if all workflows are completed
+        const allCompleted = updatedWorkflowRuns.every(run => run.status === "completed");
+        
         // Get current status for all workflow runs
-        const summary = await this.formatGHCheckSummaryAll(octokit, owner, repo, prRelatedWorkflowRuns);
-        const conclusion = this.getConclusion(prRelatedWorkflowRuns);
-        const actions = this.getAvailableActions(conclusion);
+        const summary = await this.formatGHCheckSummaryAll(octokit, owner, repo, updatedWorkflowRuns);
+        const conclusion = allCompleted ? this.getConclusion(updatedWorkflowRuns) : null;
+        const actions = this.getAvailableActions(conclusion || "failure");
 
         // Update the check run with current status
         const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
             owner: owner,
             repo: repo,
             check_run_id: checkId,
-            status: "completed",
-            conclusion: conclusion,
-            completed_at: new Date().toISOString(),
+            status: allCompleted ? "completed" : "in_progress",
             output: {
-                title: "Current workflow status",
+                title: allCompleted ? "All workflow runs completed" : "Workflow runs in progress",
                 summary: summary
             },
             actions: actions
         };
+
+        // Only add conclusion and completed_at if all workflows are done
+        if (allCompleted) {
+            params.conclusion = conclusion;
+            params.completed_at = new Date().toISOString();
+        }
 
         try {
             await octokit.checks.update(params);
