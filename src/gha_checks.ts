@@ -29,7 +29,8 @@ export enum PRCheckName {
 
 export enum PRCheckAction {
     ReRun = "re-run",
-    ReRunFailed = "re-run-failed"
+    ReRunFailed = "re-run-failed",
+    SyncStatus = "sync-status"
 }
 
 export interface ReRunPayload {
@@ -738,8 +739,14 @@ export class GhaChecks {
             description: "Re-run failed workflows",
             identifier: PRCheckAction.ReRunFailed
         };
+        const syncStatusAction = {
+            label: "Sync status",
+            description: "Sync current workflow status",
+            identifier: PRCheckAction.SyncStatus
+        };
         const actions = [
-            reRunAction
+            reRunAction,
+            syncStatusAction
         ];
         if (conclusion !== "success") {
             actions.push(reRunFailedAction);
@@ -774,9 +781,15 @@ export class GhaChecks {
     }
 
     async triggerReRunPRCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: ReRunPayload) {
-        let prRelatedWorkflowRuns: GhaWorkflowRuns[] = []
         const actionIdentifier = payload.requested_action_identifier;
         const checkId = payload.check_run_id;
+
+        if (actionIdentifier === PRCheckAction.SyncStatus) {
+            await this.syncWorkflowStatus(octokit, payload.owner, payload.repo, checkId);
+            return;
+        }
+
+        let prRelatedWorkflowRuns: GhaWorkflowRuns[] = []
         if (actionIdentifier === PRCheckAction.ReRun) {
             this.log.info(`Find all workflow runs that match check id ${checkId}`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
@@ -848,6 +861,45 @@ export class GhaChecks {
             } catch (error) {
                 this.log.error(error, `Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`);
             }
+        }
+    }
+
+    private async syncWorkflowStatus(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, checkId: number) {
+        // Find all workflow runs associated with this check
+        const prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
+            pr_check_id: checkId,
+        }).all();
+
+        if (prRelatedWorkflowRuns.length === 0) {
+            this.log.warn(`No workflow runs for check id ${checkId} found in db`);
+            return;
+        }
+
+        // Get current status for all workflow runs
+        const summary = await this.formatGHCheckSummaryAll(octokit, owner, repo, prRelatedWorkflowRuns);
+        const conclusion = this.getConclusion(prRelatedWorkflowRuns);
+        const actions = this.getAvailableActions(conclusion);
+
+        // Update the check run with current status
+        const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
+            owner: owner,
+            repo: repo,
+            check_run_id: checkId,
+            status: "completed",
+            conclusion: conclusion,
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "Current workflow status",
+                summary: summary
+            },
+            actions: actions
+        };
+
+        try {
+            await octokit.checks.update(params);
+            this.log.info(`Successfully synced status for check id ${checkId}`);
+        } catch (error) {
+            this.log.error(error, `Failed to sync status for check id ${checkId}`);
         }
     }
 
