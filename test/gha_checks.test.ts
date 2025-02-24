@@ -871,6 +871,77 @@ describe('gha_checks', () => {
         });
     });
 
+    it('should sync workflow status when sync button clicked', async () => {
+        const reRunPayload: ReRunPayload = {
+            check_run_id: checkRunRequestedActionPayload.check_run.id,
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            requested_action_identifier: PRCheckAction.SyncStatus,
+        };
+        
+        const updateCheckMock = vi.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 21439086478,
+                    status: 'completed',
+                    conclusion: 'success',
+                    details_url: ''
+                },
+                status: 200,
+            }
+        });
+        
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+
+        const octokit = {
+            checks: {
+                update: updateCheckMock,
+            },
+            actions: {
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        };
+
+        // @ts-ignore
+        await checks.triggerReRunPRCheck(octokit, reRunPayload);
+
+        expect(findMock).toHaveBeenCalledWith({
+            pr_check_id: reRunPayload.check_run_id,
+        });
+        expect(findAllMock).toHaveBeenCalled();
+        expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
+
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            owner: checkRunRequestedActionPayload.repository.owner.login,
+            repo: checkRunRequestedActionPayload.repository.name,
+            check_run_id: reRunPayload.check_run_id,
+            status: 'completed',
+            conclusion: 'success',
+            completed_at: expect.anything(),
+            output: {
+                title: 'Current workflow status',
+                summary: expect.anything()
+            },
+            actions: [
+                {
+                    description: "Re-run all workflows",
+                    identifier: "re-run",
+                    label: "Re-run",
+                },
+                {
+                    description: "Sync current workflow status", 
+                    identifier: "sync-status",
+                    label: "Sync status",
+                }
+            ]
+        });
+    });
+
     it('should trigger re-run of all workflows, when re-all link clicked', async () => {
         const createCheckMock = vi.fn().mockImplementation(() => {
             return {
