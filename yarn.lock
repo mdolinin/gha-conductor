@@ -349,13 +349,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/native-appsec@npm:8.4.0":
-  version: 8.4.0
-  resolution: "@datadog/native-appsec@npm:8.4.0"
+"@datadog/native-appsec@npm:8.5.0":
+  version: 8.5.0
+  resolution: "@datadog/native-appsec@npm:8.5.0"
   dependencies:
     node-gyp: "npm:latest"
     node-gyp-build: "npm:^3.9.0"
-  checksum: 10c0/b27b7399873b450c46e41dafdca10e159590d560dbd023258ffa4f30b8a39206f394edbb9a6eb38da1f40aa02751e6dfdbdee80e45995089e1e9606c85e381a2
+  checksum: 10c0/ae47f79080db03f8c4a19fd028ad4adb9433aa54e317c3dda797621030dd8a3aa27a6c14ee6a492d7e352ac947a88a1797b600f55e20a53c614d6c1874fbb237
   languageName: node
   linkType: hard
 
@@ -4796,12 +4796,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.41.1":
-  version: 5.41.1
-  resolution: "dd-trace@npm:5.41.1"
+"dd-trace@npm:^5.42.0":
+  version: 5.42.0
+  resolution: "dd-trace@npm:5.42.0"
   dependencies:
     "@datadog/libdatadog": "npm:^0.5.0"
-    "@datadog/native-appsec": "npm:8.4.0"
+    "@datadog/native-appsec": "npm:8.5.0"
     "@datadog/native-iast-rewriter": "npm:2.8.0"
     "@datadog/native-iast-taint-tracking": "npm:3.3.0"
     "@datadog/native-metrics": "npm:^3.1.0"
@@ -4832,7 +4832,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/259e99490c7687abff2172d20d55e744b8d4e1d5e1a418fcfb63663e8f975a5aa3d3d8ec9dbdc5df54f92be37de6dc656a33e7e0d83ebbfe12be7d5bb16ff280
+  checksum: 10c0/db508066470aa67dd1a4670bcbcf14ca233b8016b9210f1cbde0ad5199a684f03eaadf2a4927b0a49b150a67e654baf31af326eb1c8e6d96f7288b8a19df536d
   languageName: node
   linkType: hard
 
@@ -5891,7 +5891,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.0.8"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.41.1"
+    dd-trace: "npm:^5.42.0"
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
