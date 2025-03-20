@@ -390,9 +390,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/pprof@npm:5.5.1":
-  version: 5.5.1
-  resolution: "@datadog/pprof@npm:5.5.1"
+"@datadog/pprof@npm:5.6.0":
+  version: 5.6.0
+  resolution: "@datadog/pprof@npm:5.6.0"
   dependencies:
     delay: "npm:^5.0.0"
     node-gyp: "npm:latest"
@@ -400,7 +400,7 @@ __metadata:
     p-limit: "npm:^3.1.0"
     pprof-format: "npm:^2.1.0"
     source-map: "npm:^0.7.4"
-  checksum: 10c0/04ab5ce44544000c3f4a03675c93a4e22161923d3f7bb9665721fd785d5b8f4cecba568c1d9de2e1f4e052ff36913755de08096c02f53992ce3b843187c0d17a
+  checksum: 10c0/86420d37b7d182390a57c419e7354fa133dcd92bfcb419b87b9e5db389505b44f6afeed3c2070f28cd411d4cd8bfe27690095ed1f9249cf802b60c69e18772bb
   languageName: node
   linkType: hard
 
@@ -4796,16 +4796,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.42.0":
-  version: 5.42.0
-  resolution: "dd-trace@npm:5.42.0"
+"dd-trace@npm:^5.43.0":
+  version: 5.43.0
+  resolution: "dd-trace@npm:5.43.0"
   dependencies:
     "@datadog/libdatadog": "npm:^0.5.0"
     "@datadog/native-appsec": "npm:8.5.0"
     "@datadog/native-iast-rewriter": "npm:2.8.0"
     "@datadog/native-iast-taint-tracking": "npm:3.3.0"
     "@datadog/native-metrics": "npm:^3.1.0"
-    "@datadog/pprof": "npm:5.5.1"
+    "@datadog/pprof": "npm:5.6.0"
     "@datadog/sketches-js": "npm:^2.1.0"
     "@isaacs/ttlcache": "npm:^1.4.1"
     "@opentelemetry/api": "npm:>=1.0.0 <1.9.0"
@@ -4832,7 +4832,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/db508066470aa67dd1a4670bcbcf14ca233b8016b9210f1cbde0ad5199a684f03eaadf2a4927b0a49b150a67e654baf31af326eb1c8e6d96f7288b8a19df536d
+  checksum: 10c0/8a8b101bc35c11ee91e7f8e898c63de820365ffd4fdf0d356dbe465baafdb2cae3d6bc93f71cb692f0819b7877143b11882e19c537ef78884160055eb6a096f5
   languageName: node
   linkType: hard
 
@@ -5891,7 +5891,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.0.9"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.42.0"
+    dd-trace: "npm:^5.43.0"
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
