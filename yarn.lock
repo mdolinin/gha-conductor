@@ -349,13 +349,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/native-appsec@npm:8.5.0":
-  version: 8.5.0
-  resolution: "@datadog/native-appsec@npm:8.5.0"
+"@datadog/native-appsec@npm:8.5.1":
+  version: 8.5.1
+  resolution: "@datadog/native-appsec@npm:8.5.1"
   dependencies:
     node-gyp: "npm:latest"
     node-gyp-build: "npm:^3.9.0"
-  checksum: 10c0/ae47f79080db03f8c4a19fd028ad4adb9433aa54e317c3dda797621030dd8a3aa27a6c14ee6a492d7e352ac947a88a1797b600f55e20a53c614d6c1874fbb237
+  checksum: 10c0/c160c56ac0c50aa467887746fcec334abc3c121fd2d353e9a405b1a5cff83c321835016429617a5b9372df2f66552626c08126c3688e606d59a4a8a58e572320
   languageName: node
   linkType: hard
 
@@ -4796,19 +4796,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dc-polyfill@npm:^0.1.4":
+"dc-polyfill@npm:0.1.6":
   version: 0.1.6
   resolution: "dc-polyfill@npm:0.1.6"
   checksum: 10c0/bf717f68a7e95dd9118072274613cb4010bfc7bc7946c46f6395bb3c76356a5d0196e121a1c2218f83483ed025f7db6db98604d33c2b7afb37d26bbb669efec6
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.43.0":
-  version: 5.43.0
-  resolution: "dd-trace@npm:5.43.0"
+"dd-trace@npm:^5.44.0":
+  version: 5.44.0
+  resolution: "dd-trace@npm:5.44.0"
   dependencies:
     "@datadog/libdatadog": "npm:^0.5.0"
-    "@datadog/native-appsec": "npm:8.5.0"
+    "@datadog/native-appsec": "npm:8.5.1"
     "@datadog/native-iast-rewriter": "npm:2.8.0"
     "@datadog/native-iast-taint-tracking": "npm:3.3.0"
     "@datadog/native-metrics": "npm:^3.1.0"
@@ -4818,7 +4818,7 @@ __metadata:
     "@opentelemetry/api": "npm:>=1.0.0 <1.9.0"
     "@opentelemetry/core": "npm:^1.14.0"
     crypto-randomuuid: "npm:^1.0.0"
-    dc-polyfill: "npm:^0.1.4"
+    dc-polyfill: "npm:0.1.6"
     ignore: "npm:^5.2.4"
     import-in-the-middle: "npm:1.13.1"
     istanbul-lib-coverage: "npm:3.2.0"
@@ -4839,7 +4839,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/8a8b101bc35c11ee91e7f8e898c63de820365ffd4fdf0d356dbe465baafdb2cae3d6bc93f71cb692f0819b7877143b11882e19c537ef78884160055eb6a096f5
+  checksum: 10c0/2e19bdc79895d781da3f406fd71eb4725f59a0a628a4df43883c67837b061d08d7b592676fef56932d6eadd6361904e11f1d3cc3344d2bf3f5cab70c2b2f0c71
   languageName: node
   linkType: hard
 
@@ -5898,7 +5898,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.0.9"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.43.0"
+    dd-trace: "npm:^5.44.0"
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
