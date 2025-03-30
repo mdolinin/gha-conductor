@@ -932,6 +932,51 @@ export class GhaChecks {
                             conclusion: currentConclusion
                         }
                     );
+                    
+                    // Update the individual check for this workflow run
+                    if (workflowRun.check_run_id) {
+                        const {headSha, checkName} = this.parseHeadShaFromJobName(workflowRun.pipeline_run_name);
+                        let summary: string;
+                        
+                        if (currentStatus === "completed") {
+                            const textEncoder = new TextEncoder();
+                            const summaryWithoutLogs = this.formatGHCheckSummary(workflowRun, currentConclusion, currentStatus, "-");
+                            const summaryWithoutLogsByteSize = textEncoder.encode(summaryWithoutLogs).length;
+                            
+                            if (summaryWithoutLogsByteSize >= GITHUB_CHECK_BYTESIZE_LIMIT) {
+                                summary = `${this.getWorkflowStatusIcon(currentConclusion, currentStatus)}: **[${workflowRun.pipeline_run_name}](${workflowRun.workflow_run_url})**`;
+                            } else {
+                                const logMaxBytesize = GITHUB_CHECK_BYTESIZE_LIMIT - summaryWithoutLogsByteSize;
+                                const workflowJobLog = workflowRun.workflow_job_id ? 
+                                    await this.getWorkflowJobLog(octokit, owner, repo, workflowRun.workflow_job_id, logMaxBytesize) : 
+                                    null;
+                                summary = this.formatGHCheckSummary(workflowRun, currentConclusion, currentStatus, workflowJobLog);
+                            }
+                        } else {
+                            summary = this.formatGHCheckSummary(workflowRun, currentConclusion, currentStatus, null);
+                        }
+                        
+                        const checkParams: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
+                            owner: owner,
+                            repo: repo,
+                            check_run_id: Number(workflowRun.check_run_id),
+                            status: currentStatus,
+                            output: {
+                                title: currentStatus === "completed" ? "Workflow run completed" : 
+                                      currentStatus === "in_progress" ? "Workflow run in progress" : 
+                                      "Workflow run queued",
+                                summary: summary
+                            }
+                        };
+                        
+                        if (currentStatus === "completed") {
+                            checkParams.conclusion = currentConclusion;
+                            checkParams.completed_at = new Date().toISOString();
+                        }
+                        
+                        await octokit.checks.update(checkParams);
+                        this.log.info(`Updated individual check ${workflowRun.check_run_id} for workflow run ${workflowRun.pipeline_run_name}`);
+                    }
                 } catch (error) {
                     this.log.error(error, `Failed to get current status for workflow run ${workflowRun.workflow_run_id}`);
                 }
