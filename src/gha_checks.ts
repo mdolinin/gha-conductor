@@ -786,15 +786,22 @@ export class GhaChecks {
         }
     }
 
-    async syncPRCheckStatus(octokit: InstanceType<typeof ProbotOctokit>, payload: SyncStatusPayload) {
-        await this.syncWorkflowStatus(octokit, payload.owner, payload.repo, payload.check_run_id);
+    private getStatus(workflowRuns: GhaWorkflowRuns[]) {
+        // get status from workflow runs
+        // status values | "queued" | "in_progress" | "completed";
+        if (workflowRuns.every((r) => r.status === "completed")) {
+            return "completed";
+        } else if (workflowRuns.some((r) => r.status === "in_progress")) {
+            return "in_progress";
+        } else {
+            return "queued";
+        }
     }
 
     async triggerReRunPRCheck(octokit: InstanceType<typeof ProbotOctokit>, payload: ReRunPayload) {
+        let prRelatedWorkflowRuns: GhaWorkflowRuns[] = []
         const actionIdentifier = payload.requested_action_identifier;
         const checkId = payload.check_run_id;
-
-        let prRelatedWorkflowRuns: GhaWorkflowRuns[] = []
         if (actionIdentifier === PRCheckAction.ReRun) {
             this.log.info(`Find all workflow runs that match check id ${checkId}`);
             prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
@@ -869,7 +876,20 @@ export class GhaChecks {
         }
     }
 
-    private async syncWorkflowStatus(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, checkId: number) {
+    private getTitleFrom(status: string) {
+        if (status === "completed") {
+            return "All workflow runs completed";
+        } else if (status === "in_progress") {
+            return "Workflow runs in progress";
+        } else {
+            return "Workflow runs are queued";
+        }
+    }
+
+    async syncPRCheckStatus(octokit: InstanceType<typeof ProbotOctokit>, payload: SyncStatusPayload) {
+        const checkId = payload.check_run_id;
+        const owner = payload.owner;
+        const repo = payload.repo;
         // Find all workflow runs associated with this check
         const prRelatedWorkflowRuns = await gha_workflow_runs(db).find({
             pr_check_id: checkId,
@@ -912,29 +932,29 @@ export class GhaChecks {
             pr_check_id: checkId,
         }).all();
 
-        // Check if all workflows are completed
-        const allCompleted = updatedWorkflowRuns.every(run => run.status === "completed");
-        
         // Get current status for all workflow runs
+        const status = this.getStatus(updatedWorkflowRuns);
+        const conclusion = this.getConclusion(updatedWorkflowRuns);
+
+        const title = this.getTitleFrom(status);
+        const actions = this.getAvailableActions(conclusion);
         const summary = await this.formatGHCheckSummaryAll(octokit, owner, repo, updatedWorkflowRuns);
-        const conclusion = allCompleted ? this.getConclusion(updatedWorkflowRuns) : null;
-        const actions = this.getAvailableActions(conclusion || "failure");
 
         // Update the check run with current status
         const params: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
             owner: owner,
             repo: repo,
             check_run_id: checkId,
-            status: allCompleted ? "completed" : "in_progress",
+            status: status,
             output: {
-                title: allCompleted ? "All workflow runs completed" : "Workflow runs in progress",
+                title: title,
                 summary: summary
             },
             actions: actions
         };
 
         // Only add conclusion and completed_at if all workflows are done
-        if (allCompleted) {
+        if (status === "completed") {
             params.conclusion = conclusion;
             params.completed_at = new Date().toISOString();
         }

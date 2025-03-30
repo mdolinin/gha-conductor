@@ -1,5 +1,12 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
-import {GhaChecks, GITHUB_CHECK_BYTESIZE_LIMIT, PRCheckAction, PRCheckName, ReRunPayload} from "../src/gha_checks.js";
+import {
+    GhaChecks,
+    GITHUB_CHECK_BYTESIZE_LIMIT,
+    PRCheckAction,
+    PRCheckName,
+    ReRunPayload,
+    SyncStatusPayload
+} from "../src/gha_checks.js";
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json" with {type: "json"};
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json" with {type: "json"};
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json" with {type: "json"};
@@ -611,7 +618,7 @@ describe('gha_checks', () => {
                 },
                 {
                     description: "Sync current workflow status",
-                    identifier: "sync-status", 
+                    identifier: "sync-status",
                     label: "Sync status",
                 }
             ]
@@ -881,77 +888,6 @@ describe('gha_checks', () => {
         });
     });
 
-    it('should sync workflow status when sync button clicked', async () => {
-        const reRunPayload: ReRunPayload = {
-            check_run_id: checkRunRequestedActionPayload.check_run.id,
-            owner: checkRunRequestedActionPayload.repository.owner.login,
-            repo: checkRunRequestedActionPayload.repository.name,
-            requested_action_identifier: PRCheckAction.SyncStatus,
-        };
-        
-        const updateCheckMock = vi.fn().mockImplementation(() => {
-            return {
-                data: {
-                    id: 21439086478,
-                    status: 'completed',
-                    conclusion: 'success',
-                    details_url: ''
-                },
-                status: 200,
-            }
-        });
-        
-        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
-            return {
-                data: 'logs',
-                status: 200,
-            }
-        });
-
-        const octokit = {
-            checks: {
-                update: updateCheckMock,
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
-            }
-        };
-
-        // @ts-ignore
-        await checks.triggerReRunPRCheck(octokit, reRunPayload);
-
-        expect(findMock).toHaveBeenCalledWith({
-            pr_check_id: reRunPayload.check_run_id,
-        });
-        expect(findAllMock).toHaveBeenCalled();
-        expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
-
-        expect(updateCheckMock).toHaveBeenCalledWith({
-            owner: checkRunRequestedActionPayload.repository.owner.login,
-            repo: checkRunRequestedActionPayload.repository.name,
-            check_run_id: reRunPayload.check_run_id,
-            status: 'completed',
-            conclusion: 'success',
-            completed_at: expect.anything(),
-            output: {
-                title: 'Current workflow status',
-                summary: expect.anything()
-            },
-            actions: [
-                {
-                    description: "Re-run all workflows",
-                    identifier: "re-run",
-                    label: "Re-run",
-                },
-                {
-                    description: "Sync current workflow status", 
-                    identifier: "sync-status",
-                    label: "Sync status",
-                }
-            ]
-        });
-    });
-
     it('should trigger re-run of all workflows, when re-all link clicked', async () => {
         const createCheckMock = vi.fn().mockImplementation(() => {
             return {
@@ -1106,6 +1042,99 @@ describe('gha_checks', () => {
         expect(updateCheckMock).toHaveBeenCalledTimes(1);
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
         expect(updateMock).toHaveBeenCalledTimes(0);
+    });
+
+    it('should update PR check status based on current aggregated workflow run statuses', async () => {
+        const syncStatusPayload: SyncStatusPayload = {
+            check_run_id: 1,
+            owner: 'mdolinin',
+            repo: 'mono-repo-example',
+        };
+
+        const getWorkflowRunMock = vi.fn().mockImplementation(() => {
+            return {
+                data: {
+                    status: 'completed',
+                    conclusion: 'success',
+                },
+                status: 200,
+            }
+        });
+
+        const updateCheckMock = vi.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 1,
+                    status: 'completed',
+                    conclusion: 'success',
+                    details_url: ''
+                },
+                status: 200,
+            }
+        });
+
+        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
+            return {
+                data: 'logs',
+                status: 200,
+            }
+        });
+
+        const octokit = {
+            checks: {
+                update: updateCheckMock,
+            },
+            actions: {
+                getWorkflowRun: getWorkflowRunMock,
+                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            }
+        };
+
+        // @ts-ignore
+        await checks.syncPRCheckStatus(octokit, syncStatusPayload);
+
+        expect(findMock).toHaveBeenCalledWith({
+            pr_check_id: syncStatusPayload.check_run_id,
+        });
+        expect(getWorkflowRunMock).toHaveBeenCalledWith({
+            owner: syncStatusPayload.owner,
+            repo: syncStatusPayload.repo,
+            run_id: 5,
+        });
+        expect(updateMock).toHaveBeenCalledWith({
+            workflow_run_id: 5,
+        }, {
+            status: 'completed',
+            conclusion: 'success',
+        });
+        expect(findAllMock).toHaveBeenCalledTimes(2);
+
+        expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
+
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            owner: 'mdolinin',
+            repo: 'mono-repo-example',
+            check_run_id: 1,
+            status: 'completed',
+            conclusion: 'success',
+            completed_at: expect.anything(),
+            output: {
+                title: 'All workflow runs completed',
+                summary: expect.anything()
+            },
+            actions: [
+                {
+                    description: "Re-run all workflows",
+                    identifier: "re-run",
+                    label: "Re-run",
+                },
+                {
+                    description: "Sync current workflow status",
+                    identifier: "sync-status",
+                    label: "Sync status",
+                }
+            ]
+        });
     });
 
     it.each([0, 1, 10, 300, 1000])('github check summary for \'%s\' workflow runs should not go over limit', async (numberOfWorkflowRuns) => {
