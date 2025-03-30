@@ -321,7 +321,8 @@ export class GhaChecks {
             output: {
                 title: "Workflow runs are queued",
                 summary: summary
-            }
+            },
+            actions: this.getAvailableActions()
         };
         try {
             const resp = await octokit.checks.update(params);
@@ -437,7 +438,7 @@ export class GhaChecks {
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
-            let summary = "";
+            let summary: string;
             const textEncoder = new TextEncoder();
             const summaryWithoutLogs = this.formatGHCheckSummary(workflowRun, payload.workflow_job.conclusion, "completed", "-");
             const summaryWithoutLogsByteSize = textEncoder.encode(summaryWithoutLogs).length;
@@ -511,7 +512,8 @@ export class GhaChecks {
                 output: {
                     title: "Workflow runs in progress",
                     summary: summary
-                }
+                },
+                actions: this.getAvailableActions()
             };
             try {
                 await octokit.checks.update(params);
@@ -734,30 +736,34 @@ export class GhaChecks {
         }
     }
 
-    private getAvailableActions(conclusion: string) {
-        const reRunAction = {
-            label: "Re-run",
-            description: "Re-run all workflows",
-            identifier: PRCheckAction.ReRun
-        };
-        const reRunFailedAction = {
-            label: "Re-run failed",
-            description: "Re-run failed workflows",
-            identifier: PRCheckAction.ReRunFailed
-        };
+    private getAvailableActions(conclusion: string = "") {
         const syncStatusAction = {
             label: "Sync status",
             description: "Sync current workflow status",
             identifier: PRCheckAction.SyncStatus
         };
-        const actions = [
-            reRunAction,
-            syncStatusAction
-        ];
-        if (conclusion !== "success") {
-            actions.push(reRunFailedAction);
+        // if no conclusion, then only sync status is available
+        if (conclusion === "") {
+            return [syncStatusAction];
+        } else {
+            const reRunAction = {
+                label: "Re-run",
+                description: "Re-run all workflows",
+                identifier: PRCheckAction.ReRun
+            };
+            const actions = [
+                reRunAction,
+                syncStatusAction
+            ];
+            if (conclusion !== "success") {
+                actions.push({
+                    label: "Re-run failed",
+                    description: "Re-run failed workflows",
+                    identifier: PRCheckAction.ReRunFailed
+                });
+            }
+            return actions;
         }
-        return actions;
     }
 
     private getConclusion(workflowRuns: GhaWorkflowRuns[]) {
@@ -841,7 +847,12 @@ export class GhaChecks {
             name: checkName,
             head_sha: sha,
             status: "queued",
-            started_at: new Date().toISOString()
+            started_at: new Date().toISOString(),
+            output: {
+                title: "Workflows re-run in progress",
+                summary: "All workflows that belong to this check are re-run",
+            },
+            actions: this.getAvailableActions(),
         };
         try {
             const resp = await octokit.checks.create(params);
