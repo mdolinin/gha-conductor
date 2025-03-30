@@ -430,7 +430,7 @@ export class GhaChecks {
                 summary = this.formatGHCheckSummary(workflowRun, conclusion || "", status, workflowJobLog);
             }
         } else {
-            summary = this.formatGHCheckSummary(workflowRun, conclusion || "", status, null);
+            summary = this.formatGHCheckSummary(workflowRun, "", status, null);
         }
 
         const checkParams: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {

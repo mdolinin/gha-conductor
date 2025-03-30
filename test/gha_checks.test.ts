@@ -37,13 +37,13 @@ const findAllSuccess = vi.fn().mockImplementation(() => {
     ]
 });
 let findAllMock = findAllSuccess;
-const findOneMock = vi.fn().mockImplementation(() => {
+const findOneMock = vi.fn().mockImplementation((query) => {
     return {
         id: 1,
         name: 'gha-checks-1234567890',
         head_sha: '1234567890',
         merge_commit_sha: '1234567890',
-        pipeline_run_name: 'gha-checks-1234567890',
+        pipeline_run_name: query.pipeline_run_name,
         workflow_run_inputs: {},
         pr_number: 1,
         hook: 'onPullRequest',
@@ -363,6 +363,13 @@ describe('gha_checks', () => {
                 title: "Workflow runs are queued",
                 summary: expect.anything()
             },
+            actions: [
+                {
+                    description: "Sync current workflow status",
+                    identifier: "sync-status",
+                    label: "Sync status",
+                }
+            ]
         });
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
         expect(updateMock).toHaveBeenCalledTimes(0);
@@ -455,10 +462,10 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            workflow_job_id: workflowJobInProgressPayload.workflow_job.id,
             check_run_id: 2,
         }, {
-            status: "in_progress"
+            status: "in_progress",
+            conclusion: null
         });
     });
 
@@ -506,7 +513,6 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
-            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
             check_run_id: 2,
         }, {
             status: "completed",
@@ -559,6 +565,13 @@ describe('gha_checks', () => {
             owner: workflowJobInProgressPayload.repository.owner.login,
             repo: workflowJobInProgressPayload.repository.name,
             status: "in_progress",
+            actions: [
+                {
+                    description: "Sync current workflow status",
+                    identifier: "sync-status",
+                    label: "Sync status",
+                }
+            ]
         });
         expect(updateMock).not.toHaveBeenCalled();
     });
@@ -710,7 +723,7 @@ describe('gha_checks', () => {
                 {
                     description: "Sync current workflow status",
                     identifier: "sync-status",
-                    label: "Sync status", 
+                    label: "Sync status",
                 },
                 {
                     description: "Re-run failed workflows",
@@ -794,6 +807,15 @@ describe('gha_checks', () => {
             repo: checkRunRequestedActionPayload.repository.name,
             status: 'queued',
             started_at: expect.anything(),
+            output: {
+                title: "Workflows re-run in progress",
+                summary: "All workflows that belong to this check are re-run",
+            },
+            actions: [{
+                description: "Sync current workflow status",
+                identifier: "sync-status",
+                label: "Sync status",
+            }]
         });
         expect(updateMock).toHaveBeenCalledWith({
             pr_check_id: reRunPayload.check_run_id,
@@ -874,6 +896,15 @@ describe('gha_checks', () => {
             repo: checkRunRequestedActionPayload.repository.name,
             status: 'queued',
             started_at: expect.anything(),
+            output: {
+                title: "Workflows re-run in progress",
+                summary: "All workflows that belong to this check are re-run",
+            },
+            actions: [{
+                description: "Sync current workflow status",
+                identifier: "sync-status",
+                label: "Sync status",
+            }]
         });
         expect(updateMock).toHaveBeenCalledWith({
             pr_check_id: reRunPayload.check_run_id,
@@ -944,6 +975,15 @@ describe('gha_checks', () => {
             repo: checkRunRequestedActionPayload.repository.name,
             status: 'queued',
             started_at: expect.anything(),
+            output: {
+                title: "Workflows re-run in progress",
+                summary: "All workflows that belong to this check are re-run",
+            },
+            actions: [{
+                description: "Sync current workflow status",
+                identifier: "sync-status",
+                label: "Sync status",
+            }]
         });
         expect(updateMock).toHaveBeenCalledWith({
             pr_check_id: 4,
