@@ -397,74 +397,82 @@ export class GhaChecks {
      * @returns Promise resolving when the check is updated
      */
     async updateWorkflowRunCheck(
-      octokit: InstanceType<typeof ProbotOctokit>, 
-      owner: string, 
-      repo: string, 
-      workflowRun: GhaWorkflowRuns, 
-      status: string, 
-      conclusion: string | null
+        octokit: InstanceType<typeof ProbotOctokit>,
+        owner: string,
+        repo: string,
+        workflowRun: GhaWorkflowRuns,
+        status: string | null,
+        conclusion: string | null
     ) {
-      if (!workflowRun.check_run_id) {
-        this.log.warn(`Check run id is not exist for workflow run ${workflowRun.pipeline_run_name}`);
-        return;
-      }
+        if (!workflowRun.check_run_id) {
+            this.log.warn(`Check run id is not exist for workflow run ${workflowRun.pipeline_run_name}`);
+            return;
+        }
+        if (status === null || status !== "completed" && status !== "in_progress" && status !== "queued") {
+            this.log.warn(`${status} is not valid for workflow run ${workflowRun.pipeline_run_name}`);
+            return;
+        }
 
-      let summary: string;
-      
-      if (status === "completed") {
-        const textEncoder = new TextEncoder();
-        const summaryWithoutLogs = this.formatGHCheckSummary(workflowRun, conclusion || "", status, "-");
-        const summaryWithoutLogsByteSize = textEncoder.encode(summaryWithoutLogs).length;
-        
-        if (summaryWithoutLogsByteSize >= GITHUB_CHECK_BYTESIZE_LIMIT) {
-          summary = `${this.getWorkflowStatusIcon(conclusion || "", status)}: **[${workflowRun.pipeline_run_name}](${workflowRun.workflow_run_url})**`;
+        let summary: string;
+
+        if (status === "completed") {
+            const textEncoder = new TextEncoder();
+            const summaryWithoutLogs = this.formatGHCheckSummary(workflowRun, conclusion || "", status, "-");
+            const summaryWithoutLogsByteSize = textEncoder.encode(summaryWithoutLogs).length;
+
+            if (summaryWithoutLogsByteSize >= GITHUB_CHECK_BYTESIZE_LIMIT) {
+                summary = `${this.getWorkflowStatusIcon(conclusion || "", status)}: **[${workflowRun.pipeline_run_name}](${workflowRun.workflow_run_url})**`;
+            } else {
+                const logMaxBytesize = GITHUB_CHECK_BYTESIZE_LIMIT - summaryWithoutLogsByteSize;
+                const workflowJobLog = workflowRun.workflow_job_id ?
+                    await this.getWorkflowJobLog(octokit, owner, repo, workflowRun.workflow_job_id, logMaxBytesize) :
+                    null;
+                summary = this.formatGHCheckSummary(workflowRun, conclusion || "", status, workflowJobLog);
+            }
         } else {
-          const logMaxBytesize = GITHUB_CHECK_BYTESIZE_LIMIT - summaryWithoutLogsByteSize;
-          const workflowJobLog = workflowRun.workflow_job_id ? 
-            await this.getWorkflowJobLog(octokit, owner, repo, workflowRun.workflow_job_id, logMaxBytesize) : 
-            null;
-          summary = this.formatGHCheckSummary(workflowRun, conclusion || "", status, workflowJobLog);
+            summary = this.formatGHCheckSummary(workflowRun, conclusion || "", status, null);
         }
-      } else {
-        summary = this.formatGHCheckSummary(workflowRun, conclusion || "", status, null);
-      }
-      
-      const checkParams: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
-        owner: owner,
-        repo: repo,
-        check_run_id: Number(workflowRun.check_run_id),
-        status: status,
-        output: {
-          title: status === "completed" ? "Workflow run completed" : 
-                status === "in_progress" ? "Workflow run in progress" : 
-                "Workflow run queued",
-          summary: summary
+
+        const checkParams: RestEndpointMethodTypes["checks"]["update"]["parameters"] = {
+            owner: owner,
+            repo: repo,
+            check_run_id: Number(workflowRun.check_run_id),
+            status: status,
+            output: {
+                title: status === "completed" ? "Workflow run completed" :
+                    status === "in_progress" ? "Workflow run in progress" :
+                        "Workflow run queued",
+                summary: summary
+            }
+        };
+
+        if (status === "completed" && conclusion) {
+            if (!["success", "failure", "neutral", "cancelled", "skipped", "timed_out", "action_required"].includes(conclusion)) {
+                this.log.warn(`${conclusion} is not valid for workflow run ${workflowRun.pipeline_run_name}`);
+                return;
+            }
+            checkParams.conclusion = conclusion as "success" | "failure" | "neutral" | "cancelled" | "skipped" | "timed_out" | "action_required";
+            checkParams.completed_at = new Date().toISOString();
         }
-      };
-      
-      if (status === "completed" && conclusion) {
-        checkParams.conclusion = conclusion;
-        checkParams.completed_at = new Date().toISOString();
-      }
-      
-      try {
-        const resp = await octokit.checks.update(checkParams);
-        
-        // Update workflow run in db
-        await gha_workflow_runs(db).update({
-          pipeline_run_name: workflowRun.pipeline_run_name,
-          check_run_id: workflowRun.check_run_id
-        }, {
-          status: status,
-          conclusion: conclusion,
-        });
-        
-        this.log.info(`Updated check run with id ${workflowRun.check_run_id} for workflow run ${workflowRun.pipeline_run_name}`);
-        return resp.data;
-      } catch (error) {
-        this.log.error(error, `Failed to update check run with id ${workflowRun.check_run_id} for workflow run ${workflowRun.pipeline_run_name}`);
-        return null;
-      }
+
+        try {
+            const resp = await octokit.checks.update(checkParams);
+
+            // Update workflow run in db
+            await gha_workflow_runs(db).update({
+                pipeline_run_name: workflowRun.pipeline_run_name,
+                check_run_id: workflowRun.check_run_id
+            }, {
+                status: status,
+                conclusion: conclusion,
+            });
+
+            this.log.info(`Updated check run with id ${workflowRun.check_run_id} for workflow run ${workflowRun.pipeline_run_name}`);
+            return resp.data;
+        } catch (error) {
+            this.log.error(error, `Failed to update check run with id ${workflowRun.check_run_id} for workflow run ${workflowRun.pipeline_run_name}`);
+            return;
+        }
     }
 
     async updateWorkflowRunCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
@@ -474,16 +482,16 @@ export class GhaChecks {
             workflow_job_id: workflowJob.id,
             conclusion: null
         });
-        
+
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             await this.updateWorkflowRunCheck(
-                octokit, 
-                payload.repository.owner.login, 
-                payload.repository.name, 
-                workflowRun, 
-                "in_progress", 
+                octokit,
+                payload.repository.owner.login,
+                payload.repository.name,
+                workflowRun,
+                "in_progress",
                 null
             );
         }
@@ -496,16 +504,16 @@ export class GhaChecks {
             workflow_job_id: workflowJob.id,
             conclusion: null
         });
-        
+
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
             await this.updateWorkflowRunCheck(
-                octokit, 
-                payload.repository.owner.login, 
-                payload.repository.name, 
-                workflowRun, 
-                "completed", 
+                octokit,
+                payload.repository.owner.login,
+                payload.repository.name,
+                workflowRun,
+                "completed",
                 payload.workflow_job.conclusion
             );
         }
@@ -946,19 +954,19 @@ export class GhaChecks {
                         repo: repo,
                         run_id: Number(workflowRun.workflow_run_id)
                     });
-                    
+
                     const currentStatus = response.data.status;
                     const currentConclusion = response.data.conclusion;
 
                     // Update workflow run status in database
                     await gha_workflow_runs(db).update(
-                        { workflow_run_id: workflowRun.workflow_run_id },
+                        {workflow_run_id: workflowRun.workflow_run_id},
                         {
                             status: currentStatus,
                             conclusion: currentConclusion
                         }
                     );
-                    
+
                     // Update the individual check for this workflow run
                     if (workflowRun.check_run_id) {
                         await this.updateWorkflowRunCheck(
