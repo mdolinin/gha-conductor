@@ -9,3 +9,4 @@ lib
 
 .vercel
 /.yarn/install-state.gz
+.aider*
