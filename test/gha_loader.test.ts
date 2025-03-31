@@ -493,12 +493,18 @@ describe('gha loader', () => {
                 filename: "remove/.gha.yaml",
                 contents_url: "remove_contents_url",
                 status: "removed"
+            },
+            {
+                filename: "rename/.gha.yaml.disabled",
+                previous_filename: "rename/.gha.yaml",
+                contents_url: "rename_contents_url",
+                status: "renamed"
             }
         ];
         // @ts-ignore
         const hooks = await ghaLoader.loadGhaHooks(octokit, ".gha.yaml", diffEntries);
         expect(hooks).toEqual({
-            hookFilesModified: new Set([".gha.yaml", "remove/.gha.yaml"]), hooks: [
+            hookFilesModified: new Set([".gha.yaml", "remove/.gha.yaml", "rename/.gha.yaml"]), hooks: [
                 {
                     "branch": "",
                     "destination_branch_matcher": null,
