@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/mdolinin/gha-conductor/compare/v1.20.10...v1.21.0) (2025-03-31)
+
+
+### Features
+
+* **sync:** add sync status action ([#348](https://github.com/mdolinin/gha-conductor/issues/348)) ([8b3e39e](https://github.com/mdolinin/gha-conductor/commit/8b3e39e779aafa3159ba34d2bdda41b5af8f80d0))
+
 ## [1.20.10](https://github.com/mdolinin/gha-conductor/compare/v1.20.9...v1.20.10) (2025-02-20)
 
 
