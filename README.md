@@ -29,6 +29,8 @@ This can be achieved by using `paths` filter in the workflow definition, but it 
 - Re-run specific workflow from PR checks page
 - Re-run only failed workflows from PR checks page (save time and resources)
   ![checks-re-run-options](./docs/checks-re-run-options.png)
+- Sync status of executed workflows with GitHub checks manually and automatically
+  ![pr-status-sync](./docs/pr-status-sync.png)
 - Show workflow logs in PR checks page
 - Link to the workflow run from PR checks page
 - Validate `.gha.yaml` files against JSON schema and check name uniqueness with error messages in PR diff
