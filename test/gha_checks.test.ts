@@ -33,6 +33,7 @@ const findAllSuccess = vi.fn().mockImplementation(() => {
             pr_check_id: 4,
             conclusion: 'success',
             workflow_run_id: 5,
+            check_run_id: 6
         }
     ]
 });
@@ -1109,25 +1110,50 @@ describe('gha_checks', () => {
 
         // @ts-ignore
         await checks.syncPRCheckStatus(octokit, syncStatusPayload);
-
+        // Find all workflow runs associated with this check
         expect(findMock).toHaveBeenCalledWith({
             pr_check_id: syncStatusPayload.check_run_id,
         });
+        // For each workflow run, get its status
         expect(getWorkflowRunMock).toHaveBeenCalledWith({
             owner: syncStatusPayload.owner,
             repo: syncStatusPayload.repo,
             run_id: 5,
         });
+        // For each workflow run, update its status in GitHub
         expect(updateMock).toHaveBeenCalledWith({
             workflow_run_id: 5,
         }, {
             status: 'completed',
             conclusion: 'success',
         });
-        expect(findAllMock).toHaveBeenCalledTimes(2);
-
+        // For each workflow run, download its logs
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
-
+        // For each workflow run, update its status in GitHub
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            owner: 'mdolinin',
+            repo: 'mono-repo-example',
+            check_run_id: 6,
+            status: 'completed',
+            conclusion: 'success',
+            completed_at: expect.anything(),
+            output: {
+                title: 'Workflow run completed',
+                summary: expect.anything()
+            },
+        });
+        // For each workflow run, update its status in database
+        expect(updateMock).toHaveBeenCalledWith({
+            pipeline_run_name: 'gha-checks-1234567890',
+            check_run_id: 6,
+        }, {
+            status: 'completed',
+            conclusion: 'success',
+        });
+        expect(updateMock).toHaveBeenCalledTimes(2);
+        // Refresh workflow runs data after updates
+        expect(findAllMock).toHaveBeenCalledTimes(2);
+        // Update PR check status in GitHub
         expect(updateCheckMock).toHaveBeenCalledWith({
             owner: 'mdolinin',
             repo: 'mono-repo-example',
