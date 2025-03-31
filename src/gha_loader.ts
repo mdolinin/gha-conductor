@@ -288,6 +288,15 @@ export class GhaLoader {
         let hooks: GhaHook[] = [];
         const hookFilesModified = new Set<string>();
         for (const file of data) {
+            // if file was renamed check if previous name ends with hooksFileName
+            if (file.status === "renamed") {
+                const previousFileName = file.previous_filename;
+                if (previousFileName && previousFileName.endsWith(hooksFileName)) {
+                    this.log.debug(`File ${file.filename} was renamed from ${previousFileName}`);
+                    hookFilesModified.add(previousFileName);
+                    continue;
+                }
+            }
             if (!file.filename.endsWith(hooksFileName)) {
                 continue;
             }
