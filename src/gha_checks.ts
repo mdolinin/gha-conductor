@@ -937,20 +937,8 @@ export class GhaChecks {
                         repo: repo,
                         run_id: Number(workflowRun.workflow_run_id)
                     });
-
                     const currentStatus = response.data.status;
                     const currentConclusion = response.data.conclusion;
-
-                    // Update workflow run status in database
-                    await gha_workflow_runs(db).update(
-                        {workflow_run_id: workflowRun.workflow_run_id},
-                        {
-                            status: currentStatus,
-                            conclusion: currentConclusion
-                        }
-                    );
-
-                    // Update the individual check for this workflow run
                     if (workflowRun.check_run_id) {
                         await this.updateWorkflowRunCheck(
                             octokit,
@@ -960,6 +948,8 @@ export class GhaChecks {
                             currentStatus,
                             currentConclusion
                         );
+                    } else {
+                        this.log.warn(`Check run id is not exist for workflow run ${workflowRun.pipeline_run_name}`);
                     }
                 } catch (error) {
                     this.log.error(error, `Failed to get current status for workflow run ${workflowRun.workflow_run_id}`);

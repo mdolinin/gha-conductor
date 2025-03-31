@@ -1120,13 +1120,6 @@ describe('gha_checks', () => {
             repo: syncStatusPayload.repo,
             run_id: 5,
         });
-        // For each workflow run, update its status in GitHub
-        expect(updateMock).toHaveBeenCalledWith({
-            workflow_run_id: 5,
-        }, {
-            status: 'completed',
-            conclusion: 'success',
-        });
         // For each workflow run, download its logs
         expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
         // For each workflow run, update its status in GitHub
@@ -1150,7 +1143,7 @@ describe('gha_checks', () => {
             status: 'completed',
             conclusion: 'success',
         });
-        expect(updateMock).toHaveBeenCalledTimes(2);
+        expect(updateMock).toHaveBeenCalledTimes(1);
         // Refresh workflow runs data after updates
         expect(findAllMock).toHaveBeenCalledTimes(2);
         // Update PR check status in GitHub
