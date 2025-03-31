@@ -149,6 +149,12 @@ const updatePRStatusCheckCompletedMock = vi
         return Promise.resolve();
     });
 
+const syncPRCheckStatusMock = vi
+    .spyOn(GhaChecks.prototype, 'syncPRCheckStatus')
+    .mockImplementation(() => {
+        return Promise.resolve();
+    });
+
 const triggerReRunPRCheckMock = vi
     .spyOn(GhaChecks.prototype, 'triggerReRunPRCheck')
     .mockImplementation(() => {
@@ -603,6 +609,17 @@ describe("gha-conductor app", () => {
         expect(updateWorkflowRunCheckCompletedMock).toHaveBeenCalledTimes(1);
         expect(updatePRStatusCheckCompletedMock).toHaveBeenCalledTimes(1);
         expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
+    it("when user click sync-status button on managed check, trigger sync PR check status", async () => {
+        const syncStatusActionPayload = {
+            ...checkRunRequestedActionPayload,
+            requested_action: {
+                identifier: "sync-status",
+            }
+        }
+        await probot.receive({name: "check_run", payload: syncStatusActionPayload});
+        expect(syncPRCheckStatusMock).toHaveBeenCalledTimes(1);
     });
 
     it("when user click re-run button on managed check, trigger workflow again", async () => {
