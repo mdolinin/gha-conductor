@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/mdolinin/gha-conductor/compare/v1.21.0...v1.22.0) (2025-03-31)
+
+
+### Features
+
+* **gha-loader:** do not load hooks form hooks file if file was renamed in PR changes ([#351](https://github.com/mdolinin/gha-conductor/issues/351)) ([3be0b36](https://github.com/mdolinin/gha-conductor/commit/3be0b36f4b83574473674f4f7087f5f4664eb2ba))
+
 # [1.21.0](https://github.com/mdolinin/gha-conductor/compare/v1.20.10...v1.21.0) (2025-03-31)
 
 
