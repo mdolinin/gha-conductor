@@ -49,6 +49,7 @@ const findOneMock = vi.fn().mockImplementation((query) => {
         hook: 'onPullRequest',
         check_run_id: 2,
         pr_check_id: 3,
+        workflow_run_id: 5,
     }
 });
 const findMock = vi.fn().mockImplementation(() => {
@@ -128,7 +129,6 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: erroredWorkflow.name,
-            workflow_job_id: null
         }, {
             status: "completed",
             check_run_id: 1,
@@ -387,27 +387,16 @@ describe('gha_checks', () => {
                 status: 201,
             }
         });
-        const downloadJobLogsForWorkflowRunMock = vi.fn().mockImplementation(() => {
-            return {
-                data: 'logs',
-                status: 200,
-            }
-        });
         const octokit = {
             checks: {
                 create: createCheckMock
             },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
-            }
         };
         // @ts-ignore
         await checks.updateWorkflowRunCheckQueued(octokit, workflowJobQueuedPayload, 1);
-        expect(findMock).toHaveBeenCalledWith({
+        expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
         });
-        expect(findAllMock).toHaveBeenCalled();
-        expect(downloadJobLogsForWorkflowRunMock).toHaveBeenCalledTimes(1);
         expect(createCheckMock).toHaveBeenCalledWith({
             details_url: 'https://github.com/mdolinin/mono-repo-example/actions/runs/7856385885',
             head_sha: 'b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8',
@@ -416,11 +405,13 @@ describe('gha_checks', () => {
             owner: workflowJobQueuedPayload.repository.owner.login,
             repo: workflowJobQueuedPayload.repository.name,
             started_at: expect.anything(),
-            output: expect.anything(),
+            output: {
+                title: "Workflow runs are queued",
+                summary: expect.anything()
+            }
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
-            workflow_job_id: null
         }, {
             check_run_id: 1,
             status: "queued",
@@ -450,8 +441,6 @@ describe('gha_checks', () => {
         await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            workflow_job_id: workflowJobInProgressPayload.workflow_job.id,
-            conclusion: null
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
             check_run_id: 2,
@@ -499,8 +488,6 @@ describe('gha_checks', () => {
         await checks.updateWorkflowRunCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
-            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
-            conclusion: null
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
             check_run_id: 2,
@@ -549,14 +536,11 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckInProgress(octokit, workflowJobInProgressPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            workflow_job_id: workflowJobInProgressPayload.workflow_job.id,
-            conclusion: null
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_number: 1,
             hook: 'onPullRequest',
             pr_check_id: 3,
-            pr_conclusion: null
         });
         expect(findAllMock).toHaveBeenCalled();
         expect(updateCheckMock).toHaveBeenCalledWith({
@@ -606,13 +590,10 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
-            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
-            pr_conclusion: null
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_check_id: 3,
             pr_number: 1,
-            pr_conclusion: null
         });
         expect(findAllMock).toHaveBeenCalled();
         expect(updateCheckMock).toHaveBeenCalledWith({
@@ -695,13 +676,10 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
-            workflow_job_id: workflowJobCompletedPayload.workflow_job.id,
-            pr_conclusion: null
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_check_id: 3,
             pr_number: 1,
-            pr_conclusion: null
         });
         expect(findAllMock).toHaveBeenCalled();
         findAllMock = findAllSuccess;
@@ -950,7 +928,7 @@ describe('gha_checks', () => {
         };
         // @ts-ignore
         await checks.triggerReRunWorkflowRunCheck(octokit, checkRunReRequestedPayload);
-        expect(findMock).toHaveBeenCalledWith({
+        expect(findOneMock).toHaveBeenCalledWith({
             check_run_id: checkRunReRequestedPayload.check_run.id,
             pr_conclusion: expect.objectContaining({
                 "__query": expect.anything(),
@@ -960,7 +938,6 @@ describe('gha_checks', () => {
                 }
             })
         });
-        expect(findAllMock).toHaveBeenCalled();
         expect(updateMock).toHaveBeenCalledWith({
             workflow_run_id: 5,
         }, {
@@ -986,7 +963,7 @@ describe('gha_checks', () => {
             }]
         });
         expect(updateMock).toHaveBeenCalledWith({
-            pr_check_id: 4,
+            pr_check_id: 3,
         }, {
             pr_check_id: 21439086478,
             pr_conclusion: null,
