@@ -1,3 +1,10 @@
+## [1.22.1](https://github.com/mdolinin/gha-conductor/compare/v1.22.0...v1.22.1) (2025-04-14)
+
+
+### Bug Fixes
+
+* **pr-reopened:** if PR is reopened, we need to identify existing pr-status check and re-run all workflows ([#363](https://github.com/mdolinin/gha-conductor/issues/363)) ([30b0120](https://github.com/mdolinin/gha-conductor/commit/30b01200b3be8cdc482fe34c72d5a8fee7b5256d))
+
 # [1.22.0](https://github.com/mdolinin/gha-conductor/compare/v1.21.0...v1.22.0) (2025-03-31)
 
 
