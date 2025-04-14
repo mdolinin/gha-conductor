@@ -1198,4 +1198,38 @@ describe('gha_checks', () => {
         const summaryBytes = new TextEncoder().encode(summary);
         expect(summaryBytes.length).toBeLessThanOrEqual(GITHUB_CHECK_BYTESIZE_LIMIT);
     });
+
+    it('should find pr-status check id by commit sha', async () => {
+        const listForRefMock = vi.fn().mockImplementation(() => {
+            return {
+                data: {
+                    check_runs: [
+                        {
+                            id: 1234567890,
+                            name: 'pr-status',
+                        }
+                    ]
+                }
+            }
+        });
+        const commitSha = 'a5ede490bb1594ebb28abb77f6d10cf74dbf6513';
+        const owner = 'mdolinin';
+        const repo = 'mono-repo-example';
+        const octokit = {
+            checks: {
+                listForRef: listForRefMock,
+            },
+            paginate: vi.fn().mockImplementation((fn: any, args: any) => {
+                return fn(args).data.check_runs;
+            })
+        }
+        // @ts-ignore
+        const prStatusCheckId = await checks.findPRStatusCheckIdForCommit(octokit, owner, repo, commitSha);
+        expect(prStatusCheckId).toEqual(1234567890);
+        expect(listForRefMock).toHaveBeenCalledWith({
+            owner: owner,
+            repo: repo,
+            ref: commitSha,
+        });
+    });
 });
