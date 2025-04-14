@@ -1,4 +1,4 @@
-import {ApplicationFunctionOptions, Probot} from "probot";
+import {ApplicationFunctionOptions, Probot, ProbotOctokit} from "probot";
 import {GhaLoader} from "./gha_loader.js";
 import {GhaReply} from "./gha_reply.js";
 import {Hooks} from "./hooks.js";
@@ -152,7 +152,39 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         }
     });
 
-    app.on(["pull_request.opened", "pull_request.reopened", "pull_request.synchronize", "pull_request.closed", "pull_request.edited"], async (context) => {
+    async function determineIsPRMergeable(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
+        mergeable: boolean | null,
+        merge_commit_sha: string | null,
+        merged: boolean | null,
+        number: number
+    }, owner: string, repo: string) {
+        let mergeable = pull_request.mergeable;
+        let merge_commit_sha = pull_request.merge_commit_sha;
+        if (mergeable === null && !pull_request.merged) {
+            app.log.info(`PR #${pull_request.number} mergeability is null`);
+            let i = 0;
+            while (i < 5 && mergeable === null) {
+                await new Promise(r => setTimeout(r, 2000));
+                const resp = await octokit.pulls.get(
+                    {
+                        owner: owner,
+                        repo: repo,
+                        pull_number: pull_request.number
+                    }
+                );
+                app.log.debug(`PR #${pull_request.number} mergeability is ${resp.data.mergeable}`);
+                i++;
+                mergeable = resp.data.mergeable;
+                merge_commit_sha = resp.data.merge_commit_sha;
+            }
+            if (mergeable === null || merge_commit_sha === null) {
+                app.log.warn(`PR mergeability is still not determined after ${i} attempts or merge_commit_sha is null`);
+            }
+        }
+        return {mergeable, merge_commit_sha};
+    }
+
+    app.on(["pull_request.opened", "pull_request.synchronize", "pull_request.closed", "pull_request.edited"], async (context) => {
         const pr = context.payload.pull_request;
         const pullNumber = context.payload.pull_request.number;
         const owner = context.payload.repository.owner.login;
@@ -173,35 +205,12 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
                 return;
             }
         }
-        let mergeable = pr.mergeable;
-        let merge_commit_sha = pr.merge_commit_sha;
-        if (mergeable === null && !pr.merged) {
-            app.log.info("PR mergeability is null");
-            let i = 0;
-            while (i < 5 && mergeable === null) {
-                await new Promise(r => setTimeout(r, 2000));
-                const resp = await context.octokit.pulls.get(
-                    {
-                        owner: owner,
-                        repo: repo,
-                        pull_number: pullNumber
-                    }
-                );
-                app.log.info("PR mergeability is " + resp.data.mergeable);
-                i++;
-                mergeable = resp.data.mergeable;
-                merge_commit_sha = resp.data.merge_commit_sha;
-            }
-            if (mergeable === null || merge_commit_sha === null) {
-                app.log.info(`PR mergeability is still not determined after ${i} attempts or merge_commit_sha is null`);
-                return;
-            }
-        }
+        let {mergeable, merge_commit_sha} = await determineIsPRMergeable(context.octokit, pr, owner, repo);
         if (merge_commit_sha === null) {
             merge_commit_sha = context.payload.pull_request.head.sha;
         }
         if (!mergeable && !pr.merged) {
-            app.log.info(`PR is not mergeable. All checks are skipped`);
+            app.log.info(`PR #${pr.number} is not mergeable. No hooks will be triggered`);
             return;
         }
         const baseBranch = context.payload.pull_request.base.ref;
@@ -269,6 +278,46 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         } else {
             app.log.info("No files changed in PR. No hooks will be triggered");
         }
+    });
+
+    app.on("pull_request.reopened", async (context) => {
+        app.log.info(`Pull request reopened event received for ${context.payload.pull_request.number}`);
+        const pr = context.payload.pull_request;
+        const prNumber = pr.number;
+        const owner = context.payload.repository.owner.login;
+        const repo = context.payload.repository.name;
+        const {mergeable} = await determineIsPRMergeable(context.octokit, pr, owner, repo);
+        if (!mergeable) {
+            app.log.info(`PR #${prNumber} is not mergeable. No hooks will be triggered`);
+            return;
+        }
+        // if PR is from forked repo then skip all hooks
+        if (pr.head.repo && pr.head.repo.fork) {
+            app.log.info(`PR #${prNumber} is from forked repo. No hooks will be triggered`);
+            const comment = context.issue({
+                body: "PR is from forked repo. No hooks will be triggered."
+            });
+            await context.octokit.issues.createComment(comment);
+            return;
+        }
+        // if PR doesn't have any changed files then skip all hooks
+        const numOfChangedFiles = pr.changed_files;
+        if (numOfChangedFiles === 0) {
+            app.log.info(`PR #${prNumber} doesn't have any changed files. No hooks will be triggered`);
+            return;
+        }
+        // if PR is reopened, we need to identify existing pr-status check and re-run all workflows
+        const prStatusCheckId = await checks.findPRStatusCheckIdForCommit(context.octokit, owner, repo, pr.head.sha);
+        if (prStatusCheckId == undefined) {
+            app.log.warn(`No ${PRCheckName.PRStatus} check found for PR #${prNumber}`);
+            return;
+        }
+        await checks.triggerReRunPRCheck(context.octokit, {
+            check_run_id: prStatusCheckId,
+            owner: owner,
+            repo: repo,
+            requested_action_identifier: PRCheckAction.ReRun
+        });
     });
 
     app.on("workflow_job", async (context) => {

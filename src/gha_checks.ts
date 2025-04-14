@@ -1036,4 +1036,24 @@ export class GhaChecks {
             await this.triggerReRunFor([checkRelatedWorkflowRun], octokit, payload.repository.owner.login, payload.repository.name);
         }
     }
+
+    async findPRStatusCheckIdForCommit(
+        octokit: InstanceType<typeof ProbotOctokit>,
+        owner: string,
+        repo: string,
+        sha: string
+    ) {
+        let checkRuns = [];
+        try {
+            checkRuns = await octokit.paginate(octokit.checks.listForRef, {
+                owner: owner,
+                repo: repo,
+                ref: sha,
+            });
+        } catch (e) {
+            this.log.error(e, `Failed to get check runs for commit ${sha} in ${owner}/${repo}`);
+            return undefined;
+        }
+        return checkRuns.find((checkRun) => checkRun.name === PRCheckName.PRStatus)?.id;
+    }
 }
