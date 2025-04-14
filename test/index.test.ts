@@ -8,6 +8,7 @@ import pushGhaYamlChangedPayload from "./fixtures/push.gha_yaml_changed.json" wi
 import deleteBranchPayload from "./fixtures/delete.branch.json" with {type: "json"};
 import pullRequestLabeledPayload from "./fixtures/pull_request.labeled.json" with {type: "json"};
 import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json" with {type: "json"};
+import pullRequestReopenedPayload from "./fixtures/pull_request.reopened.json" with {type: "json"};
 import workflowJobQueuedPayload from "./fixtures/workflow_job.queued.json" with {type: "json"};
 import workflowJobInProgressPayload from "./fixtures/workflow_job.in_progress.json" with {type: "json"};
 import workflowJobCompletedPayload from "./fixtures/workflow_job.completed.json" with {type: "json"};
@@ -26,7 +27,7 @@ const privateKey = fs.readFileSync(
 );
 import {GhaHook, GhaLoader} from "../src/gha_loader.js";
 import {Hooks} from "../src/hooks.js";
-import {GhaChecks, PRCheckName} from "../src/gha_checks.js";
+import {GhaChecks, PRCheckAction, PRCheckName} from "../src/gha_checks.js";
 
 const loadAllGhaYamlMock = vi
     .spyOn(GhaLoader.prototype, 'loadAllGhaHooksFromRepo')
@@ -165,6 +166,12 @@ const triggerReRunWorkflowRunCheckMock = vi
     .spyOn(GhaChecks.prototype, 'triggerReRunWorkflowRunCheck')
     .mockImplementation(() => {
         return Promise.resolve();
+    });
+
+const findPRStatusCheckIdForCommitMock = vi
+    .spyOn(GhaChecks.prototype, 'findPRStatusCheckIdForCommit')
+    .mockImplementation(() => {
+        return Promise.resolve(1);
     });
 
 const timeout = 10000; // greater than 5000ms
@@ -576,6 +583,34 @@ describe("gha-conductor app", () => {
         expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
         expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    }, timeout);
+
+    it("when PR reopened, find corresponding pr-status check and trigger re-run", async () => {
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/pulls/35")
+            .reply(200, {
+                mergeable: true,
+                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+                base: {
+                    ref: "main",
+                },
+            });
+        await probot.receive({name: "pull_request", payload: pullRequestReopenedPayload});
+        expect(findPRStatusCheckIdForCommitMock).toHaveBeenCalledTimes(1);
+        expect(triggerReRunPRCheckMock).toHaveBeenCalledWith(expect.anything(), {
+            check_run_id: 1,
+            owner: "mdolinin",
+            repo: "mono-repo-example",
+            requested_action_identifier: PRCheckAction.ReRun,
+        });
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 
