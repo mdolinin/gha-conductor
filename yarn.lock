@@ -460,15 +460,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/wasm-js-rewriter@npm:4.0.0":
-  version: 4.0.0
-  resolution: "@datadog/wasm-js-rewriter@npm:4.0.0"
+"@datadog/wasm-js-rewriter@npm:4.0.1":
+  version: 4.0.1
+  resolution: "@datadog/wasm-js-rewriter@npm:4.0.1"
   dependencies:
     js-yaml: "npm:^4.1.0"
     lru-cache: "npm:^7.14.0"
     module-details-from-path: "npm:^1.0.3"
     node-gyp-build: "npm:^4.5.0"
-  checksum: 10c0/3801f9e86366e0edd800619877c8a3aaa5114392264a9980c53990c2a154bb73a671cce63e25d3e4d47fd6286f74fecc33986219c2a4a633fe47ca0b15717e65
+  checksum: 10c0/3a9770de5e5e32701c2ed3a5c9da7844c64e1003db855e4c2feead89e50292c04b281e55aa1e98170a2ecdbf2289cdc91c26e9489dabf1e03d8fcb0ebb840fa4
   languageName: node
   linkType: hard
 
@@ -4897,9 +4897,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.48.0":
-  version: 5.48.0
-  resolution: "dd-trace@npm:5.48.0"
+"dd-trace@npm:^5.48.1":
+  version: 5.48.1
+  resolution: "dd-trace@npm:5.48.1"
   dependencies:
     "@datadog/libdatadog": "npm:^0.5.1"
     "@datadog/native-appsec": "npm:8.5.2"
@@ -4907,7 +4907,7 @@ __metadata:
     "@datadog/native-metrics": "npm:^3.1.1"
     "@datadog/pprof": "npm:5.7.1"
     "@datadog/sketches-js": "npm:^2.1.0"
-    "@datadog/wasm-js-rewriter": "npm:4.0.0"
+    "@datadog/wasm-js-rewriter": "npm:4.0.1"
     "@isaacs/ttlcache": "npm:^1.4.1"
     "@opentelemetry/api": "npm:>=1.0.0 <1.9.0"
     "@opentelemetry/core": "npm:^1.14.0"
@@ -4933,7 +4933,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/e64b6ce7fae85bdaee60e367569d013583c4c9f64f5f50bc64dfd185e7057722130b32a20610fc2cefdc8c82eb00d1cba920b4baac7513ba5dd41f560659c804
+  checksum: 10c0/26a94743c407ac21dc5d883fccb31e8ef4b524a0a1495f813c60d0af88b824fb653e402ce62331bc7e4ff03913928c8ecd4931a71a459c0379878b3c1a1f14e5
   languageName: node
   linkType: hard
 
@@ -6040,7 +6040,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.1.1"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.48.0"
+    dd-trace: "npm:^5.48.1"
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
