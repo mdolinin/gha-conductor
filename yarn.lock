@@ -807,9 +807,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mswjs/interceptors@npm:^0.38.1":
-  version: 0.38.2
-  resolution: "@mswjs/interceptors@npm:0.38.2"
+"@mswjs/interceptors@npm:^0.38.5":
+  version: 0.38.5
+  resolution: "@mswjs/interceptors@npm:0.38.5"
   dependencies:
     "@open-draft/deferred-promise": "npm:^2.2.0"
     "@open-draft/logger": "npm:^0.3.0"
@@ -818,7 +818,7 @@ __metadata:
     jsdom: "npm:^26.0.0"
     outvariant: "npm:^1.4.3"
     strict-event-emitter: "npm:^0.5.1"
-  checksum: 10c0/75f1691dc49b1ef0bc4c00b88125874d3f41bc8ee9355e96019b884e0fce5a535d203b7d0c49c07a845e95582ebe9faae560ddc084f5cc8d7b0dcbd5b48f28ce
+  checksum: 10c0/890965f7a015e3846291d4231e624ef775005d55a2c6e45584c6c8d84e0c46f834c4a920a00cbaeff711e4bedf8a9a3f17bea5ae5791c227bccab27dc7e28f40
   languageName: node
   linkType: hard
 
@@ -6044,7 +6044,7 @@ __metadata:
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
-    nock: "npm:^14.0.3"
+    nock: "npm:^14.0.4"
     probot: "npm:^13.4.5"
     semantic-release: "npm:^24.2.3"
     simple-git: "npm:^3.27.0"
@@ -8264,14 +8264,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nock@npm:^14.0.3":
-  version: 14.0.3
-  resolution: "nock@npm:14.0.3"
+"nock@npm:^14.0.4":
+  version: 14.0.4
+  resolution: "nock@npm:14.0.4"
   dependencies:
-    "@mswjs/interceptors": "npm:^0.38.1"
+    "@mswjs/interceptors": "npm:^0.38.5"
     json-stringify-safe: "npm:^5.0.1"
     propagate: "npm:^2.0.0"
-  checksum: 10c0/ce8196bc66827da8c368f00c88cbf0f1e5cccde4cc6c5a6629540b3a45cd629cd510d916d799b386cff27fe90cf80269e4c83a86ecae72bda40f55f9595c2ae2
+  checksum: 10c0/54e958aa0a734b45207936602616ce9009b32291d22a93f94e2058f3ee20f317b6f974814efc52f32ebb92c6c30e6e15d8a53c17744a95fa2df4e0c267da1af1
   languageName: node
   linkType: hard
 
