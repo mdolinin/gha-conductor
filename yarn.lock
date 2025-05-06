@@ -460,15 +460,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/wasm-js-rewriter@npm:4.0.0":
-  version: 4.0.0
-  resolution: "@datadog/wasm-js-rewriter@npm:4.0.0"
+"@datadog/wasm-js-rewriter@npm:4.0.1":
+  version: 4.0.1
+  resolution: "@datadog/wasm-js-rewriter@npm:4.0.1"
   dependencies:
     js-yaml: "npm:^4.1.0"
     lru-cache: "npm:^7.14.0"
     module-details-from-path: "npm:^1.0.3"
     node-gyp-build: "npm:^4.5.0"
-  checksum: 10c0/3801f9e86366e0edd800619877c8a3aaa5114392264a9980c53990c2a154bb73a671cce63e25d3e4d47fd6286f74fecc33986219c2a4a633fe47ca0b15717e65
+  checksum: 10c0/3a9770de5e5e32701c2ed3a5c9da7844c64e1003db855e4c2feead89e50292c04b281e55aa1e98170a2ecdbf2289cdc91c26e9489dabf1e03d8fcb0ebb840fa4
   languageName: node
   linkType: hard
 
@@ -4897,9 +4897,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.48.0":
-  version: 5.48.0
-  resolution: "dd-trace@npm:5.48.0"
+"dd-trace@npm:^5.51.0":
+  version: 5.51.0
+  resolution: "dd-trace@npm:5.51.0"
   dependencies:
     "@datadog/libdatadog": "npm:^0.5.1"
     "@datadog/native-appsec": "npm:8.5.2"
@@ -4907,7 +4907,7 @@ __metadata:
     "@datadog/native-metrics": "npm:^3.1.1"
     "@datadog/pprof": "npm:5.7.1"
     "@datadog/sketches-js": "npm:^2.1.0"
-    "@datadog/wasm-js-rewriter": "npm:4.0.0"
+    "@datadog/wasm-js-rewriter": "npm:4.0.1"
     "@isaacs/ttlcache": "npm:^1.4.1"
     "@opentelemetry/api": "npm:>=1.0.0 <1.9.0"
     "@opentelemetry/core": "npm:^1.14.0"
@@ -4922,6 +4922,7 @@ __metadata:
     lodash.sortby: "npm:^4.7.0"
     lru-cache: "npm:^7.14.0"
     module-details-from-path: "npm:^1.0.3"
+    mutexify: "npm:^1.4.0"
     opentracing: "npm:>=0.12.1"
     path-to-regexp: "npm:^0.1.12"
     pprof-format: "npm:^2.1.0"
@@ -4933,7 +4934,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/e64b6ce7fae85bdaee60e367569d013583c4c9f64f5f50bc64dfd185e7057722130b32a20610fc2cefdc8c82eb00d1cba920b4baac7513ba5dd41f560659c804
+  checksum: 10c0/f3868178f597fca0c70032f19b4c13b136eb97925dbaa2a3f2bc381035bc711b56cf44d63003db8ae6ce6fb7f8c94449dce0ae0496d5d34ecda80c239d5dac34
   languageName: node
   linkType: hard
 
@@ -6040,7 +6041,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.1.1"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.48.0"
+    dd-trace: "npm:^5.51.0"
     glob: "npm:^11.0.1"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
@@ -8216,6 +8217,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"mutexify@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "mutexify@npm:1.4.0"
+  dependencies:
+    queue-tick: "npm:^1.0.0"
+  checksum: 10c0/0b2fad0c671cef33ad3596d702b581e5bb3708ec7ba2913639cfb1642c7f5093af9d8793b38eafe1b723e7879d60419d2e96c5e7793271e0167833a7939ac66d
+  languageName: node
+  linkType: hard
+
 "mz@npm:^2.4.0, mz@npm:^2.7.0":
   version: 2.7.0
   resolution: "mz@npm:2.7.0"
@@ -9783,6 +9793,13 @@ __metadata:
   version: 1.2.3
   resolution: "queue-microtask@npm:1.2.3"
   checksum: 10c0/900a93d3cdae3acd7d16f642c29a642aea32c2026446151f0778c62ac089d4b8e6c986811076e1ae180a694cedf077d453a11b58ff0a865629a4f82ab558e102
+  languageName: node
+  linkType: hard
+
+"queue-tick@npm:^1.0.0":
+  version: 1.0.1
+  resolution: "queue-tick@npm:1.0.1"
+  checksum: 10c0/0db998e2c9b15215317dbcf801e9b23e6bcde4044e115155dae34f8e7454b9a783f737c9a725528d677b7a66c775eb7a955cf144fe0b87f62b575ce5bfd515a9
   languageName: node
   linkType: hard
 
