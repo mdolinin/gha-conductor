@@ -5484,19 +5484,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eventsource-parser@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "eventsource-parser@npm:3.0.0"
-  checksum: 10c0/74ded91ff93330bd95243bd5a8fc61c805ea1843dd7ffac8e8ac36287fff419a7eec21b2fadf50d4e554ce0506de72f47928513e3c5b886fa4613fd49ef0024f
+"eventsource-parser@npm:^3.0.1":
+  version: 3.0.2
+  resolution: "eventsource-parser@npm:3.0.2"
+  checksum: 10c0/067c6e60b7c68a4577630cc7e11d2aaeef52005e377a213308c7c2350596a175d5a179671d85f570726dce3f451c15d174ece4479ce68a1805686c88950d08dd
   languageName: node
   linkType: hard
 
-"eventsource@npm:^3.0.5":
-  version: 3.0.5
-  resolution: "eventsource@npm:3.0.5"
+"eventsource@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "eventsource@npm:4.0.0"
   dependencies:
-    eventsource-parser: "npm:^3.0.0"
-  checksum: 10c0/0283045a70b7ab7501fc290e60ee5ebd6e24648e0f0a6d6a1c1bbb7a421971e8140b85d6239d08c360e0a0b196205ca86b4ff7f9efe3c06877ba628136856489
+    eventsource-parser: "npm:^3.0.1"
+  checksum: 10c0/908a3f64b60aadd053b9fd8ea8b6a896a4faf32dbbaf0150e91abbec179a9e2a3da261fb577ae296df8b744de91962d69a60b10e8d7092d7802e6e3e7a8b0f0e
   languageName: node
   linkType: hard
 
@@ -6067,7 +6067,7 @@ __metadata:
     probot: "npm:^13.4.5"
     semantic-release: "npm:^24.2.4"
     simple-git: "npm:^3.27.0"
-    smee-client: "npm:^3.1.1"
+    smee-client: "npm:^4.1.0"
     tsc-hooks: "npm:^1.1.2"
     typescript: "npm:^5.8.3"
     vitest: "npm:^3.1.4"
@@ -10697,17 +10697,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smee-client@npm:^3.1.1":
-  version: 3.1.1
-  resolution: "smee-client@npm:3.1.1"
+"smee-client@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "smee-client@npm:4.1.0"
   dependencies:
-    commander: "npm:^12.0.0"
-    eventsource: "npm:^3.0.5"
-    undici: "npm:^6.19.8"
+    eventsource: "npm:^4.0.0"
+    undici: "npm:^7.0.0"
     validator: "npm:^13.11.0"
   bin:
     smee: bin/smee.js
-  checksum: 10c0/24fd526330d0d0b0763de574c4d6595739eb0413882d617dce07ca35f71fd732c96a9ca723d394e1e9e938b4ef004a9d69797cb700ec72a6fc69396c8128d245
+  checksum: 10c0/ee51b1502e701baa7b829ee0e7280f6470ab6aefc1939bbfe34be59b236edfa8858ae15022e5a8c0b074efa542c1f88e7d65baa5e40f8381e3247a3364227158
   languageName: node
   linkType: hard
 
@@ -11547,10 +11546,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^6.19.8":
-  version: 6.21.3
-  resolution: "undici@npm:6.21.3"
-  checksum: 10c0/294da109853fad7a6ef5a172ad0ca3fb3f1f60cf34703d062a5ec967daf69ad8c03b52e6d536c5cba3bb65615769bf08e5b30798915cbccdddaca01045173dda
+"undici@npm:^7.0.0":
+  version: 7.10.0
+  resolution: "undici@npm:7.10.0"
+  checksum: 10c0/756ac876a8df845bc89eb8348c35d33a0ff63c17eb45b664075c961a7fbd4a398f94f9dce438262f55fe66e4bbb0a46aa63a3fd58ce51361c616aff11a270450
   languageName: node
   linkType: hard
 
