@@ -43,7 +43,7 @@
     "@types/node": "^22.15.29",
     "@types/pino-std-serializers": "^4.0.0",
     "@types/readable-stream": "^4.0.21",
-    "@vitest/coverage-v8": "^3.2.1",
+    "@vitest/coverage-v8": "^3.2.2",
     "cross-var": "^1.1.0",
     "nock": "^14.0.5",
     "semantic-release": "^24.2.5",
