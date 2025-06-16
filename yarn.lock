@@ -6026,7 +6026,7 @@ __metadata:
     probot: "npm:^13.4.5"
     semantic-release: "npm:^24.2.5"
     simple-git: "npm:^3.28.0"
-    smee-client: "npm:^4.2.1"
+    smee-client: "npm:^4.3.1"
     tsc-hooks: "npm:^1.1.2"
     typescript: "npm:^5.8.3"
     vitest: "npm:^3.2.3"
@@ -10526,16 +10526,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smee-client@npm:^4.2.1":
-  version: 4.2.1
-  resolution: "smee-client@npm:4.2.1"
+"smee-client@npm:^4.3.1":
+  version: 4.3.1
+  resolution: "smee-client@npm:4.3.1"
   dependencies:
     eventsource: "npm:^4.0.0"
     undici: "npm:^7.0.0"
     validator: "npm:^13.11.0"
   bin:
     smee: bin/smee.js
-  checksum: 10c0/86584eadfa32328f4cc6937e5e72eb5e3f8adb367120049af99c3cbe59d0f7b2685fc94a1c1469e940351bce45a3064f2d92beacc5a203cf5d63bdf7aa13cf72
+  checksum: 10c0/2353b08c0dc5f3a1927faede63ca922753a5c096eaac8a6fb98f4ac4a71079a0b79a80c99381c532603a5533835f89a3b2e08797fbc9a473b919b60c33c11cb9
   languageName: node
   linkType: hard
 
