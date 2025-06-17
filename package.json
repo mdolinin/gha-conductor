@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@databases/pg": "^5.5.0",
-    "@databases/pg-schema-cli": "^4.4.0",
+    "@databases/pg-schema-cli": "^4.5.0",
     "@databases/pg-typed": "^4.4.1",
     "ajv": "^8.17.1",
     "dd-trace": "^5.56.0",
