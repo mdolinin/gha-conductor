@@ -359,13 +359,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/native-appsec@npm:9.0.0":
-  version: 9.0.0
-  resolution: "@datadog/native-appsec@npm:9.0.0"
+"@datadog/native-appsec@npm:10.0.0":
+  version: 10.0.0
+  resolution: "@datadog/native-appsec@npm:10.0.0"
   dependencies:
     node-gyp: "npm:latest"
     node-gyp-build: "npm:^3.9.0"
-  checksum: 10c0/aa72cbab698ad4ebc42261d67a8f56deecdb14f143f443feeed38add4cefa44903c29e987a01e5b303911e5b1e74e516d0d1bec9ef9a48b9bb0c91100eb1186b
+  checksum: 10c0/3d74a0a64050fb0b801d2a7b3361d26e98c8cce9e31c8bb8c5b1678a1b44fcb3221835c4a8cbc24f9886b27c34d7c4e58394499c8acb9b32d68f0ed59abae2b0
   languageName: node
   linkType: hard
 
@@ -4797,12 +4797,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.58.0":
-  version: 5.58.0
-  resolution: "dd-trace@npm:5.58.0"
+"dd-trace@npm:^5.59.0":
+  version: 5.59.0
+  resolution: "dd-trace@npm:5.59.0"
   dependencies:
     "@datadog/libdatadog": "npm:0.7.0"
-    "@datadog/native-appsec": "npm:9.0.0"
+    "@datadog/native-appsec": "npm:10.0.0"
     "@datadog/native-iast-taint-tracking": "npm:4.0.0"
     "@datadog/native-metrics": "npm:3.1.1"
     "@datadog/pprof": "npm:5.9.0"
@@ -4813,7 +4813,7 @@ __metadata:
     "@opentelemetry/core": "npm:^1.14.0"
     crypto-randomuuid: "npm:^1.0.0"
     dc-polyfill: "npm:^0.1.9"
-    ignore: "npm:^5.2.4"
+    ignore: "npm:^7.0.5"
     import-in-the-middle: "npm:^1.14.2"
     istanbul-lib-coverage: "npm:^3.2.2"
     jest-docblock: "npm:^29.7.0"
@@ -4821,10 +4821,10 @@ __metadata:
     koalas: "npm:^1.0.2"
     limiter: "npm:^1.1.5"
     lodash.sortby: "npm:^4.7.0"
-    lru-cache: "npm:^7.18.3"
+    lru-cache: "npm:^10.4.3"
     module-details-from-path: "npm:^1.0.4"
     mutexify: "npm:^1.4.0"
-    opentracing: "npm:>=0.12.1"
+    opentracing: "npm:>=0.14.7"
     path-to-regexp: "npm:^0.1.12"
     pprof-format: "npm:^2.1.0"
     protobufjs: "npm:^7.5.3"
@@ -4835,7 +4835,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/518fc2d2ed3a6b6642438da252d6f6c7a7b226ef9b4df8af72ec02639a74e7c7d14fe585488e1c43f4ec2acc62423ecf1a9afd549c1a24973147c35cadc0c2c5
+  checksum: 10c0/de03381c23747f19f76dd1b1767a8c42b32fadb22c994e402a0d3f2ef4765fdda292797ed9b433917089ff186598369a82ea4b227e60a71f9dabad4b9e8d1d4e
   languageName: node
   linkType: hard
 
@@ -5922,7 +5922,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.2.4"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.58.0"
+    dd-trace: "npm:^5.59.0"
     glob: "npm:^11.0.3"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
@@ -6343,6 +6343,13 @@ __metadata:
   version: 5.3.1
   resolution: "ignore@npm:5.3.1"
   checksum: 10c0/703f7f45ffb2a27fb2c5a8db0c32e7dee66b33a225d28e8db4e1be6474795f606686a6e3bcc50e1aa12f2042db4c9d4a7d60af3250511de74620fbed052ea4cd
+  languageName: node
+  linkType: hard
+
+"ignore@npm:^7.0.5":
+  version: 7.0.5
+  resolution: "ignore@npm:7.0.5"
+  checksum: 10c0/ae00db89fe873064a093b8999fe4cc284b13ef2a178636211842cceb650b9c3e390d3339191acb145d81ed5379d2074840cf0c33a20bdbd6f32821f79eb4ad5d
   languageName: node
   linkType: hard
 
@@ -7582,7 +7589,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:^10.0.1, lru-cache@npm:^10.2.0, lru-cache@npm:^10.2.2":
+"lru-cache@npm:^10.0.1, lru-cache@npm:^10.2.0, lru-cache@npm:^10.2.2, lru-cache@npm:^10.4.3":
   version: 10.4.3
   resolution: "lru-cache@npm:10.4.3"
   checksum: 10c0/ebd04fbca961e6c1d6c0af3799adcc966a1babe798f685bb84e6599266599cd95d94630b10262f5424539bc4640107e8a33aa28585374abf561d30d16f4b39fb
@@ -7606,7 +7613,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:^7.14.0, lru-cache@npm:^7.18.3":
+"lru-cache@npm:^7.14.0":
   version: 7.18.3
   resolution: "lru-cache@npm:7.18.3"
   checksum: 10c0/b3a452b491433db885beed95041eb104c157ef7794b9c9b4d647be503be91769d11206bb573849a16b4cc0d03cbd15ffd22df7960997788b74c1d399ac7a4fed
@@ -8496,7 +8503,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"opentracing@npm:>=0.12.1":
+"opentracing@npm:>=0.14.7":
   version: 0.14.7
   resolution: "opentracing@npm:0.14.7"
   checksum: 10c0/a7be8d697b1997548233423f5f4c196e285af8e864a24d7704fc6029beb73cd1f987651ca814e207629c6bc624cb03297a86601c0dc51cdca9a07a20f97b71ea
