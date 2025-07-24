@@ -359,13 +359,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/native-appsec@npm:10.0.0":
-  version: 10.0.0
-  resolution: "@datadog/native-appsec@npm:10.0.0"
+"@datadog/native-appsec@npm:10.0.1":
+  version: 10.0.1
+  resolution: "@datadog/native-appsec@npm:10.0.1"
   dependencies:
     node-gyp: "npm:latest"
     node-gyp-build: "npm:^3.9.0"
-  checksum: 10c0/3d74a0a64050fb0b801d2a7b3361d26e98c8cce9e31c8bb8c5b1678a1b44fcb3221835c4a8cbc24f9886b27c34d7c4e58394499c8acb9b32d68f0ed59abae2b0
+  checksum: 10c0/9e03ca193861dc9a54b5e5269ab0e9290695dda74305040370c2f3b0ff48cce3fb3bb39625d123b80b045c89ee54414bdaa879b17309a1a483e05b1ed0691728
   languageName: node
   linkType: hard
 
@@ -4790,19 +4790,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dc-polyfill@npm:^0.1.9":
-  version: 0.1.9
-  resolution: "dc-polyfill@npm:0.1.9"
-  checksum: 10c0/d4a699918d95021209d2bdac6db0b29f86886e453bea5da7d5c4ea3e4844f302a82eeaa9766f048a74aaff8ff519d61401d7396e2ad3ec0ced21014f994156e4
+"dc-polyfill@npm:^0.1.10":
+  version: 0.1.10
+  resolution: "dc-polyfill@npm:0.1.10"
+  checksum: 10c0/b4a847b5883fb3bc1173d48b98d2aa554af12b427b13d3f5fbd31a4d4cbfc733d8134e261e442ac890df3606f97e5440b603ff72d0c9cd62ac2e5f3cbc52aa6d
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.59.0":
-  version: 5.59.0
-  resolution: "dd-trace@npm:5.59.0"
+"dd-trace@npm:^5.61.0":
+  version: 5.61.0
+  resolution: "dd-trace@npm:5.61.0"
   dependencies:
     "@datadog/libdatadog": "npm:0.7.0"
-    "@datadog/native-appsec": "npm:10.0.0"
+    "@datadog/native-appsec": "npm:10.0.1"
     "@datadog/native-iast-taint-tracking": "npm:4.0.0"
     "@datadog/native-metrics": "npm:3.1.1"
     "@datadog/pprof": "npm:5.9.0"
@@ -4812,7 +4812,7 @@ __metadata:
     "@opentelemetry/api": "npm:1.8.0"
     "@opentelemetry/core": "npm:^1.14.0"
     crypto-randomuuid: "npm:^1.0.0"
-    dc-polyfill: "npm:^0.1.9"
+    dc-polyfill: "npm:^0.1.10"
     ignore: "npm:^7.0.5"
     import-in-the-middle: "npm:^1.14.2"
     istanbul-lib-coverage: "npm:^3.2.2"
@@ -4835,7 +4835,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/de03381c23747f19f76dd1b1767a8c42b32fadb22c994e402a0d3f2ef4765fdda292797ed9b433917089ff186598369a82ea4b227e60a71f9dabad4b9e8d1d4e
+  checksum: 10c0/982d53bf6e70845cf892d01ae1321da431825c8036a2dfed8aa8758bcb6a1fa441083d41c2da096d899a96bba1c4efd94194974d3dcc0ea0ffd525512a24ad72
   languageName: node
   linkType: hard
 
@@ -5922,7 +5922,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.2.4"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.59.0"
+    dd-trace: "npm:^5.61.0"
     glob: "npm:^11.0.3"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
