@@ -4797,9 +4797,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.61.0":
-  version: 5.61.0
-  resolution: "dd-trace@npm:5.61.0"
+"dd-trace@npm:^5.61.1":
+  version: 5.61.1
+  resolution: "dd-trace@npm:5.61.1"
   dependencies:
     "@datadog/libdatadog": "npm:0.7.0"
     "@datadog/native-appsec": "npm:10.0.1"
@@ -4835,7 +4835,7 @@ __metadata:
     source-map: "npm:^0.7.4"
     tlhunter-sorted-set: "npm:^0.1.0"
     ttl-set: "npm:^1.0.0"
-  checksum: 10c0/982d53bf6e70845cf892d01ae1321da431825c8036a2dfed8aa8758bcb6a1fa441083d41c2da096d899a96bba1c4efd94194974d3dcc0ea0ffd525512a24ad72
+  checksum: 10c0/8a3fc79dd8e2137675b4dd8214e737dacc49470347221005bc2b08bcd9f95a7cceea159fe071150b680e6d90133115dbf673375d8de0f6ff9809a0826c948a8a
   languageName: node
   linkType: hard
 
@@ -5922,7 +5922,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.2.4"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.61.0"
+    dd-trace: "npm:^5.61.1"
     glob: "npm:^11.0.3"
     js-yaml: "npm:^4.1.0"
     json-schema-to-typescript: "npm:^15.0.4"
