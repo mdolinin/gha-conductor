@@ -129,8 +129,16 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
                 }
                 if (loadHooks) {
                     const fullName = context.payload.repository.full_name;
-                    await ghaLoader.loadGhaHooksFromCommits(context.octokit, fullName, branchName, ghaHooksFileName, context.payload.commits);
-                    app.log.info(`Load hooks from ${context.payload.commits.map(commit => commit.id).join(',')} commits for branch ${branchName} in repo ${repoFullName} completed`);
+                    if (branchName !== "master" && branchName !== "main") {
+                        // For non-main branches that are PR target branches, do a full reload
+                        // This ensures hooks are correctly loaded even after force-push
+                        await ghaLoader.loadAllGhaHooksFromRepo(context.octokit, fullName, branchName, ghaHooksFileName);
+                        app.log.info(`Full reload of hooks for branch ${branchName} in repo ${repoFullName} completed`);
+                    } else {
+                        // For main/master branches, load incrementally from commits
+                        await ghaLoader.loadGhaHooksFromCommits(context.octokit, fullName, branchName, ghaHooksFileName, context.payload.commits);
+                        app.log.info(`Load hooks from ${context.payload.commits.map(commit => commit.id).join(',')} commits for branch ${branchName} in repo ${repoFullName} completed`);
+                    }
                 } else {
                     app.log.info(`No need to load hooks from ${ghaHooksFileName} files for branch ${branchName} in repo ${repoFullName}`);
                 }

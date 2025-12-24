@@ -246,9 +246,34 @@ describe("gha-conductor app", () => {
             ref: "refs/heads/feature-1",
         }
         await probot.receive({name: "push", payload: ghaYamlChangedAndHavePROpenedPayload});
-        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledTimes(1);
+        expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
+        expect(loadAllGhaYamlMock).toHaveBeenCalledWith(expect.anything(), "mdolinin/mono-repo-example", "feature-1", ".gha.yaml");
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
+
+    it("when pushed changes with .gha.yaml to main branch, load incrementally from commits", async () => {
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
+        await probot.receive({name: "push", payload: pushGhaYamlChangedPayload});
+        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledTimes(1);
+        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledWith(
+            expect.anything(),
+            "mdolinin/mono-repo-example",
+            "main",
+            ".gha.yaml",
+            pushGhaYamlChangedPayload.commits
+        );
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
 
     it("load all gha yaml files into db when PR labeled with gha-conductor:load", async () => {
         const mock = nock("https://api.github.com")
