@@ -105,42 +105,15 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         }
         if (changedHooksFiles) {
             if (ref.startsWith("refs/heads/") && branchName) {
-                let loadHooks = false;
-                if (branchName !== "master" && branchName !== "main") {
-                    // check if branch is base branch for at least one open PR
-                    let params: RestEndpointMethodTypes["pulls"]["list"]["parameters"] = {
-                        owner: context.payload.repository.owner.login,
-                        repo: context.payload.repository.name,
-                        state: "open",
-                        base: branchName
-                    };
-                    try {
-                        const branchPRs = await context.octokit.pulls.list(params);
-                        if (branchPRs.data.length > 0) {
-                            loadHooks = true;
-                        } else {
-                            app.log.info(`No open PRs found for branch ${branchName}`);
-                        }
-                    } catch (e) {
-                        app.log.error(e, `Failed to get open PRs for branch ${branchName} in repo ${repoFullName}`);
-                    }
-                } else {
-                    loadHooks = true;
-                }
-                if (loadHooks) {
+                // Check if branch already exists in database
+                const branchHooksCount = await ghaLoader.countHooksForBranch(repoFullName, branchName);
+                if (branchHooksCount > 0) {
+                    // Branch exists in DB, load hooks incrementally from commits
                     const fullName = context.payload.repository.full_name;
-                    if (branchName !== "master" && branchName !== "main") {
-                        // For non-main branches that are PR target branches, do a full reload
-                        // This ensures hooks are correctly loaded even after force-push
-                        await ghaLoader.loadAllGhaHooksFromRepo(context.octokit, fullName, branchName, ghaHooksFileName);
-                        app.log.info(`Full reload of hooks for branch ${branchName} in repo ${repoFullName} completed`);
-                    } else {
-                        // For main/master branches, load incrementally from commits
-                        await ghaLoader.loadGhaHooksFromCommits(context.octokit, fullName, branchName, ghaHooksFileName, context.payload.commits);
-                        app.log.info(`Load hooks from ${context.payload.commits.map(commit => commit.id).join(',')} commits for branch ${branchName} in repo ${repoFullName} completed`);
-                    }
+                    await ghaLoader.loadGhaHooksFromCommits(context.octokit, fullName, branchName, ghaHooksFileName, context.payload.commits);
+                    app.log.info(`Load hooks from ${context.payload.commits.map(commit => commit.id).join(',')} commits for branch ${branchName} in repo ${repoFullName} completed`);
                 } else {
-                    app.log.info(`No need to load hooks from ${ghaHooksFileName} files for branch ${branchName} in repo ${repoFullName}`);
+                    app.log.info(`Branch ${branchName} does not exist in db for repo ${repoFullName}. No hooks will be loaded from push.`);
                 }
             } else {
                 app.log.info(`Push is for ref ${ref} that is not a branch`);

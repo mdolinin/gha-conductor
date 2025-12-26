@@ -47,6 +47,12 @@ const loadGhaHooksFromCommitsMock = vi
         return Promise.resolve();
     });
 
+const countHooksForBranchMock = vi
+    .spyOn(GhaLoader.prototype, 'countHooksForBranch')
+    .mockImplementation(() => {
+        return Promise.resolve(1);
+    });
+
 const deleteAllGhaHooksForBranchMock = vi
     .spyOn(GhaLoader.prototype, 'deleteAllGhaHooksForBranch')
     .mockImplementation(() => {
@@ -222,7 +228,7 @@ describe("gha-conductor app", () => {
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 
-    it("when pushed changes with .gha.yaml and branch is base for at least one PR, load it into db", async () => {
+    it("when pushed changes with .gha.yaml and branch exists in db, load incrementally from commits", async () => {
         const mock = nock("https://api.github.com")
             .post("/app/installations/44167724/access_tokens")
             .reply(200, {
@@ -233,21 +239,21 @@ describe("gha-conductor app", () => {
             })
             .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
             .reply(200, "gha_hooks_file: .gha.yaml")
-            .get("/repos/mdolinin/mono-repo-example/pulls?state=open&base=feature-1")
-            .reply(200, [
-                {
-                    base: {
-                        ref: "main",
-                    },
-                },
-            ])
         const ghaYamlChangedAndHavePROpenedPayload = {
             ...pushGhaYamlChangedPayload,
             ref: "refs/heads/feature-1",
         }
         await probot.receive({name: "push", payload: ghaYamlChangedAndHavePROpenedPayload});
-        expect(loadAllGhaYamlMock).toHaveBeenCalledTimes(1);
-        expect(loadAllGhaYamlMock).toHaveBeenCalledWith(expect.anything(), "mdolinin/mono-repo-example", "feature-1", ".gha.yaml");
+        expect(countHooksForBranchMock).toHaveBeenCalledTimes(1);
+        expect(countHooksForBranchMock).toHaveBeenCalledWith("mdolinin/mono-repo-example", "feature-1");
+        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledTimes(1);
+        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledWith(
+            expect.anything(),
+            "mdolinin/mono-repo-example",
+            "feature-1",
+            ".gha.yaml",
+            ghaYamlChangedAndHavePROpenedPayload.commits
+        );
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
 

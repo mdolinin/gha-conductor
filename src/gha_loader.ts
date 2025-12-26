@@ -426,6 +426,10 @@ export class GhaLoader {
         await this.loadAllGhaHooksFromRepo(octokit, repo_full_name, baseBranch, hooksFileName);
     }
 
+    async countHooksForBranch(repo_full_name: string, branch: string): Promise<number> {
+        return await gha_hooks(db).count({repo_full_name: repo_full_name, branch: branch});
+    }
+
     async deleteAllGhaHooksForBranch(fullName: string, branchName: string) {
         await gha_hooks(db).delete({repo_full_name: fullName, branch: branchName});
     }
