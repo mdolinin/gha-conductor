@@ -601,6 +601,7 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_check_id: 3,
