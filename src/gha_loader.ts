@@ -417,7 +417,7 @@ export class GhaLoader {
     }
 
     async loadAllGhaYamlForBranchIfNew(octokit: InstanceType<typeof ProbotOctokit>, repo_full_name: string, baseBranch: string, hooksFileName: string) {
-        const branchHooksCount = await gha_hooks(db).count({repo_full_name: repo_full_name, branch: baseBranch});
+        const branchHooksCount = await this.countHooksForBranch(repo_full_name, baseBranch);
         if (branchHooksCount > 0) {
             this.log.info(`Branch ${baseBranch} exists in db for repo ${repo_full_name} with ${branchHooksCount} hooks`);
             return;
