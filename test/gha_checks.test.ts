@@ -33,7 +33,8 @@ const findAllSuccess = vi.fn().mockImplementation(() => {
             pr_check_id: 4,
             conclusion: 'success',
             workflow_run_id: 5,
-            check_run_id: 6
+            check_run_id: 6,
+            repo_full_name: 'test/repo'
         }
     ]
 });
@@ -51,6 +52,7 @@ const findOneMock = vi.fn().mockImplementation((query) => {
         check_run_id: 2,
         pr_check_id: 3,
         workflow_run_id: 5,
+        repo_full_name: query.repo_full_name || 'test/repo'
     }
 });
 const findMock = vi.fn().mockImplementation(() => {
@@ -130,6 +132,7 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: erroredWorkflow.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         }, {
             status: "completed",
             check_run_id: 1,
@@ -413,6 +416,7 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         }, {
             check_run_id: 1,
             status: "queued",
@@ -452,6 +456,7 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example",
             check_run_id: 2,
         }, {
             status: "in_progress",
@@ -501,6 +506,7 @@ describe('gha_checks', () => {
         });
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example",
             check_run_id: 2,
         }, {
             status: "completed",
@@ -1138,6 +1144,7 @@ describe('gha_checks', () => {
         // For each workflow run, update its status in database
         expect(updateMock).toHaveBeenCalledWith({
             pipeline_run_name: 'gha-checks-1234567890',
+            repo_full_name: 'test/repo',
             check_run_id: 6,
         }, {
             status: 'completed',
