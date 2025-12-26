@@ -400,6 +400,7 @@ describe('gha_checks', () => {
         await checks.updateWorkflowRunCheckQueued(octokit, workflowJobQueuedPayload, 1);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         });
         expect(createCheckMock).toHaveBeenCalledWith({
             details_url: 'https://github.com/mdolinin/mono-repo-example/actions/runs/7856385885',
@@ -446,6 +447,7 @@ describe('gha_checks', () => {
         await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
             check_run_id: 2,
@@ -494,6 +496,7 @@ describe('gha_checks', () => {
         await checks.updateWorkflowRunCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
             check_run_id: 2,
@@ -543,6 +546,7 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckInProgress(octokit, workflowJobInProgressPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_number: 1,
@@ -683,6 +687,7 @@ describe('gha_checks', () => {
         await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
         expect(findOneMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_check_id: 3,
