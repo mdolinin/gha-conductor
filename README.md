@@ -17,7 +17,8 @@ This can be achieved by using `paths` filter in the workflow definition, but it 
 - Trigger workflows based on what branch the pull request is merged into
 - Trigger workflows based on /slash commands in PR comments (e.g. `/validate param=value`)
   ![pr-comment-command](./docs/pr-comment-command.png)
-- Reload all hooks from `.gha.yaml` files by adding label `gha-conductor:load` to PR
+- Automatically reload hooks from `.gha.yaml` files when pushing to any branch that already exists in the database (force-push safe)
+- Manually reload all hooks from `.gha.yaml` files by adding label `gha-conductor:load` to PR
 - Run multiple workflows in parallel for the same event
 - Report status of the workflow run as GitHub checks
   ![pr-status-check](./docs/green-pr-checks.png)
