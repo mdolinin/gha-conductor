@@ -692,7 +692,8 @@ describe('gha hooks', () => {
         const prNumber = 1;
         const prCheckId = 2;
         const HookType = "onPullRequest";
-        await hooks.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, HookType, true);
+        const repoFullName = "test/repo";
+        await hooks.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, HookType, repoFullName, true);
         expect(insertMock).toHaveBeenCalledWith({
             name: 'gha-checks',
             head_sha: headSha,
@@ -702,6 +703,7 @@ describe('gha hooks', () => {
             pr_number: prNumber,
             pr_check_id: prCheckId,
             hook: 'onPullRequest',
+            repo_full_name: repoFullName,
             status: 'completed',
             conclusion: 'failure',
         });

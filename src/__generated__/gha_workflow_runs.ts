@@ -25,6 +25,7 @@ interface GhaWorkflowRuns {
   pr_check_id: (number) | null
   pr_conclusion: (string) | null
   pr_number: number
+  repo_full_name: (string) | null
   status: (string) | null
   workflow_job_id: (number) | null
   workflow_run_id: (number) | null
@@ -48,6 +49,7 @@ interface GhaWorkflowRuns_InsertParameters {
   pr_check_id?: (number) | null
   pr_conclusion?: (string) | null
   pr_number: number
+  repo_full_name?: (string) | null
   status?: (string) | null
   workflow_job_id?: (number) | null
   workflow_run_id?: (number) | null
