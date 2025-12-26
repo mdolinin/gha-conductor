@@ -184,6 +184,7 @@ export class Hooks {
         for (const hook of triggeredHooks) {
             const owner = pull_request.base.repo.owner.login;
             const repo = pull_request.base.repo.name;
+            const repoFullName = `${owner}/${repo}`;
             const pipeline_ref = hook.pipeline_ref ? hook.pipeline_ref : pull_request.base.repo.default_branch;
             const workflow_id = `${hook.pipeline_name}${workflowFileExtension}`;
             const pipelineUniquePrefix = hook.pipeline_unique_prefix;
@@ -210,7 +211,7 @@ export class Hooks {
                 });
                 if (resp.data.state !== "active") {
                     this.log.warn(`Workflow ${workflow_id} is not active in repo ${owner}/${repo}`);
-                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: inputs,
@@ -236,7 +237,7 @@ export class Hooks {
                         // check if PIPELINE_NAME and SERIALIZED_VARIABLES are required
                         if (!workflowInputsMap.has("PIPELINE_NAME") || !workflowInputsMap.has("SERIALIZED_VARIABLES")) {
                             this.log.warn(`Workflow ${workflow_id} does not have required inputs PIPELINE_NAME and SERIALIZED_VARIABLES`);
-                            await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                            await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                             triggeredPipelines.push({
                                 name: pipeline_name,
                                 inputs: inputs,
@@ -253,7 +254,7 @@ export class Hooks {
                                 if (serialized_variables[key] === undefined) {
                                     if (!value.default) {
                                         this.log.warn(`Workflow ${workflow_id} requires input ${key} which is missing in SERIALIZED_VARIABLES and has no default value`);
-                                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                                         triggeredPipelines.push({
                                             name: pipeline_name,
                                             inputs: inputs,
@@ -269,7 +270,7 @@ export class Hooks {
                         }
                     } else {
                         this.log.warn(`Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
-                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                         triggeredPipelines.push({
                             name: pipeline_name,
                             inputs: inputs,
@@ -279,7 +280,7 @@ export class Hooks {
                     }
                 } catch (e) {
                     this.log.warn(e, `Failed to get workflow ${workflow_id} content in repo ${owner}/${repo}`);
-                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: inputs,
@@ -289,7 +290,7 @@ export class Hooks {
                 }
             } catch (e) {
                 this.log.warn(e, `Failed to get workflow ${workflow_id} in repo ${owner}/${repo}`);
-                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: inputs,
@@ -300,7 +301,7 @@ export class Hooks {
             if (hook.hook === "onSlashCommand") {
                 if (!commandTokens) {
                     this.log.error("Slash command hook type requires a slash command");
-                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                    await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                     triggeredPipelines.push({
                         name: pipeline_name,
                         inputs: inputs,
@@ -311,7 +312,7 @@ export class Hooks {
                     const command = commandTokens[0];
                     if (hook.slash_command !== command) {
                         this.log.info(`Slash command ${command} does not match hook slash command ${hook.slash_command}`);
-                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                        await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                         triggeredPipelines.push({
                             name: pipeline_name,
                             inputs: inputs,
@@ -350,11 +351,11 @@ export class Hooks {
             try {
                 await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
                 this.log.info(`Workflow ${pipelineUniquePrefix} triggered successfully for PR#${prNumber}`);
-                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook);
+                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName);
                 triggeredPipelines.push({name: pipeline_name, inputs: inputs});
             } catch (e) {
                 this.log.error(e, "Failed to trigger workflow " + pipelineUniquePrefix + " for PR#" + prNumber);
-                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, true);
+                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: inputs,
@@ -373,6 +374,7 @@ export class Hooks {
                        prNumber: number,
                        prCheckId: number,
                        hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand",
+                       repoFullName: string,
                        withError: boolean = false
     ) {
         let workflowRun = {
@@ -384,6 +386,7 @@ export class Hooks {
             pr_number: prNumber,
             pr_check_id: prCheckId,
             hook: hookType,
+            repo_full_name: repoFullName,
         }
         if (withError) {
             workflowRun = Object.assign(workflowRun, {

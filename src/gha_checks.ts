@@ -144,7 +144,11 @@ export class GhaChecks {
         try {
             const resp = await octokit.checks.create(params);
             const check = resp.data;
-            await gha_workflow_runs(db).update({pipeline_run_name: erroredWorkflow.name}, {
+            const repoFullName = `${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}`;
+            await gha_workflow_runs(db).update({
+                pipeline_run_name: erroredWorkflow.name,
+                repo_full_name: repoFullName
+            }, {
                 status: check.status,
                 check_run_id: check.id,
                 workflow_run_url: `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks?check_run_id=${check.id}`
@@ -343,7 +347,11 @@ export class GhaChecks {
 
     async updateWorkflowRunCheckQueued(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobQueuedEvent, workflow_run_id: number) {
         const workflowJob = payload.workflow_job;
-        const workflowRun = await gha_workflow_runs(db).findOne({pipeline_run_name: workflowJob.name});
+        const repoFullName = payload.repository.full_name;
+        const workflowRun = await gha_workflow_runs(db).findOne({
+            pipeline_run_name: workflowJob.name,
+            repo_full_name: repoFullName
+        });
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
@@ -370,7 +378,10 @@ export class GhaChecks {
             try {
                 const resp = await octokit.checks.create(params);
                 const check = resp.data;
-                await gha_workflow_runs(db).update({pipeline_run_name: workflowJob.name}, {
+                await gha_workflow_runs(db).update({
+                    pipeline_run_name: workflowJob.name,
+                    repo_full_name: repoFullName
+                }, {
                     workflow_run_id: workflow_run_id,
                     workflow_job_id: workflowJob.id,
                     status: check.status,
@@ -456,6 +467,7 @@ export class GhaChecks {
             // Update workflow run in db
             await gha_workflow_runs(db).update({
                 pipeline_run_name: workflowRun.pipeline_run_name,
+                repo_full_name: workflowRun.repo_full_name,
                 check_run_id: workflowRun.check_run_id
             }, {
                 status: status,
@@ -472,8 +484,10 @@ export class GhaChecks {
 
     async updateWorkflowRunCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
         const workflowJob = payload.workflow_job;
+        const repoFullName = payload.repository.full_name;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            repo_full_name: repoFullName
         });
 
         if (!workflowRun) {
@@ -492,8 +506,10 @@ export class GhaChecks {
 
     async updateWorkflowRunCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         const workflowJob = payload.workflow_job;
+        const repoFullName = payload.repository.full_name;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            repo_full_name: repoFullName
         });
 
         if (!workflowRun) {
@@ -512,8 +528,10 @@ export class GhaChecks {
 
     async updatePRStatusCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
         const workflowJob = payload.workflow_job;
+        const repoFullName = payload.repository.full_name;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            repo_full_name: repoFullName
         });
         // update pr_status check run
         if (!workflowRun) {
@@ -663,8 +681,10 @@ export class GhaChecks {
 
     async updatePRStatusCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         const workflowJob = payload.workflow_job;
+        const repoFullName = payload.repository.full_name;
         const workflowRun = await gha_workflow_runs(db).findOne({
             pipeline_run_name: workflowJob.name,
+            repo_full_name: repoFullName
         });
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
