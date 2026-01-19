@@ -1,3 +1,10 @@
+## [1.22.2](https://github.com/mdolinin/gha-conductor/compare/v1.22.1...v1.22.2) (2026-01-19)
+
+
+### Bug Fixes
+
+* add repo_full_name to workflow run tracking to prevent cross-repository collisions ([#506](https://github.com/mdolinin/gha-conductor/issues/506)) ([61a5c56](https://github.com/mdolinin/gha-conductor/commit/61a5c56751706380abd51a9a7021a3fd0f7178b4))
+
 ## [1.22.1](https://github.com/mdolinin/gha-conductor/compare/v1.22.0...v1.22.1) (2025-04-14)
 
 
