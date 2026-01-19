@@ -9,9 +9,6 @@ import {
     WorkflowJobInProgressEvent,
     WorkflowJobQueuedEvent
 } from "@octokit/webhooks-types";
-import {
-    RestEndpointMethodTypes
-} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js";
 import {inspect} from "node:util";
 import {MergeOptions} from "probot/lib/context.js";
 import {loadPackageJson} from "probot/lib/helpers/load-package-json.js";
