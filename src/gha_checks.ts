@@ -54,6 +54,27 @@ export class GhaChecks {
         this.log = log;
     }
 
+    /**
+     * Finds a workflow run by pipeline name and repo, with fallback for legacy records.
+     * Legacy records created before the repo_full_name column was added have NULL repo_full_name.
+     * This method first tries an exact match, then falls back to records with NULL repo_full_name.
+     */
+    private async findWorkflowRunWithFallback(pipelineRunName: string, repoFullName: string): Promise<GhaWorkflowRuns | null> {
+        // First try exact match with repo_full_name
+        let workflowRun = await gha_workflow_runs(db).findOne({
+            pipeline_run_name: pipelineRunName,
+            repo_full_name: repoFullName
+        });
+        // Fall back to legacy records without repo_full_name
+        if (!workflowRun) {
+            workflowRun = await gha_workflow_runs(db).findOne({
+                pipeline_run_name: pipelineRunName,
+                repo_full_name: null
+            });
+        }
+        return workflowRun;
+    }
+
     private hookToCheckName(hookType: "onBranchMerge" | "onPullRequest" | "onPullRequestClose" | "onSlashCommand") {
         switch (hookType) {
             case "onPullRequest":
@@ -348,10 +369,7 @@ export class GhaChecks {
     async updateWorkflowRunCheckQueued(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobQueuedEvent, workflow_run_id: number) {
         const workflowJob = payload.workflow_job;
         const repoFullName = payload.repository.full_name;
-        const workflowRun = await gha_workflow_runs(db).findOne({
-            pipeline_run_name: workflowJob.name,
-            repo_full_name: repoFullName
-        });
+        const workflowRun = await this.findWorkflowRunWithFallback(workflowJob.name, repoFullName);
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
         } else {
@@ -485,10 +503,7 @@ export class GhaChecks {
     async updateWorkflowRunCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
         const workflowJob = payload.workflow_job;
         const repoFullName = payload.repository.full_name;
-        const workflowRun = await gha_workflow_runs(db).findOne({
-            pipeline_run_name: workflowJob.name,
-            repo_full_name: repoFullName
-        });
+        const workflowRun = await this.findWorkflowRunWithFallback(workflowJob.name, repoFullName);
 
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
@@ -507,10 +522,7 @@ export class GhaChecks {
     async updateWorkflowRunCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         const workflowJob = payload.workflow_job;
         const repoFullName = payload.repository.full_name;
-        const workflowRun = await gha_workflow_runs(db).findOne({
-            pipeline_run_name: workflowJob.name,
-            repo_full_name: repoFullName
-        });
+        const workflowRun = await this.findWorkflowRunWithFallback(workflowJob.name, repoFullName);
 
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
@@ -529,10 +541,7 @@ export class GhaChecks {
     async updatePRStatusCheckInProgress(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobInProgressEvent) {
         const workflowJob = payload.workflow_job;
         const repoFullName = payload.repository.full_name;
-        const workflowRun = await gha_workflow_runs(db).findOne({
-            pipeline_run_name: workflowJob.name,
-            repo_full_name: repoFullName
-        });
+        const workflowRun = await this.findWorkflowRunWithFallback(workflowJob.name, repoFullName);
         // update pr_status check run
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
@@ -682,10 +691,7 @@ export class GhaChecks {
     async updatePRStatusCheckCompleted(octokit: InstanceType<typeof ProbotOctokit>, payload: WorkflowJobCompletedEvent) {
         const workflowJob = payload.workflow_job;
         const repoFullName = payload.repository.full_name;
-        const workflowRun = await gha_workflow_runs(db).findOne({
-            pipeline_run_name: workflowJob.name,
-            repo_full_name: repoFullName
-        });
+        const workflowRun = await this.findWorkflowRunWithFallback(workflowJob.name, repoFullName);
         if (!workflowRun) {
             this.log.warn(`Workflow run ${workflowJob.name} is not exist in db`);
             return;

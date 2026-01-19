@@ -517,6 +517,96 @@ describe('gha_checks', () => {
         });
     });
 
+    it('should fallback to legacy record with null repo_full_name when exact match not found', async () => {
+        // Mock findOne to return null on first call (exact match), then return record on second call (fallback)
+        const legacyRecord = {
+            id: 1,
+            name: 'gha-checks-1234567890',
+            head_sha: '1234567890',
+            merge_commit_sha: '1234567890',
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            workflow_run_inputs: {},
+            pr_number: 1,
+            hook: 'onPullRequest',
+            check_run_id: 2,
+            pr_check_id: 3,
+            workflow_run_id: 5,
+            repo_full_name: null  // Legacy record without repo_full_name
+        };
+        findOneMock
+            .mockResolvedValueOnce(null)  // First call: exact match fails
+            .mockResolvedValueOnce(legacyRecord);  // Second call: fallback succeeds
+
+        const updateCheckMock = vi.fn().mockImplementation(() => {
+            return {
+                data: {
+                    id: 2,
+                    status: 'in_progress',
+                    details_url: ''
+                },
+                status: 200,
+            }
+        });
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            }
+        }
+        // @ts-ignore
+        await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
+
+        // Verify first call was exact match with repo_full_name
+        expect(findOneMock).toHaveBeenNthCalledWith(1, {
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
+        });
+        // Verify second call was fallback with null repo_full_name
+        expect(findOneMock).toHaveBeenNthCalledWith(2, {
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            repo_full_name: null
+        });
+        // Verify check was updated (fallback worked)
+        expect(updateCheckMock).toHaveBeenCalledWith({
+            check_run_id: 2,
+            output: expect.anything(),
+            owner: workflowJobInProgressPayload.repository.owner.login,
+            repo: workflowJobInProgressPayload.repository.name,
+            status: "in_progress",
+        });
+    });
+
+    it('should log warning when workflow run not found in db (both exact match and fallback fail)', async () => {
+        // Mock findOne to return null for both calls
+        findOneMock
+            .mockResolvedValueOnce(null)  // First call: exact match fails
+            .mockResolvedValueOnce(null);  // Second call: fallback also fails
+
+        const updateCheckMock = vi.fn();
+        const octokit = {
+            checks: {
+                update: updateCheckMock
+            }
+        }
+        // @ts-ignore
+        await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
+
+        // Verify both calls were made
+        expect(findOneMock).toHaveBeenNthCalledWith(1, {
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            repo_full_name: "mdolinin/mono-repo-example"
+        });
+        expect(findOneMock).toHaveBeenNthCalledWith(2, {
+            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
+            repo_full_name: null
+        });
+        // Verify warning was logged
+        expect(logMock.warn).toHaveBeenCalledWith(
+            `Workflow run ${workflowJobInProgressPayload.workflow_job.name} is not exist in db`
+        );
+        // Verify check was NOT updated
+        expect(updateCheckMock).not.toHaveBeenCalled();
+    });
+
     it('should update pr-status check, when workflow run in progress', async () => {
         const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
