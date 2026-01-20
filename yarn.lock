@@ -2723,12 +2723,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/readable-stream@npm:^4.0.21":
-  version: 4.0.21
-  resolution: "@types/readable-stream@npm:4.0.21"
+"@types/readable-stream@npm:^4.0.23":
+  version: 4.0.23
+  resolution: "@types/readable-stream@npm:4.0.23"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/5c0a69a994d7efb8de6c27a626a5353b0d5d510979dd6bddc344d3fe54630ad175bf5fafe48eeaa9f423cf22d60247d0b20264aad68ced2eb49318b071168fed
+  checksum: 10c0/89ae3f6a53d186252c4c957b715c8dc12b318be30aeb3546f6513163572e5eebe0f61261e70c6d3f7496d63741ed6f92fbc5d17bfe9a72b0abfe720ee8fa471a
   languageName: node
   linkType: hard
 
@@ -5920,7 +5920,7 @@ __metadata:
     "@types/js-yaml": "npm:^4.0.9"
     "@types/node": "npm:^25.0.3"
     "@types/pino-std-serializers": "npm:^4.0.0"
-    "@types/readable-stream": "npm:^4.0.21"
+    "@types/readable-stream": "npm:^4.0.23"
     "@vitest/coverage-v8": "npm:^4.0.17"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
