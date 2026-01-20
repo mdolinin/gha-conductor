@@ -450,9 +450,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@datadog/pprof@npm:5.12.0":
-  version: 5.12.0
-  resolution: "@datadog/pprof@npm:5.12.0"
+"@datadog/pprof@npm:5.13.1":
+  version: 5.13.1
+  resolution: "@datadog/pprof@npm:5.13.1"
   dependencies:
     delay: "npm:^5.0.0"
     node-gyp: "npm:latest"
@@ -460,7 +460,7 @@ __metadata:
     p-limit: "npm:^3.1.0"
     pprof-format: "npm:^2.2.1"
     source-map: "npm:^0.7.4"
-  checksum: 10c0/e18e9e941fbd7ba6de52f3e8d92d7b4612ab054b302d2b2581932be41d1f4bb03d27b753ab9242364b897ba2773c105b1badb2d760db4b1fe633e1b8c23c1013
+  checksum: 10c0/13f67b0c04aba866dc209730c43c0d1e28265d2b0e8704bc1faf761fa75faf4e175f4cb03aeb7021be84c4c0109401f08d1fb8ee27f4d1aab18698dd9f4c63a6
   languageName: node
   linkType: hard
 
@@ -4775,21 +4775,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dd-trace@npm:^5.81.0":
-  version: 5.81.0
-  resolution: "dd-trace@npm:5.81.0"
+"dd-trace@npm:^5.82.0":
+  version: 5.82.0
+  resolution: "dd-trace@npm:5.82.0"
   dependencies:
     "@datadog/libdatadog": "npm:0.7.0"
     "@datadog/native-appsec": "npm:10.3.0"
     "@datadog/native-iast-taint-tracking": "npm:4.1.0"
     "@datadog/native-metrics": "npm:3.1.1"
     "@datadog/openfeature-node-server": "npm:^0.2.0"
-    "@datadog/pprof": "npm:5.12.0"
+    "@datadog/pprof": "npm:5.13.1"
     "@datadog/wasm-js-rewriter": "npm:5.0.1"
     "@opentelemetry/api": "npm:>=1.0.0 <1.10.0"
     "@opentelemetry/api-logs": "npm:<1.0.0"
     dc-polyfill: "npm:^0.1.10"
-    import-in-the-middle: "npm:^1.14.2"
+    import-in-the-middle: "npm:2.0.0"
   dependenciesMeta:
     "@datadog/libdatadog":
       optional: true
@@ -4809,7 +4809,7 @@ __metadata:
       optional: true
     "@opentelemetry/api-logs":
       optional: true
-  checksum: 10c0/969f7cc695dcf0b92acc223cd1eb421afa4877b7626d0d370217139d3bfee23c5b4a7652c7332857a48c6345d364191412a7eafdd5e2cad30a95f9781065f87c
+  checksum: 10c0/f358ee4f6c245e320cc40e71f3eebba780541b31c146706d2cec88781d082dd6b94c2f70a5009387a50923278735a6e783eee731711cd4c80270299ea10ef76d
   languageName: node
   linkType: hard
 
@@ -5924,7 +5924,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^4.0.17"
     ajv: "npm:^8.17.1"
     cross-var: "npm:^1.1.0"
-    dd-trace: "npm:^5.81.0"
+    dd-trace: "npm:^5.82.0"
     dotenv-cli: "npm:^11.0.0"
     glob: "npm:^13.0.0"
     js-yaml: "npm:^4.1.1"
@@ -6347,6 +6347,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"import-in-the-middle@npm:2.0.0":
+  version: 2.0.0
+  resolution: "import-in-the-middle@npm:2.0.0"
+  dependencies:
+    acorn: "npm:^8.14.0"
+    acorn-import-attributes: "npm:^1.9.5"
+    cjs-module-lexer: "npm:^1.2.2"
+    module-details-from-path: "npm:^1.0.3"
+  checksum: 10c0/b4349a1bac96a5ffb584564c24bb5ff70085d1e6f0a614392f7cd2321c9a1871bc6c3e93a01cbc0eeb7663ae572b717b808e9d24fe213b4ce373dd87d59ca8c5
+  languageName: node
+  linkType: hard
+
 "import-in-the-middle@npm:^1.11.2, import-in-the-middle@npm:^1.8.1":
   version: 1.12.0
   resolution: "import-in-the-middle@npm:1.12.0"
@@ -6356,18 +6368,6 @@ __metadata:
     cjs-module-lexer: "npm:^1.2.2"
     module-details-from-path: "npm:^1.0.3"
   checksum: 10c0/e0f92bd27b9ef15099494ef0e8ba0b6fa6f0e643a3ff1d41b52530b6e4ff2a502099fff345f3ffb7c75f78cb189903b8d2d92fab5f8123badbc9e790cc19bbe7
-  languageName: node
-  linkType: hard
-
-"import-in-the-middle@npm:^1.14.2":
-  version: 1.14.2
-  resolution: "import-in-the-middle@npm:1.14.2"
-  dependencies:
-    acorn: "npm:^8.14.0"
-    acorn-import-attributes: "npm:^1.9.5"
-    cjs-module-lexer: "npm:^1.2.2"
-    module-details-from-path: "npm:^1.0.3"
-  checksum: 10c0/ee614a09d3772ad39f8005d798458e541cbfb897b8f97623f4bac527eecc51984586cfbf8f195715df5c463ec0b7fce8086489dc12f758ffe5ea485b8a29da01
   languageName: node
   linkType: hard
 

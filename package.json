@@ -26,7 +26,7 @@
     "@databases/pg-schema-cli": "^4.5.0",
     "@databases/pg-typed": "^4.4.1",
     "ajv": "^8.17.1",
-    "dd-trace": "^5.81.0",
+    "dd-trace": "^5.82.0",
     "glob": "^13.0.0",
     "js-yaml": "^4.1.1",
     "json-schema-to-typescript": "^15.0.4",
