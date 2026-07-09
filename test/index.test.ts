@@ -252,7 +252,8 @@ describe("gha-conductor app", () => {
             "mdolinin/mono-repo-example",
             "feature-1",
             ".gha.yaml",
-            ghaYamlChangedAndHavePROpenedPayload.commits
+            ghaYamlChangedAndHavePROpenedPayload.commits,
+            ghaYamlChangedAndHavePROpenedPayload.after
         );
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
@@ -275,7 +276,8 @@ describe("gha-conductor app", () => {
             "mdolinin/mono-repo-example",
             "main",
             ".gha.yaml",
-            pushGhaYamlChangedPayload.commits
+            pushGhaYamlChangedPayload.commits,
+            pushGhaYamlChangedPayload.after
         );
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
