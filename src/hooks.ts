@@ -90,7 +90,7 @@ export class Hooks {
                     break;
                 }
                 for (const file of files_changed) {
-                    if (!hook.file_changes_matcher.startsWith("!") && minimatch(file, hook.file_changes_matcher)) {
+                    if (!hook.file_changes_matcher.startsWith("!") && minimatch(file, hook.file_changes_matcher, {dot: true})) {
                         this.log.info(`File ${file} matches matcher ${hook.file_changes_matcher} for hook ${hook.pipeline_unique_prefix}`);
                         triggeredHooks.add(hook);
                         matched = true;
