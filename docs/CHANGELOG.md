@@ -1,3 +1,10 @@
+## [1.22.6](https://github.com/mdolinin/gha-conductor/compare/v1.22.5...v1.22.6) (2026-07-10)
+
+
+### Bug Fixes
+
+* redact installation access token from debug/error logs ([#533](https://github.com/mdolinin/gha-conductor/issues/533)) ([04a6a59](https://github.com/mdolinin/gha-conductor/commit/04a6a597614fd51075df8cb36e9c9d7cf2389f56))
+
 ## [1.22.5](https://github.com/mdolinin/gha-conductor/compare/v1.22.4...v1.22.5) (2026-07-10)
 
 
