@@ -216,20 +216,44 @@ describe('gha loader', () => {
         const octokit = {
             auth: vi.fn().mockImplementation(() => {
                 return {
-                    token: "token"
+                    token: "sekret-installation-token"
                 }
             }),
         };
         // @ts-ignore
         await ghaLoader.loadAllGhaHooksFromRepo(octokit, "repo_full_name", "branch", ".gha.yaml");
         expect(octokit.auth).toHaveBeenCalledWith({type: "installation"});
-        expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:token@github.com/repo_full_name.git", expect.stringMatching(RegExp('.*repo_full_name')));
+        expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:sekret-installation-token@github.com/repo_full_name.git", expect.stringMatching(RegExp('.*repo_full_name')));
         expect(cwdMock).toHaveBeenCalledWith({path: expect.stringMatching(RegExp('.*repo_full_name')), root: true});
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(globMock).toHaveBeenCalled();
         expect(readFileSyncMockCounter).toBe(2);
         expect(deleteMock).toHaveBeenCalledTimes(1)
         expect(insertMock).toHaveBeenCalledTimes(10);
+        for (const mockFn of [logMock.debug, logMock.info, logMock.warn, logMock.error]) {
+            for (const call of mockFn.mock.calls) {
+                expect(call.join(' ')).not.toContain("sekret-installation-token");
+            }
+        }
+    });
+
+    it('should not leak the installation token in logs, when cloning the repo fails', async () => {
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {
+                    token: "sekret-clone-failure-token"
+                }
+            }),
+        };
+        cloneMock.mockReturnValueOnce(Promise.resolve("fatal: could not clone"));
+        // @ts-ignore
+        await ghaLoader.loadAllGhaHooksFromRepo(octokit, "repo_full_name", "branch", ".gha.yaml");
+        expect(logMock.error).toHaveBeenCalledWith("Error cloning https://x-access-token:***@github.com/repo_full_name.git repo fatal: could not clone");
+        for (const mockFn of [logMock.debug, logMock.info, logMock.warn, logMock.error]) {
+            for (const call of mockFn.mock.calls) {
+                expect(call.join(' ')).not.toContain("sekret-clone-failure-token");
+            }
+        }
     });
 
     it('should check yaml is valid, when gha yaml file is changed in PR', async () => {

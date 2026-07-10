@@ -82,10 +82,11 @@ export class GhaLoader {
             fs.mkdirSync(target, {recursive: true});
             // clone repo
             let remote = `https://x-access-token:${token}@github.com/${full_name}.git`;
-            this.log.debug(`Repo path is ${remote}`);
+            const redactedRemote = `https://x-access-token:***@github.com/${full_name}.git`;
+            this.log.debug(`Repo path is ${redactedRemote}`);
             const cloneResp = await this.git.clone(remote, target);
             if (cloneResp !== "") {
-                this.log.error(`Error cloning ${remote} repo ${cloneResp}`);
+                this.log.error(`Error cloning ${redactedRemote} repo ${cloneResp}`);
                 return;
             }
             // then set the working directory of the root instance - you want all future
