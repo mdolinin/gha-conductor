@@ -1,3 +1,10 @@
+## [1.22.4](https://github.com/mdolinin/gha-conductor/compare/v1.22.3...v1.22.4) (2026-07-10)
+
+
+### Bug Fixes
+
+* stop truncating branch names containing a slash in push handler ([#532](https://github.com/mdolinin/gha-conductor/issues/532)) ([1abe430](https://github.com/mdolinin/gha-conductor/commit/1abe4304371f6bc0f1d6c9caaa651678bb4bf388))
+
 ## [1.22.3](https://github.com/mdolinin/gha-conductor/compare/v1.22.2...v1.22.3) (2026-07-10)
 
 
