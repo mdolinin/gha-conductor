@@ -58,6 +58,13 @@ const deleteMock = vi.fn();
 const updateMock = vi.fn();
 const insertMock = vi.fn();
 const countMock = vi.fn().mockReturnValue(0);
+// gha_hooks(x) below ignores whatever connection/transaction object it's given and always
+// returns the same set of mocks, so the fake "tx" handed to callers here can be a bare stub -
+// it only needs enough shape to satisfy withBranchLock's advisory-lock query.
+const txQueryMock = vi.fn().mockReturnValue(Promise.resolve([]));
+const dbTxMock = vi.fn().mockImplementation((fn: (tx: unknown) => unknown) => {
+    return fn({query: txQueryMock});
+});
 
 vi.mock('glob', () => {
     return {
@@ -70,6 +77,7 @@ vi.mock('../src/db/database', async (importOriginal) => {
     return {
         // @ts-ignore
         ...mod,
+        default: {tx: (fn: (tx: unknown) => unknown) => dbTxMock(fn)},
         gha_hooks: vi.fn(() => {
             return {
                 find: findMock,
@@ -618,6 +626,39 @@ describe('gha loader', () => {
         expect(deleteMock).toHaveBeenCalledTimes(1)
         expect(readFileSyncMockCounter).toBe(2);
         expect(insertMock).toHaveBeenCalledTimes(10);
+    });
+
+    it('should acquire a per-branch advisory lock before touching the hooks cache', async () => {
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {token: "token5"}
+            }),
+        };
+        // @ts-ignore
+        await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_locked", "branch");
+        expect(dbTxMock).toHaveBeenCalledTimes(1);
+        expect(txQueryMock).toHaveBeenCalledTimes(1);
+        const lockQuery = txQueryMock.mock.calls[0][0];
+        const {text, values} = lockQuery.format({
+            escapeIdentifier: (s: string) => `"${s}"`,
+            formatValue: (v: unknown, i: number) => ({placeholder: `$${i + 1}`, value: v})
+        });
+        expect(text).toContain("pg_advisory_xact_lock");
+        expect(values).toEqual(["org/repo_locked", "branch"]);
+    });
+
+    it('should not throw and should log, when acquiring the branch lock fails', async () => {
+        dbTxMock.mockImplementationOnce(() => {
+            throw new Error("connection terminated unexpectedly");
+        });
+        const octokit = {
+            auth: vi.fn()
+        };
+        // @ts-ignore
+        await expect(ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_lock_fails", "branch")).resolves.toBeUndefined();
+        expect(logMock.error).toHaveBeenCalledWith(expect.any(Error), expect.stringContaining("Error acquiring hooks cache lock"));
+        expect(countMock).not.toHaveBeenCalled();
+        expect(cloneMock).not.toHaveBeenCalled();
     });
 
     it('should do nothing, when branch hooks cache already matches the branch current HEAD', async () => {
