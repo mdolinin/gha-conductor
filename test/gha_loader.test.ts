@@ -1,6 +1,7 @@
 import {vi, describe, beforeEach, afterEach, expect, it} from "vitest";
 import {GhaLoader} from "../src/gha_loader.js";
 import {Logger} from "probot";
+import * as fs from "fs";
 
 const cloneMock = vi.fn().mockReturnValue(Promise.resolve(""));
 const cwdMock = vi.fn();
@@ -199,12 +200,12 @@ describe('gha loader', () => {
 
     beforeEach(() => {
         // @ts-ignore
-        ghaLoader.git = {
+        ghaLoader.createGit = () => ({
             clone: cloneMock,
             cwd: cwdMock,
             checkoutBranch: checkoutBranchMock,
             revparse: revparseMock
-        }
+        });
     });
 
     afterEach(() => {
@@ -254,6 +255,38 @@ describe('gha loader', () => {
                 expect(call.join(' ')).not.toContain("sekret-clone-failure-token");
             }
         }
+    });
+
+    it('should clean up the clone directory after successfully loading hooks, so it does not accumulate on disk across every branch ever full-reloaded', async () => {
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {token: "token"}
+            }),
+        };
+        // @ts-ignore
+        await ghaLoader.loadAllGhaHooksFromRepo(octokit, "repo_full_name_cleanup", "cleanup-branch", ".gha.yaml");
+        expect(fs.rmSync).toHaveBeenCalledWith(
+            expect.stringMatching(RegExp('.*repo_full_name_cleanup.*cleanup-branch')),
+            {recursive: true, force: true}
+        );
+    });
+
+    it('should clean up the clone directory, even when an error is thrown while parsing hooks', async () => {
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {token: "token"}
+            }),
+        };
+        globMock.mockImplementationOnce(() => {
+            throw new Error("glob blew up");
+        });
+        // @ts-ignore
+        await ghaLoader.loadAllGhaHooksFromRepo(octokit, "repo_full_name_cleanup_error", "branch", ".gha.yaml");
+        expect(fs.rmSync).toHaveBeenCalledWith(
+            expect.stringMatching(RegExp('.*repo_full_name_cleanup_error.*branch')),
+            {recursive: true, force: true}
+        );
+        expect(logMock.error).toHaveBeenCalled();
     });
 
     it('should check yaml is valid, when gha yaml file is changed in PR', async () => {
@@ -843,6 +876,60 @@ describe('gha loader', () => {
     it('should delete all hooks from db, when branch is deleted', async () => {
         await ghaLoader.deleteAllGhaHooksForBranch("repo_full_name3", "branch3");
         expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "repo_full_name3", branch: "branch3"});
+    });
+
+    it('should not corrupt each other\'s clone/checkout state, when two full-reloads for different branches of the same repo run concurrently', async () => {
+        // Each call must get its own git instance and its own clone directory, keyed by branch,
+        // so that call A's checkoutBranch never runs against a cwd that call B most recently set.
+        const instances: { target: string | undefined, branch: string | undefined }[] = [];
+        // @ts-ignore
+        ghaLoader.createGit = () => {
+            const instance: { target: string | undefined, branch: string | undefined } = {target: undefined, branch: undefined};
+            instances.push(instance);
+            return {
+                clone: vi.fn().mockImplementation(async () => {
+                    // yield so the other concurrent call's clone/cwd/checkout can interleave
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                    return "";
+                }),
+                cwd: vi.fn().mockImplementation(async ({path: cwdPath}: { path: string }) => {
+                    instance.target = cwdPath;
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }),
+                checkoutBranch: vi.fn().mockImplementation(async (branch: string) => {
+                    instance.branch = branch;
+                })
+            };
+        };
+        const rmSyncCalls: string[] = [];
+        // @ts-ignore
+        vi.mocked(fs.rmSync).mockImplementation((target: string) => {
+            rmSyncCalls.push(target);
+        });
+
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {token: "token"};
+            }),
+        };
+        await Promise.all([
+            // @ts-ignore
+            ghaLoader.loadAllGhaHooksFromRepo(octokit, "shared_repo", "branch-x", ".gha.yaml"),
+            // @ts-ignore
+            ghaLoader.loadAllGhaHooksFromRepo(octokit, "shared_repo", "branch-y", ".gha.yaml")
+        ]);
+
+        expect(instances).toHaveLength(2);
+        // each call's own git instance must have checked out its own branch inside its own target dir
+        for (const instance of instances) {
+            expect(instance.target).toEqual(expect.stringContaining(instance.branch as string));
+        }
+        // the two calls must not have shared (or clobbered) a clone directory
+        const targets = instances.map(instance => instance.target);
+        expect(new Set(targets).size).toBe(2);
+        // rmSync fires twice per call now (defensive clear before clone, cleanup after use) - what
+        // matters is that only the two branch-scoped paths were ever touched, never a shared one
+        expect(new Set(rmSyncCalls)).toEqual(new Set(targets));
     });
 
 });
