@@ -1,3 +1,10 @@
+## [1.22.7](https://github.com/mdolinin/gha-conductor/compare/v1.22.6...v1.22.7) (2026-07-10)
+
+
+### Bug Fixes
+
+* isolate concurrent full-reloads of different branches in the same repo ([#535](https://github.com/mdolinin/gha-conductor/issues/535)) ([5be3ca8](https://github.com/mdolinin/gha-conductor/commit/5be3ca8cec4eae72c51bebdab1ac8ddf09bb3c36)), closes [#531](https://github.com/mdolinin/gha-conductor/issues/531)
+
 ## [1.22.6](https://github.com/mdolinin/gha-conductor/compare/v1.22.5...v1.22.6) (2026-07-10)
 
 
