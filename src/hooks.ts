@@ -129,6 +129,7 @@ export class Hooks {
     private mapToHook(hook: GhaHooks) {
         return {
             branch: hook.branch,
+            branch_head_sha: hook.branch_head_sha ? hook.branch_head_sha : undefined,
             destination_branch_matcher: hook.destination_branch_matcher,
             hook_name: hook.hook_name,
             pipeline_name: hook.pipeline_name,

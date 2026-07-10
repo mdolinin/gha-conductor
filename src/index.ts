@@ -106,7 +106,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
                 const branchHooksCount = await ghaLoader.countHooksForBranch(repoFullName, branchName);
                 if (branchHooksCount > 0) {
                     // Branch exists in DB, load hooks incrementally from commits
-                    await ghaLoader.loadGhaHooksFromCommits(context.octokit, repoFullName, branchName, ghaHooksFileName, context.payload.commits);
+                    await ghaLoader.loadGhaHooksFromCommits(context.octokit, repoFullName, branchName, ghaHooksFileName, context.payload.commits, context.payload.after);
                     app.log.info(`Load hooks from ${context.payload.commits.map(commit => commit.id).join(',')} commits for branch ${branchName} in repo ${repoFullName} completed`);
                 } else {
                     app.log.info(`Branch ${branchName} does not exist in db for repo ${repoFullName}. No hooks will be loaded from push.`);
@@ -205,10 +205,13 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         const numOfChangedFiles = context.payload.pull_request.changed_files;
         if (numOfChangedFiles > 0) {
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name);
-            // if PR is just opened load all gha hooks for base branch
-            if (context.payload.action === "opened") {
+            // Ensure the base branch's cached hooks reflect its current HEAD before evaluating which
+            // hooks this event should trigger. This is a no-op when the cache is already fresh, and
+            // self-heals a branch whose cache went stale because an earlier push webhook for it was
+            // missed - most importantly right before onBranchMerge hooks are evaluated at merge time.
+            if (context.payload.action === "opened" || (context.payload.action === "closed" && pr.merged)) {
                 await ghaLoader.loadAllGhaYamlForBranchIfNew(context.octokit, repo_full_name, baseBranch, ghaHooksFileName);
-                app.log.info(`PR is just opened. Loading all gha hooks for base branch ${baseBranch} completed`);
+                app.log.info(`Ensured gha hooks for base branch ${baseBranch} are up to date`);
             }
             const eventType = context.payload.action;
             const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);

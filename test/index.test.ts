@@ -252,7 +252,8 @@ describe("gha-conductor app", () => {
             "mdolinin/mono-repo-example",
             "feature-1",
             ".gha.yaml",
-            ghaYamlChangedAndHavePROpenedPayload.commits
+            ghaYamlChangedAndHavePROpenedPayload.commits,
+            ghaYamlChangedAndHavePROpenedPayload.after
         );
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
@@ -275,7 +276,8 @@ describe("gha-conductor app", () => {
             "mdolinin/mono-repo-example",
             "main",
             ".gha.yaml",
-            pushGhaYamlChangedPayload.commits
+            pushGhaYamlChangedPayload.commits,
+            pushGhaYamlChangedPayload.after
         );
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
@@ -614,6 +616,88 @@ describe("gha-conductor app", () => {
         expect(updatePRCheckNoPipelinesTriggeredMock).toHaveBeenCalledTimes(0);
         expect(updatePRCheckForAllErroredPipelinesMock).toHaveBeenCalledTimes(0);
         expect(updatePRCheckForTriggeredPipelinesMock).toHaveBeenCalledTimes(1);
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    }, timeout);
+
+    it("when PR is merged, reconcile base branch hooks cache before evaluating onBranchMerge hooks", async () => {
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
+            .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ]);
+        const pullRequestMergedPayload = {
+            ...pullRequestOpenedPayload,
+            action: "closed",
+            pull_request: {
+                ...pullRequestOpenedPayload.pull_request,
+                merged: true,
+                merge_commit_sha: "b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8",
+            },
+        }
+        await probot.receive({name: "pull_request", payload: pullRequestMergedPayload});
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(1);
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledWith(
+            expect.anything(),
+            "mdolinin/mono-repo-example",
+            "main",
+            ".gha.yaml"
+        );
+        expect(filterTriggeredHooksMock).toHaveBeenCalledWith(
+            "mdolinin/mono-repo-example",
+            "onBranchMerge",
+            expect.anything(),
+            "main",
+            expect.anything()
+        );
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    }, timeout);
+
+    it("when PR is closed without merging, do not reconcile base branch hooks cache", async () => {
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
+            .get("/repos/mdolinin/mono-repo-example/pulls/27/files")
+            .reply(200, [
+                {
+                    filename: "test.sh",
+                },
+            ]);
+        const pullRequestClosedWithoutMergePayload = {
+            ...pullRequestOpenedPayload,
+            action: "closed",
+            pull_request: {
+                ...pullRequestOpenedPayload.pull_request,
+                merged: false,
+                mergeable: true,
+            },
+        }
+        await probot.receive({name: "pull_request", payload: pullRequestClosedWithoutMergePayload});
+        expect(loadAllGhaYamlForBranchIfNewMock).toHaveBeenCalledTimes(0);
+        expect(filterTriggeredHooksMock).toHaveBeenCalledWith(
+            "mdolinin/mono-repo-example",
+            "onPullRequestClose",
+            expect.anything(),
+            "main",
+            expect.anything()
+        );
         expect(mock.pendingMocks()).toStrictEqual([]);
     }, timeout);
 

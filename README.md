@@ -18,6 +18,7 @@ This can be achieved by using `paths` filter in the workflow definition, but it 
 - Trigger workflows based on /slash commands in PR comments (e.g. `/validate param=value`)
   ![pr-comment-command](./docs/pr-comment-command.png)
 - Automatically reload hooks from `.gha.yaml` files when pushing to any branch that already exists in the database (force-push safe)
+- Self-heal a branch's cached hooks if a push webhook for it is ever missed - the next PR event (open, or merge for `onBranchMerge` hooks) detects the cached commit sha no longer matches the branch's current HEAD and reconciles just the changed `.gha.yaml` files before evaluating what to trigger
 - Manually reload all hooks from `.gha.yaml` files by adding label `gha-conductor:load` to PR
 - Run multiple workflows in parallel for the same event
 - Report status of the workflow run as GitHub checks
