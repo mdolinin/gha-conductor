@@ -1,3 +1,10 @@
+## [1.22.5](https://github.com/mdolinin/gha-conductor/compare/v1.22.4...v1.22.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* match dotfile hooks paths against ** file-change globs ([#534](https://github.com/mdolinin/gha-conductor/issues/534)) ([dca4a04](https://github.com/mdolinin/gha-conductor/commit/dca4a043f137dd8552f908dd6fec1dae5996d517))
+
 ## [1.22.4](https://github.com/mdolinin/gha-conductor/compare/v1.22.3...v1.22.4) (2026-07-10)
 
 
