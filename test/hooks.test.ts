@@ -156,6 +156,29 @@ describe('gha hooks', () => {
         expect(findAllMock).toHaveBeenCalledTimes(1);
     });
 
+    it('find hooks to trigger, when the hooks file itself is the only file changed in the PR', async () => {
+        const hookFile = "namespaces/domain-a/projects/example-a/.gha-hooks.yaml";
+        const buildHook = {
+            repo_full_name: "repo_full_name",
+            branch: "",
+            file_changes_matcher: "namespaces/domain-a/projects/example-a/**",
+            destination_branch_matcher: null,
+            hook: "onPullRequest" as HookType,
+            hook_name: "build",
+            path_to_gha_yaml: hookFile,
+            pipeline_unique_prefix: "domain-a-example-a-build",
+            pipeline_name: "common-job",
+            pipeline_ref: undefined,
+            pipeline_params: {},
+            shared_params: {},
+            slash_command: undefined
+        };
+        const triggeredHooks = await hooks.filterTriggeredHooks(
+            "repo_full_name", "onPullRequest", [hookFile], "baseBranch",
+            {hooks: [buildHook], hookFilesModified: new Set([hookFile])});
+        expect(triggeredHooks).toEqual(new Set([buildHook]));
+    });
+
     it('find hooks to trigger, when matched files changed on slash command received', async () => {
         const hook = {
             repo_full_name: "repo_full_name",
