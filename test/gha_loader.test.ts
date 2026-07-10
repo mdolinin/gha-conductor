@@ -682,6 +682,77 @@ describe('gha loader', () => {
         expect(cloneMock).not.toHaveBeenCalled();
     });
 
+    it('should reconcile a renamed hook file by deleting the old path and reloading the new one, when branch hooks cache is stale', async () => {
+        countMock.mockReturnValueOnce(3267);
+        firstMock.mockReturnValueOnce(Promise.resolve({branch_head_sha: "oldsha"}));
+        const octokit = {
+            repos: {
+                getBranch: vi.fn().mockImplementation(() => {
+                    return {data: {commit: {sha: "newsha"}}}
+                }),
+                compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
+                    return {
+                        data: {
+                            files: [
+                                {filename: "folder1/.gha.yaml.disabled", previous_filename: "folder1/.gha.yaml", status: "renamed"}
+                            ]
+                        }
+                    }
+                }),
+                getContent: vi.fn()
+            }
+        };
+        // @ts-ignore
+        await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_renamed", "branch", ".gha.yaml");
+        expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "org/repo_renamed", branch: "branch", path_to_gha_yaml: "folder1/.gha.yaml"});
+        expect(octokit.repos.getContent).not.toHaveBeenCalled();
+        expect(insertMock).not.toHaveBeenCalled();
+        expect(updateMock).toHaveBeenCalledWith({repo_full_name: "org/repo_renamed", branch: "branch"}, {branch_head_sha: "newsha"});
+    });
+
+    it('should skip the staleness check, when fetching the branch current HEAD fails', async () => {
+        countMock.mockReturnValueOnce(3267);
+        const octokit = {
+            repos: {
+                getBranch: vi.fn().mockImplementation(() => {
+                    throw new Error("network error");
+                }),
+                compareCommitsWithBasehead: vi.fn(),
+                getContent: vi.fn()
+            }
+        };
+        // @ts-ignore
+        await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_getbranch_fails", "branch", ".gha.yaml");
+        expect(firstMock).not.toHaveBeenCalled();
+        expect(octokit.repos.compareCommitsWithBasehead).not.toHaveBeenCalled();
+        expect(cloneMock).not.toHaveBeenCalled();
+        expect(insertMock).not.toHaveBeenCalled();
+        expect(deleteMock).not.toHaveBeenCalled();
+    });
+
+    it('should fall back to a full reload, when comparing commits fails', async () => {
+        countMock.mockReturnValueOnce(3267);
+        firstMock.mockReturnValueOnce(Promise.resolve({branch_head_sha: "oldsha"}));
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {token: "token4"}
+            }),
+            repos: {
+                getBranch: vi.fn().mockImplementation(() => {
+                    return {data: {commit: {sha: "newsha"}}}
+                }),
+                compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
+                    throw new Error("compare API error");
+                })
+            }
+        };
+        // @ts-ignore
+        await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_compare_fails", "branch", ".gha.yaml");
+        expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:token4@github.com/org/repo_compare_fails.git", expect.stringMatching(RegExp('.*org/repo_compare_fails')));
+        expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
+        expect(insertMock).toHaveBeenCalledTimes(10);
+    });
+
     it('should force a full reload, when branch has cached hooks but no recorded head sha (predates staleness tracking)', async () => {
         countMock.mockReturnValueOnce(3267);
         firstMock.mockReturnValueOnce(Promise.resolve(null));
