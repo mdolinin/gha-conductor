@@ -1,3 +1,10 @@
+## [1.22.3](https://github.com/mdolinin/gha-conductor/compare/v1.22.2...v1.22.3) (2026-07-10)
+
+
+### Bug Fixes
+
+* self-heal stale per-branch hooks cache instead of trusting it forever ([#531](https://github.com/mdolinin/gha-conductor/issues/531)) ([b85e670](https://github.com/mdolinin/gha-conductor/commit/b85e67005305c5f9c97bfc24c10924f146296097))
+
 ## [1.22.2](https://github.com/mdolinin/gha-conductor/compare/v1.22.1...v1.22.2) (2026-01-19)
 
 
