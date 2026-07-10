@@ -257,6 +257,38 @@ describe('gha loader', () => {
         }
     });
 
+    it('should clean up the clone directory after successfully loading hooks, so it does not accumulate on disk across every branch ever full-reloaded', async () => {
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {token: "token"}
+            }),
+        };
+        // @ts-ignore
+        await ghaLoader.loadAllGhaHooksFromRepo(octokit, "repo_full_name_cleanup", "cleanup-branch", ".gha.yaml");
+        expect(fs.rmSync).toHaveBeenCalledWith(
+            expect.stringMatching(RegExp('.*repo_full_name_cleanup.*cleanup-branch')),
+            {recursive: true, force: true}
+        );
+    });
+
+    it('should clean up the clone directory, even when an error is thrown while parsing hooks', async () => {
+        const octokit = {
+            auth: vi.fn().mockImplementation(() => {
+                return {token: "token"}
+            }),
+        };
+        globMock.mockImplementationOnce(() => {
+            throw new Error("glob blew up");
+        });
+        // @ts-ignore
+        await ghaLoader.loadAllGhaHooksFromRepo(octokit, "repo_full_name_cleanup_error", "branch", ".gha.yaml");
+        expect(fs.rmSync).toHaveBeenCalledWith(
+            expect.stringMatching(RegExp('.*repo_full_name_cleanup_error.*branch')),
+            {recursive: true, force: true}
+        );
+        expect(logMock.error).toHaveBeenCalled();
+    });
+
     it('should check yaml is valid, when gha yaml file is changed in PR', async () => {
         const ghaYamlNotValid = `
         moduleName: 
@@ -895,7 +927,9 @@ describe('gha loader', () => {
         // the two calls must not have shared (or clobbered) a clone directory
         const targets = instances.map(instance => instance.target);
         expect(new Set(targets).size).toBe(2);
-        expect(new Set(rmSyncCalls).size).toBe(rmSyncCalls.length);
+        // rmSync fires twice per call now (defensive clear before clone, cleanup after use) - what
+        // matters is that only the two branch-scoped paths were ever touched, never a shared one
+        expect(new Set(rmSyncCalls)).toEqual(new Set(targets));
     });
 
 });

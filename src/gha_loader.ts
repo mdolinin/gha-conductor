@@ -92,38 +92,48 @@ export class GhaLoader {
                 fs.rmSync(target, {recursive: true, force: true});
             }
             fs.mkdirSync(target, {recursive: true});
-            // clone repo
-            let remote = `https://x-access-token:${token}@github.com/${full_name}.git`;
-            const redactedRemote = `https://x-access-token:***@github.com/${full_name}.git`;
-            this.log.debug(`Repo path is ${redactedRemote}`);
-            const cloneResp = await git.clone(remote, target);
-            if (cloneResp !== "") {
-                this.log.error(`Error cloning ${redactedRemote} repo ${cloneResp}`);
-                return;
+            try {
+                // clone repo
+                let remote = `https://x-access-token:${token}@github.com/${full_name}.git`;
+                const redactedRemote = `https://x-access-token:***@github.com/${full_name}.git`;
+                this.log.debug(`Repo path is ${redactedRemote}`);
+                const cloneResp = await git.clone(remote, target);
+                if (cloneResp !== "") {
+                    this.log.error(`Error cloning ${redactedRemote} repo ${cloneResp}`);
+                    return;
+                }
+                // then set the working directory of this call's own instance - you want all future
+                // tasks run through `git` to be from the new directory, rather than just tasks
+                // chained off this task
+                await git.cwd({path: target, root: true});
+                if (branch !== "master" && branch !== "main") {
+                    const checkoutResp = await git.checkoutBranch(branch, `origin/${branch}`);
+                    this.log.debug("Checkout response is " + JSON.stringify(checkoutResp));
+                }
+                const branchHeadSha = (await git.revparse("HEAD")).trim();
+                // find all hooks files in repo using glob lib
+                const ghaYamlFiles = await glob(`**/${hooksFileName}`, {cwd: target});
+                // parse yaml
+                let newHooks: GhaHook[] = [];
+                for (const ghaYamlFilePath of ghaYamlFiles) {
+                    this.log.info(`Found ${hooksFileName} file ${ghaYamlFilePath}`);
+                    const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
+                    this.log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
+                    const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, ghaYamlFilePath, full_name, branch, branchHeadSha);
+                    newHooks = newHooks.concat(hooksFromFile);
+                }
+                this.log.debug(`Reinserting all ${newHooks.length} hooks`);
+                await gha_hooks(tx).delete({repo_full_name: full_name, branch: branch});
+                await Promise.all(newHooks.map(hook => gha_hooks(tx).insert(hook)));
+            } finally {
+                // The clone is single-use scratch space (a fresh git.clone() runs every time, never
+                // an incremental pull), so there's nothing to gain from leaving it on disk. Each
+                // distinct branch that ever hits this full-reload path now gets its own directory
+                // (see the per-branch isolation above) - without this, every one of those would
+                // accumulate on disk forever instead of just the single, repo-scoped leftover this
+                // code used to leave behind.
+                fs.rmSync(target, {recursive: true, force: true});
             }
-            // then set the working directory of this call's own instance - you want all future
-            // tasks run through `git` to be from the new directory, rather than just tasks
-            // chained off this task
-            await git.cwd({path: target, root: true});
-            if (branch !== "master" && branch !== "main") {
-                const checkoutResp = await git.checkoutBranch(branch, `origin/${branch}`);
-                this.log.debug("Checkout response is " + JSON.stringify(checkoutResp));
-            }
-            const branchHeadSha = (await git.revparse("HEAD")).trim();
-            // find all hooks files in repo using glob lib
-            const ghaYamlFiles = await glob(`**/${hooksFileName}`, {cwd: target});
-            // parse yaml
-            let newHooks: GhaHook[] = [];
-            for (const ghaYamlFilePath of ghaYamlFiles) {
-                this.log.info(`Found ${hooksFileName} file ${ghaYamlFilePath}`);
-                const ghaFileYaml = load(fs.readFileSync(path.join(target, ghaYamlFilePath), "utf8"));
-                this.log.debug(`Parsed yaml of ${ghaYamlFilePath} is ${JSON.stringify(ghaFileYaml)}`);
-                const hooksFromFile = this.getGhaHooks(<TheRootSchema>ghaFileYaml, ghaYamlFilePath, full_name, branch, branchHeadSha);
-                newHooks = newHooks.concat(hooksFromFile);
-            }
-            this.log.debug(`Reinserting all ${newHooks.length} hooks`);
-            await gha_hooks(tx).delete({repo_full_name: full_name, branch: branch});
-            await Promise.all(newHooks.map(hook => gha_hooks(tx).insert(hook)));
         } catch (e) {
             this.log.error(e, `Error loading hooks for repo ${full_name} branch ${branch}`);
         }
