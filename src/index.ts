@@ -64,7 +64,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         // if push was delete branch
         if (context.payload.deleted) {
             const ref = context.payload.ref;
-            const branchName = ref.split("/").pop();
+            const branchName = ref.startsWith("refs/heads/") ? ref.slice("refs/heads/".length) : undefined;
             if (ref.startsWith("refs/heads/") && branchName) {
                 await ghaLoader.deleteAllGhaHooksForBranch(repoFullName, branchName);
                 app.log.info(`Delete all gha hooks for branch ${branchName} in repo ${repoFullName} completed`);
@@ -82,7 +82,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
         }
         const ref = context.payload.ref;
-        const branchName = ref.split("/").pop();
+        const branchName = ref.startsWith("refs/heads/") ? ref.slice("refs/heads/".length) : undefined;
         let reloadConfig = false;
         if (configFileChanged) {
             if (ref.startsWith("refs/heads/") && branchName) {

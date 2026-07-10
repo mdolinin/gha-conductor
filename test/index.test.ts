@@ -208,6 +208,17 @@ describe("gha-conductor app", () => {
     it("delete all related gha hooks, when branch is deleted", async () => {
         await probot.receive({name: "push", payload: deleteBranchPayload});
         expect(deleteAllGhaHooksForBranchMock).toHaveBeenCalledTimes(1);
+        expect(deleteAllGhaHooksForBranchMock).toHaveBeenCalledWith("mdolinin/mono-repo-example", "mdolinin-patch-4");
+    });
+
+    it("delete all related gha hooks, when branch with slash in name is deleted", async () => {
+        const deleteSlashBranchPayload = {
+            ...deleteBranchPayload,
+            ref: "refs/heads/feature/x",
+        }
+        await probot.receive({name: "push", payload: deleteSlashBranchPayload});
+        expect(deleteAllGhaHooksForBranchMock).toHaveBeenCalledTimes(1);
+        expect(deleteAllGhaHooksForBranchMock).toHaveBeenCalledWith("mdolinin/mono-repo-example", "feature/x");
     });
 
     it("when pushed changes with gha-conductor-config.yaml and branch is base, reload config from file", async () => {
@@ -254,6 +265,36 @@ describe("gha-conductor app", () => {
             ".gha.yaml",
             ghaYamlChangedAndHavePROpenedPayload.commits,
             ghaYamlChangedAndHavePROpenedPayload.after
+        );
+        expect(mock.pendingMocks()).toStrictEqual([]);
+    });
+
+    it("when pushed changes with .gha.yaml and branch name contains a slash, load incrementally from commits using the full branch name", async () => {
+        const mock = nock("https://api.github.com")
+            .post("/app/installations/44167724/access_tokens")
+            .reply(200, {
+                token: "test",
+                permissions: {
+                    pull_requests: "write",
+                },
+            })
+            .get("/repos/mdolinin/mono-repo-example/contents/.github%2Fgha-conductor-config.yaml")
+            .reply(200, "gha_hooks_file: .gha.yaml")
+        const ghaYamlChangedOnSlashBranchPayload = {
+            ...pushGhaYamlChangedPayload,
+            ref: "refs/heads/feature/x",
+        }
+        await probot.receive({name: "push", payload: ghaYamlChangedOnSlashBranchPayload});
+        expect(countHooksForBranchMock).toHaveBeenCalledTimes(1);
+        expect(countHooksForBranchMock).toHaveBeenCalledWith("mdolinin/mono-repo-example", "feature/x");
+        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledTimes(1);
+        expect(loadGhaHooksFromCommitsMock).toHaveBeenCalledWith(
+            expect.anything(),
+            "mdolinin/mono-repo-example",
+            "feature/x",
+            ".gha.yaml",
+            ghaYamlChangedOnSlashBranchPayload.commits,
+            ghaYamlChangedOnSlashBranchPayload.after
         );
         expect(mock.pendingMocks()).toStrictEqual([]);
     });
