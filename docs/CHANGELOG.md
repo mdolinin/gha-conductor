@@ -1,3 +1,10 @@
+## [1.22.8](https://github.com/mdolinin/gha-conductor/compare/v1.22.7...v1.22.8) (2026-11-01)
+
+
+### Bug Fixes
+
+* upgrade Node.js runtime to 24.22.2 (CVE-2026-111497 Brotli RCE) ([#537](https://github.com/mdolinin/gha-conductor/issues/537)) ([0c355c5](https://github.com/mdolinin/gha-conductor/commit/0c355c50a182ee9144ca7b28e7abbcf275c936a5))
+
 ## [1.22.7](https://github.com/mdolinin/gha-conductor/compare/v1.22.6...v1.22.7) (2026-07-10)
 
 
