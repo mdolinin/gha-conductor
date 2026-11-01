@@ -1,3 +1,11 @@
+## [1.22.9](https://github.com/mdolinin/gha-conductor/compare/v1.22.8...v1.22.9) (2026-11-01)
+
+
+### Bug Fixes
+
+* bump the npm_and_yarn group across 1 directory with 9 updates ([#550](https://github.com/mdolinin/gha-conductor/issues/550)) ([9109825](https://github.com/mdolinin/gha-conductor/commit/910982591d89c0fc586eaa93d57e27a563d2a6ea))
+* upgrade probot to 14.3.2 ([#546](https://github.com/mdolinin/gha-conductor/issues/546)) ([89763cf](https://github.com/mdolinin/gha-conductor/commit/89763cffde067f5ada4a84e617d46f4b7a9a1f53))
+
 ## [1.22.8](https://github.com/mdolinin/gha-conductor/compare/v1.22.7...v1.22.8) (2026-11-01)
 
 
