@@ -39,7 +39,7 @@ const findAllSuccess = vi.fn().mockImplementation(() => {
     ]
 });
 let findAllMock = findAllSuccess;
-const findOneMock = vi.fn().mockImplementation((query) => {
+const defaultFindOne = (query: any) => {
     return {
         id: 1,
         name: 'gha-checks-1234567890',
@@ -54,10 +54,14 @@ const findOneMock = vi.fn().mockImplementation((query) => {
         workflow_run_id: 5,
         repo_full_name: query.repo_full_name || 'test/repo'
     }
-});
-const findMock = vi.fn().mockImplementation(() => {
+};
+const findOneMock = vi.fn().mockImplementation(defaultFindOne);
+// `find(query).orderByDesc(col).first()` - by default returns the same record findOne would
+const findFirstMock = vi.fn().mockImplementation((query) => findOneMock(query));
+const findMock = vi.fn().mockImplementation((query) => {
     return {
-        all: findAllMock
+        all: findAllMock,
+        orderByDesc: () => ({first: () => findFirstMock(query)}),
     }
 });
 const updateMock = vi.fn();
@@ -89,6 +93,7 @@ describe('gha_checks', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+        findFirstMock.mockImplementation((query) => findOneMock(query));
     });
 
     it('should create check if workflow run got error on attempt to trigger', async () => {
@@ -412,9 +417,10 @@ describe('gha_checks', () => {
         };
         // @ts-ignore
         await checks.updateWorkflowRunCheckQueued(octokit, workflowJobQueuedPayload, 1);
-        expect(findOneMock).toHaveBeenCalledWith({
+        expect(findFirstMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
+            repo_full_name: "mdolinin/mono-repo-example",
+            workflow_run_id: workflowJobQueuedPayload.workflow_job.run_id
         });
         expect(createCheckMock).toHaveBeenCalledWith({
             details_url: 'https://github.com/mdolinin/mono-repo-example/actions/runs/7856385885',
@@ -429,10 +435,7 @@ describe('gha_checks', () => {
                 summary: expect.anything()
             }
         });
-        expect(updateMock).toHaveBeenCalledWith({
-            pipeline_run_name: workflowJobQueuedPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
-        }, {
+        expect(updateMock).toHaveBeenCalledWith({id: 1}, {
             check_run_id: 1,
             status: "queued",
             workflow_job_id: 21439086539,
@@ -461,9 +464,10 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
-        expect(findOneMock).toHaveBeenCalledWith({
+        expect(findFirstMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
+            repo_full_name: "mdolinin/mono-repo-example",
+            workflow_run_id: workflowJobInProgressPayload.workflow_job.run_id
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
             check_run_id: 2,
@@ -512,9 +516,10 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         await checks.updateWorkflowRunCheckCompleted(octokit, workflowJobCompletedPayload);
-        expect(findOneMock).toHaveBeenCalledWith({
+        expect(findFirstMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
+            repo_full_name: "mdolinin/mono-repo-example",
+            workflow_run_id: workflowJobCompletedPayload.workflow_job.run_id
         });
         expect(updateCheckMock).toHaveBeenCalledWith({
             check_run_id: 2,
@@ -551,9 +556,8 @@ describe('gha_checks', () => {
             workflow_run_id: 5,
             repo_full_name: null  // Legacy record without repo_full_name
         };
-        findOneMock
-            .mockResolvedValueOnce(null)  // First call: exact match fails
-            .mockResolvedValueOnce(legacyRecord);  // Second call: fallback succeeds
+        // Only the legacy record (NULL repo_full_name) exists for this pipeline run name
+        findFirstMock.mockImplementation((query: any) => query.repo_full_name === null ? legacyRecord : null);
 
         const updateCheckMock = vi.fn().mockImplementation(() => {
             return {
@@ -575,16 +579,11 @@ describe('gha_checks', () => {
         // @ts-ignore
         await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
 
-        // Verify first call was exact match with repo_full_name
-        expect(findOneMock).toHaveBeenNthCalledWith(1, {
-            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
-        });
-        // Verify second call was fallback with null repo_full_name
-        expect(findOneMock).toHaveBeenNthCalledWith(2, {
-            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            repo_full_name: null
-        });
+        // Verify exact repo matches were tried first, then the legacy fallback with null repo_full_name
+        const queriedRepos = findFirstMock.mock.calls.map(([query]) => query.repo_full_name);
+        expect(queriedRepos[0]).toEqual("mdolinin/mono-repo-example");
+        expect(queriedRepos.at(-1)).toBeNull();
+        expect(queriedRepos.indexOf(null)).toBeGreaterThan(queriedRepos.lastIndexOf("mdolinin/mono-repo-example"));
         // Verify check was updated (fallback worked)
         expect(updateCheckMock).toHaveBeenCalledWith({
             check_run_id: 2,
@@ -596,10 +595,8 @@ describe('gha_checks', () => {
     });
 
     it('should log warning when workflow run not found in db (both exact match and fallback fail)', async () => {
-        // Mock findOne to return null for both calls
-        findOneMock
-            .mockResolvedValueOnce(null)  // First call: exact match fails
-            .mockResolvedValueOnce(null);  // Second call: fallback also fails
+        // No record for this pipeline run name, neither for the repo nor legacy
+        findFirstMock.mockImplementation(() => null);
 
         const updateCheckMock = vi.fn();
         const octokit = {
@@ -612,15 +609,10 @@ describe('gha_checks', () => {
         // @ts-ignore
         await checks.updateWorkflowRunCheckInProgress(octokit, workflowJobInProgressPayload);
 
-        // Verify both calls were made
-        expect(findOneMock).toHaveBeenNthCalledWith(1, {
-            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
-        });
-        expect(findOneMock).toHaveBeenNthCalledWith(2, {
-            pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            repo_full_name: null
-        });
+        // Verify both the exact repo and the legacy (null repo_full_name) lookups were made
+        const queriedRepos = findFirstMock.mock.calls.map(([query]) => query.repo_full_name);
+        expect(queriedRepos).toContain("mdolinin/mono-repo-example");
+        expect(queriedRepos).toContain(null);
         // Verify warning was logged
         expect(logMock.warn).toHaveBeenCalledWith(
             `Workflow run ${workflowJobInProgressPayload.workflow_job.name} is not exist in db`
@@ -658,9 +650,10 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         await checks.updatePRStatusCheckInProgress(octokit, workflowJobInProgressPayload);
-        expect(findOneMock).toHaveBeenCalledWith({
+        expect(findFirstMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobInProgressPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
+            repo_full_name: "mdolinin/mono-repo-example",
+            workflow_run_id: workflowJobInProgressPayload.workflow_job.run_id
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_number: 1,
@@ -715,9 +708,10 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
-        expect(findOneMock).toHaveBeenCalledWith({
+        expect(findFirstMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
+            repo_full_name: "mdolinin/mono-repo-example",
+            workflow_run_id: workflowJobCompletedPayload.workflow_job.run_id
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_check_id: 3,
@@ -804,9 +798,10 @@ describe('gha_checks', () => {
         }
         // @ts-ignore
         await checks.updatePRStatusCheckCompleted(octokit, workflowJobCompletedPayload);
-        expect(findOneMock).toHaveBeenCalledWith({
+        expect(findFirstMock).toHaveBeenCalledWith({
             pipeline_run_name: workflowJobCompletedPayload.workflow_job.name,
-            repo_full_name: "mdolinin/mono-repo-example"
+            repo_full_name: "mdolinin/mono-repo-example",
+            workflow_run_id: workflowJobCompletedPayload.workflow_job.run_id
         });
         expect(findMock).toHaveBeenCalledWith({
             pr_check_id: 3,
@@ -1377,6 +1372,76 @@ describe('gha_checks', () => {
             owner: owner,
             repo: repo,
             ref: commitSha,
+        });
+    });
+
+    describe('when the same hook is triggered twice for the same head sha (e.g. repeated slash command)', () => {
+        const pipelineRunName = workflowJobQueuedPayload.workflow_job.name;
+        const repoFullName = "mdolinin/mono-repo-example";
+        const baseRow = {
+            name: 'domain-a-example-b-build',
+            head_sha: 'b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8',
+            merge_commit_sha: 'b2a4cf69f2f60bc8d91cd23dcd80bf571736dee8',
+            pipeline_run_name: pipelineRunName,
+            workflow_run_inputs: {},
+            pr_number: 1,
+            hook: 'onSlashCommand',
+            pr_check_id: 3,
+            repo_full_name: repoFullName,
+        };
+        // first trigger: already bound to its GitHub run; second trigger: inserted, not yet bound
+        const earlierRun = {...baseRow, id: 38, workflow_run_id: 1111, check_run_id: 20, status: 'completed'};
+        const laterRun = {...baseRow, id: 39, workflow_run_id: null, check_run_id: null, status: null};
+
+        // Behaves like pg-typed on a table holding both rows: findOne throws on multiple matches.
+        const matches = (query: any) => [earlierRun, laterRun].filter(row =>
+            Object.entries(query).every(([k, v]) => (row as any)[k] === v));
+        const useDuplicateRowsTable = () => {
+            findOneMock.mockImplementation((query: any) => {
+                const rows = matches(query);
+                if (rows.length > 1) {
+                    throw new Error("More than one row matched this query on gha_workflow_runs but we only expected one.");
+                }
+                return rows[0] ?? null;
+            });
+            findFirstMock.mockImplementation((query: any) => matches(query).sort((a, b) => b.id - a.id)[0] ?? null);
+        };
+
+        afterEach(() => {
+            findOneMock.mockImplementation(defaultFindOne);
+            findFirstMock.mockImplementation((query) => findOneMock(query));
+        });
+
+        it('should bind the queued event to the newest not-yet-bound run, updating it by id', async () => {
+            useDuplicateRowsTable();
+            const createCheckMock = vi.fn().mockResolvedValue({data: {id: 21, status: 'queued', details_url: 'url'}});
+            const octokit = {rest: {checks: {create: createCheckMock}}};
+            const newRunId = workflowJobQueuedPayload.workflow_job.run_id;
+            // @ts-ignore
+            await checks.updateWorkflowRunCheckQueued(octokit, workflowJobQueuedPayload, newRunId);
+            expect(logMock.error).not.toHaveBeenCalled();
+            expect(createCheckMock).toHaveBeenCalledTimes(1);
+            expect(updateMock).toHaveBeenCalledWith({id: laterRun.id}, {
+                workflow_run_id: newRunId,
+                workflow_job_id: workflowJobQueuedPayload.workflow_job.id,
+                status: 'queued',
+                check_run_id: 21,
+                workflow_run_url: 'url'
+            });
+        });
+
+        it('should keep updating the earlier run by its run id, even when a newer unbound duplicate exists', async () => {
+            useDuplicateRowsTable();
+            const updateCheckMock = vi.fn().mockResolvedValue({data: {id: earlierRun.check_run_id, status: 'in_progress'}});
+            const octokit = {rest: {checks: {update: updateCheckMock}}};
+            const payload = {
+                ...workflowJobInProgressPayload,
+                workflow_job: {...workflowJobInProgressPayload.workflow_job, run_id: earlierRun.workflow_run_id},
+            };
+            // @ts-ignore
+            await checks.updateWorkflowRunCheckInProgress(octokit, payload);
+            expect(logMock.error).not.toHaveBeenCalled();
+            expect(updateCheckMock).toHaveBeenCalledWith(expect.objectContaining({check_run_id: earlierRun.check_run_id}));
         });
     });
 });
