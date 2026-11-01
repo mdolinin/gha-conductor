@@ -496,15 +496,17 @@ describe('gha loader', () => {
 
     it('should load all hooks, when at least one of gha yaml changes in commit', async () => {
         const octokit = {
-            repos: {
-                getContent: vi.fn().mockImplementation(() => {
-                    return {
-                        data: {
-                            content: Buffer.from(ghaYamlExample).toString('base64'),
-                        },
-                        status: 200
-                    }
-                })
+            rest: {
+                repos: {
+                    getContent: vi.fn().mockImplementation(() => {
+                        return {
+                            data: {
+                                content: Buffer.from(ghaYamlExample).toString('base64'),
+                            },
+                            status: 200
+                        }
+                    })
+                }
             }
         };
         const commits = [
@@ -521,13 +523,13 @@ describe('gha loader', () => {
         ];
         // @ts-ignore
         await ghaLoader.loadGhaHooksFromCommits(octokit, "repo/full_name", "branch", ".gha.yaml", commits);
-        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(1, {
+        expect(octokit.rest.repos.getContent).toHaveBeenNthCalledWith(1, {
             owner: "repo",
             path: "folder1/.gha.yaml",
             ref: "branch",
             repo: "full_name"
         });
-        expect(octokit.repos.getContent).toHaveBeenNthCalledWith(2, {
+        expect(octokit.rest.repos.getContent).toHaveBeenNthCalledWith(2, {
             owner: "repo",
             path: "folder1/subfolder1/.gha.yaml",
             ref: "branch",
@@ -722,19 +724,21 @@ describe('gha loader', () => {
         countMock.mockReturnValueOnce(3267);
         firstMock.mockReturnValueOnce(Promise.resolve({branch_head_sha: "currentsha"}));
         const octokit = {
-            repos: {
-                getBranch: vi.fn().mockImplementation(() => {
-                    return {data: {commit: {sha: "currentsha"}}}
-                }),
-                compareCommitsWithBasehead: vi.fn(),
-                getContent: vi.fn()
+            rest: {
+                repos: {
+                    getBranch: vi.fn().mockImplementation(() => {
+                        return {data: {commit: {sha: "currentsha"}}}
+                    }),
+                    compareCommitsWithBasehead: vi.fn(),
+                    getContent: vi.fn()
+                }
             }
         };
         // @ts-ignore
         await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_fresh", "branch", ".gha.yaml");
-        expect(octokit.repos.getBranch).toHaveBeenCalledWith({owner: "org", repo: "repo_fresh", branch: "branch"});
-        expect(octokit.repos.compareCommitsWithBasehead).not.toHaveBeenCalled();
-        expect(octokit.repos.getContent).not.toHaveBeenCalled();
+        expect(octokit.rest.repos.getBranch).toHaveBeenCalledWith({owner: "org", repo: "repo_fresh", branch: "branch"});
+        expect(octokit.rest.repos.compareCommitsWithBasehead).not.toHaveBeenCalled();
+        expect(octokit.rest.repos.getContent).not.toHaveBeenCalled();
         expect(cloneMock).not.toHaveBeenCalled();
         expect(insertMock).not.toHaveBeenCalled();
         expect(updateMock).not.toHaveBeenCalled();
@@ -744,35 +748,37 @@ describe('gha loader', () => {
         countMock.mockReturnValueOnce(3267);
         firstMock.mockReturnValueOnce(Promise.resolve({branch_head_sha: "oldsha"}));
         const octokit = {
-            repos: {
-                getBranch: vi.fn().mockImplementation(() => {
-                    return {data: {commit: {sha: "newsha"}}}
-                }),
-                compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
-                    return {
-                        data: {
-                            files: [
-                                {filename: "unrelated.ts", status: "modified"},
-                                {filename: "folder1/.gha.yaml", status: "modified"},
-                                {filename: "folder2/.gha.yaml", status: "removed"}
-                            ]
+            rest: {
+                repos: {
+                    getBranch: vi.fn().mockImplementation(() => {
+                        return {data: {commit: {sha: "newsha"}}}
+                    }),
+                    compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
+                        return {
+                            data: {
+                                files: [
+                                    {filename: "unrelated.ts", status: "modified"},
+                                    {filename: "folder1/.gha.yaml", status: "modified"},
+                                    {filename: "folder2/.gha.yaml", status: "removed"}
+                                ]
+                            }
                         }
-                    }
-                }),
-                getContent: vi.fn().mockImplementation(() => {
-                    return {
-                        data: {
-                            content: Buffer.from(ghaYamlExample).toString('base64'),
+                    }),
+                    getContent: vi.fn().mockImplementation(() => {
+                        return {
+                            data: {
+                                content: Buffer.from(ghaYamlExample).toString('base64'),
+                            }
                         }
-                    }
-                })
+                    })
+                }
             }
         };
         // @ts-ignore
         await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_stale", "branch", ".gha.yaml");
-        expect(octokit.repos.compareCommitsWithBasehead).toHaveBeenCalledWith({owner: "org", repo: "repo_stale", basehead: "oldsha...newsha"});
-        expect(octokit.repos.getContent).toHaveBeenCalledTimes(1);
-        expect(octokit.repos.getContent).toHaveBeenCalledWith({owner: "org", repo: "repo_stale", path: "folder1/.gha.yaml", ref: "newsha"});
+        expect(octokit.rest.repos.compareCommitsWithBasehead).toHaveBeenCalledWith({owner: "org", repo: "repo_stale", basehead: "oldsha...newsha"});
+        expect(octokit.rest.repos.getContent).toHaveBeenCalledTimes(1);
+        expect(octokit.rest.repos.getContent).toHaveBeenCalledWith({owner: "org", repo: "repo_stale", path: "folder1/.gha.yaml", ref: "newsha"});
         expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "org/repo_stale", branch: "branch", path_to_gha_yaml: "folder2/.gha.yaml"});
         expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "org/repo_stale", branch: "branch", path_to_gha_yaml: "folder1/.gha.yaml"});
         expect(insertMock).toHaveBeenCalledTimes(5);
@@ -784,26 +790,28 @@ describe('gha loader', () => {
         countMock.mockReturnValueOnce(3267);
         firstMock.mockReturnValueOnce(Promise.resolve({branch_head_sha: "oldsha"}));
         const octokit = {
-            repos: {
-                getBranch: vi.fn().mockImplementation(() => {
-                    return {data: {commit: {sha: "newsha"}}}
-                }),
-                compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
-                    return {
-                        data: {
-                            files: [
-                                {filename: "folder1/.gha.yaml.disabled", previous_filename: "folder1/.gha.yaml", status: "renamed"}
-                            ]
+            rest: {
+                repos: {
+                    getBranch: vi.fn().mockImplementation(() => {
+                        return {data: {commit: {sha: "newsha"}}}
+                    }),
+                    compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
+                        return {
+                            data: {
+                                files: [
+                                    {filename: "folder1/.gha.yaml.disabled", previous_filename: "folder1/.gha.yaml", status: "renamed"}
+                                ]
+                            }
                         }
-                    }
-                }),
-                getContent: vi.fn()
+                    }),
+                    getContent: vi.fn()
+                }
             }
         };
         // @ts-ignore
         await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_renamed", "branch", ".gha.yaml");
         expect(deleteMock).toHaveBeenCalledWith({repo_full_name: "org/repo_renamed", branch: "branch", path_to_gha_yaml: "folder1/.gha.yaml"});
-        expect(octokit.repos.getContent).not.toHaveBeenCalled();
+        expect(octokit.rest.repos.getContent).not.toHaveBeenCalled();
         expect(insertMock).not.toHaveBeenCalled();
         expect(updateMock).toHaveBeenCalledWith({repo_full_name: "org/repo_renamed", branch: "branch"}, {branch_head_sha: "newsha"});
     });
@@ -811,18 +819,20 @@ describe('gha loader', () => {
     it('should skip the staleness check, when fetching the branch current HEAD fails', async () => {
         countMock.mockReturnValueOnce(3267);
         const octokit = {
-            repos: {
-                getBranch: vi.fn().mockImplementation(() => {
-                    throw new Error("network error");
-                }),
-                compareCommitsWithBasehead: vi.fn(),
-                getContent: vi.fn()
+            rest: {
+                repos: {
+                    getBranch: vi.fn().mockImplementation(() => {
+                        throw new Error("network error");
+                    }),
+                    compareCommitsWithBasehead: vi.fn(),
+                    getContent: vi.fn()
+                }
             }
         };
         // @ts-ignore
         await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_getbranch_fails", "branch", ".gha.yaml");
         expect(firstMock).not.toHaveBeenCalled();
-        expect(octokit.repos.compareCommitsWithBasehead).not.toHaveBeenCalled();
+        expect(octokit.rest.repos.compareCommitsWithBasehead).not.toHaveBeenCalled();
         expect(cloneMock).not.toHaveBeenCalled();
         expect(insertMock).not.toHaveBeenCalled();
         expect(deleteMock).not.toHaveBeenCalled();
@@ -832,17 +842,19 @@ describe('gha loader', () => {
         countMock.mockReturnValueOnce(3267);
         firstMock.mockReturnValueOnce(Promise.resolve({branch_head_sha: "oldsha"}));
         const octokit = {
+            rest: {
+                repos: {
+                    getBranch: vi.fn().mockImplementation(() => {
+                        return {data: {commit: {sha: "newsha"}}}
+                    }),
+                    compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
+                        throw new Error("compare API error");
+                    })
+                }
+            },
             auth: vi.fn().mockImplementation(() => {
                 return {token: "token4"}
-            }),
-            repos: {
-                getBranch: vi.fn().mockImplementation(() => {
-                    return {data: {commit: {sha: "newsha"}}}
-                }),
-                compareCommitsWithBasehead: vi.fn().mockImplementation(() => {
-                    throw new Error("compare API error");
-                })
-            }
+            })
         };
         // @ts-ignore
         await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_compare_fails", "branch", ".gha.yaml");
@@ -855,19 +867,21 @@ describe('gha loader', () => {
         countMock.mockReturnValueOnce(3267);
         firstMock.mockReturnValueOnce(Promise.resolve(null));
         const octokit = {
+            rest: {
+                repos: {
+                    getBranch: vi.fn().mockImplementation(() => {
+                        return {data: {commit: {sha: "currentsha"}}}
+                    }),
+                    compareCommitsWithBasehead: vi.fn()
+                }
+            },
             auth: vi.fn().mockImplementation(() => {
                 return {token: "token3"}
-            }),
-            repos: {
-                getBranch: vi.fn().mockImplementation(() => {
-                    return {data: {commit: {sha: "currentsha"}}}
-                }),
-                compareCommitsWithBasehead: vi.fn()
-            }
+            })
         };
         // @ts-ignore
         await ghaLoader.loadAllGhaYamlForBranchIfNew(octokit, "org/repo_legacy", "branch", ".gha.yaml");
-        expect(octokit.repos.compareCommitsWithBasehead).not.toHaveBeenCalled();
+        expect(octokit.rest.repos.compareCommitsWithBasehead).not.toHaveBeenCalled();
         expect(cloneMock).toHaveBeenCalledWith("https://x-access-token:token3@github.com/org/repo_legacy.git", expect.stringMatching(RegExp('.*org/repo_legacy')));
         expect(checkoutBranchMock).toHaveBeenCalledWith("branch", "origin/branch");
         expect(insertMock).toHaveBeenCalledTimes(10);

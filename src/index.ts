@@ -1,18 +1,17 @@
-import {ApplicationFunctionOptions, Probot, ProbotOctokit} from "probot";
+import {ApplicationFunctionOptions, Context, Probot, ProbotOctokit} from "probot";
 import {GhaLoader} from "./gha_loader.js";
 import {GhaReply} from "./gha_reply.js";
 import {Hooks} from "./hooks.js";
 import {GhaChecks, PRCheckAction, PRCheckName} from "./gha_checks.js";
-import {
-    CheckRunRerequestedEvent,
-    WorkflowJobCompletedEvent,
-    WorkflowJobInProgressEvent,
-    WorkflowJobQueuedEvent
-} from "@octokit/webhooks-types";
+import type {components as webhooks} from "@octokit/openapi-webhooks-types";
 import {inspect} from "node:util";
-import {MergeOptions} from "probot/lib/context.js";
-import {loadPackageJson} from "probot/lib/helpers/load-package-json.js";
+import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
+
+type CheckRunRerequestedEvent = webhooks["schemas"]["webhook-check-run-rerequested"];
+type WorkflowJobCompletedEvent = webhooks["schemas"]["webhook-workflow-job-completed"];
+type WorkflowJobInProgressEvent = webhooks["schemas"]["webhook-workflow-job-in-progress"];
+type WorkflowJobQueuedEvent = webhooks["schemas"]["webhook-workflow-job-queued"];
 
 const APP_CONFIG_FILE = process.env.APP_CONFIG_FILE || "gha-conductor-config.yaml";
 const DEFAULT_GHA_HOOKS_FILE_NAME = process.env.DEFAULT_GHA_HOOKS_FILE_NAME || ".gha.yaml";
@@ -21,14 +20,38 @@ const DEFAULT_WORKFLOW_FILE_EXTENSION = process.env.DEFAULT_WORKFLOW_FILE_EXTENS
 const TOKENISE_REGEX =
     /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
 
-export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
+type ConfigContext = Pick<Context, "config">;
 
-    if (getRouter) {
-        const pkg = loadPackageJson(resolve(process.cwd(), "package.json"));
-        const router = getRouter("/api");
-        router.get("/health", (_req, res) => {
-            res.json({healthy: true, version: pkg.version});
+// Webhook payload types (probot >= 14) model PR base repo owner as nullable; GitHub always sends it for PRs.
+type WithBaseRepoOwner<T> = T & { base: { repo: { owner: { login: string } } } };
+
+function hasBaseRepoOwner<T extends { base: { repo: { owner: { login: string } | null } } }>(pr: T): pr is WithBaseRepoOwner<T> {
+    return pr.base.repo.owner !== null;
+}
+
+function readAppVersion(cwd: string): string {
+    try {
+        return JSON.parse(readFileSync(resolve(cwd, "package.json"), "utf8")).version ?? "unknown";
+    } catch {
+        return "unknown";
+    }
+}
+
+export default (app: Probot, {addHandler, cwd = process.cwd()}: ApplicationFunctionOptions) => {
+
+    // HTTP routes can only be added when running under probot's Server; without one (createNodeMiddleware,
+    // tests) probot's addHandler throws "No server instance", so the health route is simply skipped.
+    const healthBody = JSON.stringify({healthy: true, version: readAppVersion(cwd)});
+    try {
+        addHandler((req, res) => {
+            if (req.method === "GET" && req.url?.split("?")[0] === "/api/health") {
+                res.writeHead(200, {"content-type": "application/json"}).end(healthBody);
+                return true;
+            }
+            return false;
         });
+    } catch (e) {
+        app.log.debug(`Health route not registered: ${(e as Error).message}`);
     }
 
     const ghaLoader = new GhaLoader(app.log);
@@ -37,9 +60,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     const reply = new GhaReply(app.log);
     const configs = new Map<string, any>();
 
-    async function getValueFromConfig(context: {
-        config<T>(fileName: string, defaultConfig?: T, deepMergeOptions?: MergeOptions): Promise<T | null>
-    }, repo_full_name: string, key: string, reload: boolean = false): Promise<string> {
+    async function getValueFromConfig(context: ConfigContext, repo_full_name: string, key: string, reload: boolean = false): Promise<string> {
         let config;
         if (configs.has(repo_full_name) && !reload) {
             config = configs.get(repo_full_name);
@@ -53,9 +74,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         return config[key] || "";
     }
 
-    async function getHooksFileNameFromConfig(context: {
-        config<T>(fileName: string, defaultConfig?: T, deepMergeOptions?: MergeOptions): Promise<T | null>
-    }, repo_full_name: string, reload: boolean = false) {
+    async function getHooksFileNameFromConfig(context: ConfigContext, repo_full_name: string, reload: boolean = false) {
         return await getValueFromConfig(context, repo_full_name, "gha_hooks_file", reload);
     }
 
@@ -73,7 +92,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             }
             return;
         }
-        const changedFiles = context.payload.commits.flatMap((commit) => commit.added.concat(commit.modified).concat(commit.removed));
+        const changedFiles = context.payload.commits.flatMap((commit) => [...(commit.added ?? []), ...(commit.modified ?? []), ...(commit.removed ?? [])]);
         let configFileChanged = false;
         for (const file of changedFiles) {
             if (file.endsWith(APP_CONFIG_FILE)) {
@@ -120,8 +139,8 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     });
 
     app.on("pull_request.labeled", async (context) => {
-        app.log.info(`Pull request labeled event received for ${context.payload.pull_request.number} and label ${context.payload.label.name}`);
-        if (context.payload.label.name === "gha-conductor:load") {
+        app.log.info(`Pull request labeled event received for ${context.payload.pull_request.number} and label ${context.payload.label?.name}`);
+        if (context.payload.label?.name === "gha-conductor:load") {
             app.log.info("Force reload gha yaml's in repo started");
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name, true);
             await ghaLoader.loadAllGhaHooksFromRepo(context.octokit, context.payload.repository.full_name, context.payload.pull_request.base.ref, ghaHooksFileName);
@@ -130,19 +149,19 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     });
 
     async function determineIsPRMergeable(octokit: InstanceType<typeof ProbotOctokit>, pull_request: {
-        mergeable: boolean | null,
-        merge_commit_sha: string | null,
-        merged: boolean | null,
+        mergeable?: boolean | null,
+        merge_commit_sha?: string | null,
+        merged?: boolean | null,
         number: number
     }, owner: string, repo: string) {
-        let mergeable = pull_request.mergeable;
-        let merge_commit_sha = pull_request.merge_commit_sha;
+        let mergeable = pull_request.mergeable ?? null;
+        let merge_commit_sha = pull_request.merge_commit_sha ?? null;
         if (mergeable === null && !pull_request.merged) {
             app.log.info(`PR #${pull_request.number} mergeability is null`);
             let i = 0;
             while (i < 5 && mergeable === null) {
                 await new Promise(r => setTimeout(r, 2000));
-                const resp = await octokit.pulls.get(
+                const resp = await octokit.rest.pulls.get(
                     {
                         owner: owner,
                         repo: repo,
@@ -163,7 +182,11 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
 
     app.on(["pull_request.opened", "pull_request.synchronize", "pull_request.closed", "pull_request.edited"], async (context) => {
         const pr = context.payload.pull_request;
-        const pullNumber = context.payload.pull_request.number;
+        if (!hasBaseRepoOwner(pr)) {
+            app.log.warn(`PR #${pr.number} payload has no base repo owner. No hooks will be triggered`);
+            return;
+        }
+        const pullNumber = pr.number;
         const owner = context.payload.repository.owner.login;
         const repo = context.payload.repository.name;
         const repo_full_name = context.payload.repository.full_name;
@@ -184,13 +207,13 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         }
         let {mergeable, merge_commit_sha} = await determineIsPRMergeable(context.octokit, pr, owner, repo);
         if (merge_commit_sha === null) {
-            merge_commit_sha = context.payload.pull_request.head.sha;
+            merge_commit_sha = pr.head.sha;
         }
         if (!mergeable && !pr.merged) {
             app.log.info(`PR #${pr.number} is not mergeable. No hooks will be triggered`);
             return;
         }
-        const baseBranch = context.payload.pull_request.base.ref;
+        const baseBranch = pr.base.ref;
         app.log.info("PR base branch is " + baseBranch);
         // if PR is from forked repo then skip all hooks
         if (pr.head.repo && pr.head.repo.fork) {
@@ -199,10 +222,10 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             const comment = context.issue({
                 body: "PR is from forked repo. No hooks will be triggered."
             });
-            await context.octokit.issues.createComment(comment);
+            await context.octokit.rest.issues.createComment(comment);
             return;
         }
-        const numOfChangedFiles = context.payload.pull_request.changed_files;
+        const numOfChangedFiles = pr.changed_files ?? 0;
         if (numOfChangedFiles > 0) {
             const ghaHooksFileName = await getHooksFileNameFromConfig(context, context.payload.repository.full_name);
             // Ensure the base branch's cached hooks reflect its current HEAD before evaluating which
@@ -214,10 +237,10 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
                 app.log.info(`Ensured gha hooks for base branch ${baseBranch} are up to date`);
             }
             const eventType = context.payload.action;
-            const hookType = Hooks.mapEventTypeToHook(eventType, context.payload.pull_request.merged);
+            const hookType = Hooks.mapEventTypeToHook(eventType, pr.merged ?? null);
             let changedFilesResp = [];
             try {
-                changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
+                changedFilesResp = await context.octokit.paginate(context.octokit.rest.pulls.listFiles, {
                     owner: owner,
                     repo: repo,
                     pull_number: pullNumber
@@ -241,19 +264,19 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             const hooksChangedInPR = await ghaLoader.loadGhaHooks(context.octokit, ghaHooksFileName, changedFilesResp);
             const triggeredHooks = await hooks.filterTriggeredHooks(repo_full_name, hookType, changedFiles, baseBranch, hooksChangedInPR);
             const workflowFileExtension = await getValueFromConfig(context, repo_full_name, "workflow_file_extension");
-            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, context.payload.pull_request, context.payload.action, triggeredHooks, merge_commit_sha, prCheck.checkRunId, undefined, workflowFileExtension);
+            const triggeredWorkflows = await hooks.runWorkflow(context.octokit, pr, context.payload.action, triggeredHooks, merge_commit_sha, prCheck.checkRunId, undefined, workflowFileExtension);
             for (const triggeredWorkflow of triggeredWorkflows) {
                 if (triggeredWorkflow.error) {
-                    await checks.createWorkflowRunCheckErrored(context.octokit, context.payload.pull_request, hookType, merge_commit_sha, triggeredWorkflow);
+                    await checks.createWorkflowRunCheckErrored(context.octokit, pr, hookType, merge_commit_sha, triggeredWorkflow);
                 }
             }
             const allTriggeredHasError = triggeredWorkflows.every(workflow => workflow.error);
             if (triggeredWorkflows.length === 0) {
-                await checks.updatePRCheckNoPipelinesTriggered(context.octokit, context.payload.pull_request, prCheck);
+                await checks.updatePRCheckNoPipelinesTriggered(context.octokit, pr, prCheck);
             } else if (allTriggeredHasError) {
-                await checks.updatePRCheckForAllErroredPipelines(context.octokit, context.payload.pull_request, prCheck, triggeredWorkflows);
+                await checks.updatePRCheckForAllErroredPipelines(context.octokit, pr, prCheck, triggeredWorkflows);
             } else {
-                await checks.updatePRCheckForTriggeredPipelines(context.octokit, context.payload.pull_request, prCheck);
+                await checks.updatePRCheckForTriggeredPipelines(context.octokit, pr, prCheck);
             }
         } else {
             app.log.info("No files changed in PR. No hooks will be triggered");
@@ -277,7 +300,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             const comment = context.issue({
                 body: "PR is from forked repo. No hooks will be triggered."
             });
-            await context.octokit.issues.createComment(comment);
+            await context.octokit.rest.issues.createComment(comment);
             return;
         }
         // if PR doesn't have any changed files then skip all hooks
@@ -306,7 +329,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         const workflowJob = payload.workflow_job;
         if (workflowJob.run_id) {
             try {
-                const workflowRun = await context.octokit.actions.getWorkflowRun({
+                const workflowRun = await context.octokit.rest.actions.getWorkflowRun({
                     owner: payload.repository.owner.login,
                     repo: payload.repository.name,
                     run_id: workflowJob.run_id
@@ -331,7 +354,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
     });
 
     app.on(["check_run.requested_action"], async (context) => {
-        const identifier = context.payload.requested_action.identifier;
+        const identifier = context.payload.requested_action?.identifier;
         app.log.info(`check_run.requested_action event received for ${context.payload.check_run.name} with identifier ${identifier}`);
         if (identifier === PRCheckAction.SyncStatus) {
             await checks.syncPRCheckStatus(context.octokit, {
@@ -368,7 +391,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         app.log.info(`check_suite.rerequested event received for ${context.payload.check_suite.id}`);
         // get all check runs for this check suite
         try {
-            const checkRuns = await context.octokit.paginate(context.octokit.checks.listForSuite, {
+            const checkRuns = await context.octokit.paginate(context.octokit.rest.checks.listForSuite, {
                 owner: context.payload.repository.owner.login,
                 repo: context.payload.repository.name,
                 check_suite_id: context.payload.check_suite.id
@@ -401,7 +424,12 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         app.log.info(`Issue comment created/edited event received for ${context.payload.issue.number}`);
         const issueComment = context.payload.comment;
         // check that the comment is not from a bot
-        if (issueComment.user.type === 'Bot') {
+        const commenter = issueComment.user;
+        if (!commenter) {
+            app.log.debug('The comment author is unknown (deleted user), ignoring.')
+            return
+        }
+        if (commenter.type === 'Bot') {
             app.log.debug('The comment is from a bot, ignoring.')
             return
         }
@@ -421,25 +449,25 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         const repo = context.payload.repository.name;
         // check that the comment is from a user with write permissions
         try {
-            const permissions = await context.octokit.repos.getCollaboratorPermissionLevel({
+            const permissions = await context.octokit.rest.repos.getCollaboratorPermissionLevel({
                 owner: owner,
                 repo: repo,
-                username: issueComment.user.login
+                username: commenter.login
             })
-            app.log.debug(`Permissions for ${issueComment.user.login} in ${context.payload.repository.full_name} are ${permissions.data.permission}`)
+            app.log.debug(`Permissions for ${commenter.login} in ${context.payload.repository.full_name} are ${permissions.data.permission}`)
             if (permissions.data.permission !== 'write' && permissions.data.permission !== 'admin') {
                 app.log.debug('The comment is from a user without write permissions, ignoring.')
                 return
             }
         } catch (e) {
-            app.log.error(e, `Failed to get permissions for ${issueComment.user.login} in ${context.payload.repository.full_name}`)
+            app.log.error(e, `Failed to get permissions for ${commenter.login} in ${context.payload.repository.full_name}`)
             return
         }
         // check that is not from forked repo
         const prNumber = context.payload.issue.number
         let pr = null
         try {
-            const response = await context.octokit.pulls.get({
+            const response = await context.octokit.rest.pulls.get({
                 owner: context.payload.repository.owner.login,
                 repo: context.payload.repository.name,
                 pull_number: prNumber
@@ -471,7 +499,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
         // At this point, we have a valid slash command
         // Add the "eyes" reaction to the comment
         try {
-            await context.octokit.reactions.createForIssueComment({
+            await context.octokit.rest.reactions.createForIssueComment({
                 owner: owner,
                 repo: repo,
                 comment_id: issueComment.id,
@@ -485,7 +513,7 @@ export default (app: Probot, {getRouter}: ApplicationFunctionOptions) => {
             const repo_full_name = context.payload.repository.full_name;
             let changedFilesResp = [];
             try {
-                changedFilesResp = await context.octokit.paginate(context.octokit.pulls.listFiles, {
+                changedFilesResp = await context.octokit.paginate(context.octokit.rest.pulls.listFiles, {
                     owner: owner,
                     repo: repo,
                     pull_number: prNumber

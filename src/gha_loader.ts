@@ -11,9 +11,11 @@ import {components} from "@octokit/openapi-types";
 import {Ajv} from "ajv";
 import {isNode, LineCounter, Node, parseDocument, YAMLSeq} from "yaml";
 import {not} from "@databases/pg-typed";
-import {Commit} from "@octokit/webhooks-types";
+import type {components as webhooks} from "@octokit/openapi-webhooks-types";
 import type {Queryable} from "@databases/pg";
 import schema from './schemas/gha_yaml_schema.json' with { type: "json" };
+
+type Commit = webhooks["schemas"]["webhook-push"]["commits"][number];
 
 export interface GhaHook {
     repo_full_name: string,
@@ -272,7 +274,7 @@ export class GhaLoader {
             return this.withBranchLock(repoFullName, branchName, (lockedTx) => this.loadGhaHooksFromCommits(octokit, repoFullName, branchName, ghaHooksFileName, commits, headSha, lockedTx));
         }
         for (const commit of commits) {
-            for (const removedFile of commit.removed) {
+            for (const removedFile of commit.removed ?? []) {
                 if (removedFile.endsWith(ghaHooksFileName)) {
                     this.log.info(`Removing hooks for file ${removedFile}`);
                     await gha_hooks(tx).delete({
@@ -282,11 +284,11 @@ export class GhaLoader {
                     });
                 }
             }
-            for (const addedFile of commit.added) {
+            for (const addedFile of commit.added ?? []) {
                 if (addedFile.endsWith(ghaHooksFileName)) {
                     this.log.info(`Adding hooks for file ${addedFile}`);
                     try {
-                        const resp = await octokit.repos.getContent({
+                        const resp = await octokit.rest.repos.getContent({
                             owner: repoFullName.split("/")[0],
                             repo: repoFullName.split("/")[1],
                             path: addedFile,
@@ -304,11 +306,11 @@ export class GhaLoader {
                     }
                 }
             }
-            for (const modifiedFile of commit.modified) {
+            for (const modifiedFile of commit.modified ?? []) {
                 if (modifiedFile.endsWith(ghaHooksFileName)) {
                     this.log.info(`Modifying hooks for file ${modifiedFile}`);
                     try {
-                        const resp = await octokit.repos.getContent({
+                        const resp = await octokit.rest.repos.getContent({
                             owner: repoFullName.split("/")[0],
                             repo: repoFullName.split("/")[1],
                             path: modifiedFile,
@@ -504,7 +506,7 @@ export class GhaLoader {
         const [owner, repo] = repo_full_name.split("/");
         let currentHeadSha: string;
         try {
-            const {data} = await octokit.repos.getBranch({owner, repo, branch});
+            const {data} = await octokit.rest.repos.getBranch({owner, repo, branch});
             currentHeadSha = data.commit.sha;
         } catch (e) {
             this.log.error(e, `Failed to fetch current HEAD for branch ${branch} in repo ${repo_full_name}. Skipping staleness check`);
@@ -536,7 +538,7 @@ export class GhaLoader {
     private async reconcileGhaHooksBetweenCommits(octokit: InstanceType<typeof ProbotOctokit>, repo_full_name: string, branch: string, hooksFileName: string, baseSha: string, headSha: string, tx: Queryable) {
         const [owner, repo] = repo_full_name.split("/");
         try {
-            const {data} = await octokit.repos.compareCommitsWithBasehead({owner, repo, basehead: `${baseSha}...${headSha}`});
+            const {data} = await octokit.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${baseSha}...${headSha}`});
             const changedFiles = (data.files ?? []).filter(file =>
                 file.filename.endsWith(hooksFileName) ||
                 (file.status === "renamed" && file.previous_filename?.endsWith(hooksFileName))
@@ -553,7 +555,7 @@ export class GhaLoader {
                 }
                 this.log.info(`Reloading hooks for file ${file.filename} on branch ${branch} in repo ${repo_full_name} (reconciliation)`);
                 try {
-                    const resp = await octokit.repos.getContent({owner, repo, path: file.filename, ref: headSha});
+                    const resp = await octokit.rest.repos.getContent({owner, repo, path: file.filename, ref: headSha});
                     if ("content" in resp.data) {
                         const ghaFileContent = Buffer.from(resp.data.content, "base64").toString();
                         const ghaFileYaml = load(ghaFileContent);

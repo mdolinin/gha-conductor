@@ -3,7 +3,8 @@ import app from "./index.js";
 
 const probot = createProbot();
 
-export default createNodeMiddleware(app, {
+// probot >= 14: createNodeMiddleware is async
+export default await createNodeMiddleware(app, {
     probot,
     webhooksPath: "/api/github/webhooks",
 });

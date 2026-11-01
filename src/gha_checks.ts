@@ -1,17 +1,15 @@
-import {
-    CheckRunRerequestedEvent,
-    WorkflowJobCompletedEvent,
-    WorkflowJobInProgressEvent,
-    WorkflowJobQueuedEvent
-} from "@octokit/webhooks-types";
+import type {components as webhooks} from "@octokit/openapi-webhooks-types";
 import {Logger, ProbotOctokit} from "probot";
-import {
-    RestEndpointMethodTypes
-} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js";
+import type {RestEndpointMethodTypes} from "@octokit/plugin-rest-endpoint-methods";
 import db, {gha_workflow_runs} from "./db/database.js";
 import {GhaWorkflowRuns} from "./__generated__/index.js";
 import {anyOf, not} from "@databases/pg-typed";
 import {TriggeredWorkflow} from "./hooks.js";
+
+type CheckRunRerequestedEvent = webhooks["schemas"]["webhook-check-run-rerequested"];
+type WorkflowJobCompletedEvent = webhooks["schemas"]["webhook-workflow-job-completed"];
+type WorkflowJobInProgressEvent = webhooks["schemas"]["webhook-workflow-job-in-progress"];
+type WorkflowJobQueuedEvent = webhooks["schemas"]["webhook-workflow-job-queued"];
 
 export const GITHUB_CHECK_BYTESIZE_LIMIT = 65535;
 const ansiPattern = [
@@ -111,7 +109,7 @@ export class GhaChecks {
         let checkRunUrl = `https://github.com/${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}/pull/${pull_request.number}/checks`;
         let checkRunId = 0;
         try {
-            const resp = await octokit.checks.create(params);
+            const resp = await octokit.rest.checks.create(params);
             checkRunId = resp.data.id;
             checkRunUrl = `${checkRunUrl}?check_run_id=${checkRunId}`
             this.log.info(`${checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
@@ -163,7 +161,7 @@ export class GhaChecks {
             }
         };
         try {
-            const resp = await octokit.checks.create(params);
+            const resp = await octokit.rest.checks.create(params);
             const check = resp.data;
             const repoFullName = `${pull_request.base.repo.owner.login}/${pull_request.base.repo.name}`;
             await gha_workflow_runs(db).update({
@@ -208,7 +206,7 @@ export class GhaChecks {
             }
         };
         try {
-            const resp = await octokit.checks.update(params);
+            const resp = await octokit.rest.checks.update(params);
             const checkRunId = resp.data.id;
             this.log.info(`${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } catch (error) {
@@ -243,7 +241,7 @@ export class GhaChecks {
             }
         };
         try {
-            const resp = await octokit.checks.update(params);
+            const resp = await octokit.rest.checks.update(params);
             const checkRunId = resp.data.id;
             this.log.info(`${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
         } catch (error) {
@@ -299,7 +297,7 @@ export class GhaChecks {
             }
         };
         try {
-            const resp = await octokit.checks.update(params);
+            const resp = await octokit.rest.checks.update(params);
             const checkRunId = resp.data.id;
             this.log.info(`${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} created`);
             await gha_workflow_runs(db).update({
@@ -349,7 +347,7 @@ export class GhaChecks {
             actions: this.getAvailableActions()
         };
         try {
-            const resp = await octokit.checks.update(params);
+            const resp = await octokit.rest.checks.update(params);
             const checkRunId = resp.data.id;
             this.log.info(`Updated ${prCheck.checkName} check with id ${checkRunId} for PR #${pull_request.number} in progress`);
         } catch (error) {
@@ -394,7 +392,7 @@ export class GhaChecks {
                 }
             };
             try {
-                const resp = await octokit.checks.create(params);
+                const resp = await octokit.rest.checks.create(params);
                 const check = resp.data;
                 await gha_workflow_runs(db).update({
                     pipeline_run_name: workflowJob.name,
@@ -480,7 +478,7 @@ export class GhaChecks {
         }
 
         try {
-            const resp = await octokit.checks.update(checkParams);
+            const resp = await octokit.rest.checks.update(checkParams);
 
             // Update workflow run in db
             await gha_workflow_runs(db).update({
@@ -564,7 +562,7 @@ export class GhaChecks {
                 actions: this.getAvailableActions()
             };
             try {
-                await octokit.checks.update(params);
+                await octokit.rest.checks.update(params);
                 this.log.info(`Updating pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number}` + " in progress");
             } catch (error) {
                 this.log.error(error, `Failed to update pr-status check with id ${workflowRun.pr_check_id} for PR #${workflowRun.pr_number} in progress`);
@@ -590,7 +588,7 @@ export class GhaChecks {
     private async getWorkflowJobLog(octokit: InstanceType<typeof ProbotOctokit>, owner: string, repo: string, jobId: number, logMaxBytesize: number) {
         let workflowJobLog = null;
         try {
-            const workflowJobLogResp = await octokit.actions.downloadJobLogsForWorkflowRun({
+            const workflowJobLogResp = await octokit.rest.actions.downloadJobLogsForWorkflowRun({
                 owner: owner,
                 repo: repo,
                 job_id: Number(jobId)
@@ -598,7 +596,7 @@ export class GhaChecks {
             const data = String(workflowJobLogResp.data);
             workflowJobLog = this.truncateStringToByteLength(data, logMaxBytesize);
         } catch (error) {
-            this.log.warn(`Failed to get workflow job log for ${jobId} with`, error);
+            this.log.warn({err: error}, `Failed to get workflow job log for ${jobId}`);
         }
         if (workflowJobLog === null) {
             return null;
@@ -740,7 +738,7 @@ export class GhaChecks {
                     actions: actions
                 };
                 try {
-                    await octokit.checks.update(params);
+                    await octokit.rest.checks.update(params);
                     this.log.info(`Updating pr-status check with id ${prCheckId} for PR #${prNumber}` + " completed");
                     await gha_workflow_runs(db).update({pr_check_id: prCheckId}, {
                         pr_conclusion: conclusion,
@@ -768,7 +766,7 @@ export class GhaChecks {
             `**[Check run](${checkRunUrl})**\n` +
             `${summary}`;
         try {
-            await octokit.issues.createComment({
+            await octokit.rest.issues.createComment({
                 owner: owner,
                 repo: repo,
                 issue_number: prNumber,
@@ -898,7 +896,7 @@ export class GhaChecks {
             actions: this.getAvailableActions(),
         };
         try {
-            const resp = await octokit.checks.create(params);
+            const resp = await octokit.rest.checks.create(params);
             const newPRcheckRunId = resp.data.id;
             this.log.info(`${checkName} check with id ${newPRcheckRunId} for PR #${prRelatedWorkflowRun.pr_number} created`);
             await gha_workflow_runs(db).update({pr_check_id: pr_check_id}, {
@@ -922,7 +920,7 @@ export class GhaChecks {
                     repo: repo,
                     run_id: Number(workflowRun.workflow_run_id)
                 };
-                await octokit.actions.reRunWorkflow(params);
+                await octokit.rest.actions.reRunWorkflow(params);
                 this.log.info(`Re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number} created`);
             } catch (error) {
                 this.log.error(error, `Failed to re-run workflow ${workflowRun.pipeline_run_name} with id ${workflowRun.workflow_run_id} for PR #${workflowRun.pr_number}`);
@@ -958,7 +956,7 @@ export class GhaChecks {
         for (const workflowRun of prRelatedWorkflowRuns) {
             if (workflowRun.workflow_run_id) {
                 try {
-                    const response = await octokit.actions.getWorkflowRun({
+                    const response = await octokit.rest.actions.getWorkflowRun({
                         owner: owner,
                         repo: repo,
                         run_id: Number(workflowRun.workflow_run_id)
@@ -1016,7 +1014,7 @@ export class GhaChecks {
         }
 
         try {
-            await octokit.checks.update(params);
+            await octokit.rest.checks.update(params);
             this.log.info(`Successfully synced status for check id ${checkId}`);
         } catch (error) {
             this.log.error(error, `Failed to sync status for check id ${checkId}`);
@@ -1071,7 +1069,7 @@ export class GhaChecks {
     ) {
         let checkRuns = [];
         try {
-            checkRuns = await octokit.paginate(octokit.checks.listForRef, {
+            checkRuns = await octokit.paginate(octokit.rest.checks.listForRef, {
                 owner: owner,
                 repo: repo,
                 ref: sha,

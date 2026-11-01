@@ -1,8 +1,6 @@
 import {minimatch} from "minimatch";
 import {Logger, ProbotOctokit} from "probot";
-import {
-    RestEndpointMethodTypes
-} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js";
+import type {RestEndpointMethodTypes} from "@octokit/plugin-rest-endpoint-methods";
 import {HookType} from "./__generated__/_enums.js";
 import db, {gha_hooks, gha_workflow_runs} from "./db/database.js";
 import {GhaHook} from "./gha_loader.js";
@@ -154,7 +152,7 @@ export class Hooks {
                               repo: { default_branch: string; name: string; owner: { login: string } };
                               sha: string
                           };
-                          merged: boolean | null
+                          merged?: boolean | null
                       },
                       action: string,
                       triggeredHooks: Set<GhaHook>, merge_commit_sha: string, prCheckId: number,

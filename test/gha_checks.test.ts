@@ -103,8 +103,10 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                create: mock
+            rest: {
+                checks: {
+                    create: mock
+                }
             }
         }
         const erroredWorkflow: TriggeredWorkflow =
@@ -153,8 +155,10 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                create: createCheckMock
+            rest: {
+                checks: {
+                    create: createCheckMock
+                }
             }
         }
         // @ts-ignore
@@ -193,8 +197,10 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                }
             }
         }
         // @ts-ignore
@@ -239,8 +245,10 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                }
             }
         }
         // @ts-ignore
@@ -283,11 +291,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         }
         const erroredWorkflows: TriggeredWorkflow[] = [{
@@ -343,11 +353,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         }
         // @ts-ignore
@@ -392,9 +404,11 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                create: createCheckMock
-            },
+            rest: {
+                checks: {
+                    create: createCheckMock
+                }
+            }
         };
         // @ts-ignore
         await checks.updateWorkflowRunCheckQueued(octokit, workflowJobQueuedPayload, 1);
@@ -439,8 +453,10 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                }
             }
         }
         // @ts-ignore
@@ -485,11 +501,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         }
         // @ts-ignore
@@ -548,8 +566,10 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                }
             }
         }
         // @ts-ignore
@@ -583,8 +603,10 @@ describe('gha_checks', () => {
 
         const updateCheckMock = vi.fn();
         const octokit = {
-            checks: {
-                update: updateCheckMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                }
             }
         }
         // @ts-ignore
@@ -625,11 +647,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         }
         // @ts-ignore
@@ -680,11 +704,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         }
         // @ts-ignore
@@ -764,14 +790,16 @@ describe('gha_checks', () => {
         });
         const createCommentMock = vi.fn();
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
-            },
-            issues: {
-                createComment: createCommentMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                },
+                issues: {
+                    createComment: createCommentMock
+                }
             }
         }
         // @ts-ignore
@@ -854,11 +882,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                create: createCheckMock,
-            },
-            actions: {
-                reRunWorkflow: reRunWorkflowMock
+            rest: {
+                checks: {
+                    create: createCheckMock,
+                },
+                actions: {
+                    reRunWorkflow: reRunWorkflowMock
+                }
             }
         };
         // @ts-ignore
@@ -939,11 +969,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                create: createCheckMock,
-            },
-            actions: {
-                reRunWorkflow: reRunWorkflowMock
+            rest: {
+                checks: {
+                    create: createCheckMock,
+                },
+                actions: {
+                    reRunWorkflow: reRunWorkflowMock
+                }
             }
         };
         // @ts-ignore
@@ -1022,11 +1054,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                create: createCheckMock,
-            },
-            actions: {
-                reRunWorkflow: reRunWorkflowMock
+            rest: {
+                checks: {
+                    create: createCheckMock,
+                },
+                actions: {
+                    reRunWorkflow: reRunWorkflowMock
+                }
             }
         };
         // @ts-ignore
@@ -1100,11 +1134,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         }
         // @ts-ignore
@@ -1143,11 +1179,13 @@ describe('gha_checks', () => {
             }
         });
         const octokit = {
-            checks: {
-                update: updateCheckMock
-            },
-            actions: {
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock
+                },
+                actions: {
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         }
         // @ts-ignore
@@ -1201,12 +1239,14 @@ describe('gha_checks', () => {
         });
 
         const octokit = {
-            checks: {
-                update: updateCheckMock,
-            },
-            actions: {
-                getWorkflowRun: getWorkflowRunMock,
-                downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+            rest: {
+                checks: {
+                    update: updateCheckMock,
+                },
+                actions: {
+                    getWorkflowRun: getWorkflowRunMock,
+                    downloadJobLogsForWorkflowRun: downloadJobLogsForWorkflowRunMock
+                }
             }
         };
 
@@ -1279,12 +1319,14 @@ describe('gha_checks', () => {
     it.each([0, 1, 10, 300, 1000])('github check summary for \'%s\' workflow runs should not go over limit', async (numberOfWorkflowRuns) => {
         const veryLongString = "😀".repeat(GITHUB_CHECK_BYTESIZE_LIMIT + 1000);
         const octokit = {
-            actions: {
-                downloadJobLogsForWorkflowRun: vi.fn().mockImplementation(() => {
-                    return {
-                        data: veryLongString
-                    }
-                })
+            rest: {
+                actions: {
+                    downloadJobLogsForWorkflowRun: vi.fn().mockImplementation(() => {
+                        return {
+                            data: veryLongString
+                        }
+                    })
+                }
             }
         }
         const randomWorkflowRuns = (amount: number) => Array.from({length: amount}, () => {
@@ -1319,8 +1361,10 @@ describe('gha_checks', () => {
         const owner = 'mdolinin';
         const repo = 'mono-repo-example';
         const octokit = {
-            checks: {
-                listForRef: listForRefMock,
+            rest: {
+                checks: {
+                    listForRef: listForRefMock,
+                }
             },
             paginate: vi.fn().mockImplementation((fn: any, args: any) => {
                 return fn(args).data.check_runs;
