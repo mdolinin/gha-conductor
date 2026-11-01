@@ -5,6 +5,13 @@ updates:
     directory: "/"
     labels:
       - dependencies
+    # Dependabot PRs must never cut a release: semantic-release releases on fix:/feat:, and Dependabot
+    # otherwise copies the prefix style of recent commits on main (e.g. "fix:"). "build" + scope yields
+    # "build(deps): ..." / "build(deps-dev): ...", which commit-analyzer does not release.
+    commit-message:
+      prefix: "build"
+      prefix-development: "build"
+      include: "scope"
     schedule:
       interval: daily
       time: "02:00"
@@ -18,6 +25,9 @@ updates:
     directory: "/"
     labels:
       - dependencies
+    commit-message:
+      prefix: "build"
+      include: "scope"
     schedule:
       interval: daily
       time: "02:00"
@@ -27,6 +37,9 @@ updates:
     directory: "/"
     labels:
       - dependencies
+    commit-message:
+      prefix: "build"
+      include: "scope"
     schedule:
       interval: weekly
     open-pull-requests-limit: 2
