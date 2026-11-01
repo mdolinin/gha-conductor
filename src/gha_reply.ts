@@ -15,7 +15,7 @@ export class GhaReply {
     ): Promise<void> {
         const commentId = context.payload.comment.id;
         this.log.debug(`Replying to comment ${commentId} with reaction ${reaction} and comment ${comment}`);
-        const reactions = await context.octokit.reactions.listForIssueComment({
+        const reactions = await context.octokit.rest.reactions.listForIssueComment({
             owner: context.payload.repository.owner.login,
             repo: context.payload.repository.name,
             comment_id: commentId,
@@ -23,7 +23,7 @@ export class GhaReply {
         try {
             for (const react of reactions.data) {
                 if (react.content !== reaction) {
-                    await context.octokit.reactions.deleteForIssueComment({
+                    await context.octokit.rest.reactions.deleteForIssueComment({
                         owner: context.payload.repository.owner.login,
                         repo: context.payload.repository.name,
                         comment_id: commentId,
@@ -31,13 +31,13 @@ export class GhaReply {
                     });
                 }
             }
-            await context.octokit.reactions.createForIssueComment({
+            await context.octokit.rest.reactions.createForIssueComment({
                 owner: context.payload.repository.owner.login,
                 repo: context.payload.repository.name,
                 comment_id: commentId,
                 content: reaction,
             });
-            await context.octokit.issues.createComment({
+            await context.octokit.rest.issues.createComment({
                 owner: context.payload.repository.owner.login,
                 repo: context.payload.repository.name,
                 issue_number: context.payload.issue.number,

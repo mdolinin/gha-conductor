@@ -185,7 +185,7 @@ const timeout = 10000; // greater than 5000ms
 describe("gha-conductor app", () => {
     let probot: any;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         nock.disableNetConnect();
         probot = new Probot({
             appId: 123,
@@ -197,7 +197,7 @@ describe("gha-conductor app", () => {
             }),
         });
         // Load our app into probot
-        probot.load(myProbotApp);
+        await probot.load(myProbotApp);
         loadAllGhaYamlMock.mockReset();
     });
 

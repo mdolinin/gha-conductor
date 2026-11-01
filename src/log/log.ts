@@ -1,4 +1,4 @@
-import {Transform} from "readable-stream";
+import {Transform} from "node:stream";
 import {prettyFactory} from "pino-pretty"
 
 const LEVEL_MAP = new Map<number, string>([

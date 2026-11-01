@@ -1,19 +1,47 @@
-import {config as dotenvConfig} from "dotenv";
-
-dotenvConfig();
+// Must stay the first import: ESM evaluates imports in order, and modules such as ./db/database.js
+// read process.env (e.g. DATABASE_URL) at import time. probot < 14 loaded .env itself on import.
+import "dotenv/config";
 import 'dd-trace/init.js';
-import {Server, Probot, Options} from "probot";
-import {defaultApp} from "probot/lib/apps/default.js";
+import {Server, Probot} from "probot";
+import type {Options} from "probot";
+import {getPrivateKey} from "@probot/get-private-key";
 import app from "./index.js";
-import {ServerOptions} from "probot/lib/types.js";
-import {readEnvOptions} from "probot/lib/bin/read-env-options.js";
 import {getTransformStream} from "./log/log.js"
-import {rebindLog} from "probot/lib/helpers/rebind-log.js";
 import {pino} from "pino";
 import type {LoggerOptions} from "pino";
 
+// probot >= 14 only exports its package root, so env parsing that used to come from
+// probot/lib/bin/read-env-options.js lives here (same env vars and defaults).
+function readEnvOptions(env = process.env) {
+    let privateKey: string | undefined;
+    try {
+        privateKey = getPrivateKey({env})?.toString() || undefined;
+    } catch (e) {
+        console.error(e);
+    }
+    const logFormat: "json" | "pretty" = env.LOG_FORMAT
+        ? (env.LOG_FORMAT === "pretty" ? "pretty" : "json")
+        : (env.NODE_ENV === "production" ? "json" : "pretty");
+    return {
+        privateKey,
+        appId: Number(env.APP_ID),
+        port: Number(env.PORT) || 3000,
+        host: env.HOST,
+        secret: env.WEBHOOK_SECRET,
+        webhookPath: env.WEBHOOK_PATH,
+        webhookProxy: env.WEBHOOK_PROXY_URL,
+        logLevel: env.LOG_LEVEL,
+        logFormat,
+        logLevelInString: env.LOG_LEVEL_IN_STRING === "true",
+        logMessageKey: env.LOG_MESSAGE_KEY,
+        redisConfig: env.REDIS_URL,
+        baseUrl: env.GHE_HOST
+            ? `${env.GHE_PROTOCOL || "https"}://${env.GHE_HOST}/api/v3`
+            : "https://api.github.com",
+    };
+}
+
 const main = async () => {
-    const envOptions = readEnvOptions();
     const {
         // log options
         logLevel: level,
@@ -33,23 +61,21 @@ const main = async () => {
         redisConfig,
         secret,
         baseUrl,
-
-    } = {...envOptions};
+    } = readEnvOptions();
 
     const transform = getTransformStream({
         logFormat,
         logLevelInString,
     });
-    const sonicBoom = pino.destination(1)
-    // @ts-ignore
-    transform.pipe(sonicBoom);
+    // SonicBoom is a Writable at runtime but its typings lack the full NodeJS.WritableStream shape
+    transform.pipe(pino.destination(1) as unknown as NodeJS.WritableStream);
 
     const pinoOptions: LoggerOptions = {
         level: level || "info",
         name: "probot",
         messageKey: logMessageKey || "msg",
     };
-    const log = rebindLog(pino(pinoOptions, transform));
+    const log = pino(pinoOptions, transform);
 
     const probotOptions: Options = {
         appId,
@@ -58,24 +84,19 @@ const main = async () => {
         secret,
         baseUrl,
         log: log.child({name: "probot"}),
-        Octokit: undefined,
     };
 
-    const serverOptions: ServerOptions = {
+    const server = new Server({
         host,
         port,
         webhookPath,
         webhookProxy,
         log: log.child({name: "server"}),
         Probot: Probot.defaults(probotOptions),
-    };
+    });
 
-    const server = new Server(serverOptions);
-
-    await server.load(defaultApp)
     await server.load(app);
-
-    server.start();
+    await server.start();
 };
 
 main().catch((error) => {
