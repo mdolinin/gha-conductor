@@ -1,3 +1,10 @@
+## [1.22.10](https://github.com/mdolinin/gha-conductor/compare/v1.22.9...v1.22.10) (2026-11-01)
+
+
+### Bug Fixes
+
+* repeated slash command on the same commit leaves its check stuck in queued ([#551](https://github.com/mdolinin/gha-conductor/issues/551)) ([bc37b51](https://github.com/mdolinin/gha-conductor/commit/bc37b51457cfd175b98144f7850dd7b7366b6578))
+
 ## [1.22.9](https://github.com/mdolinin/gha-conductor/compare/v1.22.8...v1.22.9) (2026-11-01)
 
 
