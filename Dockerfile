@@ -1,5 +1,9 @@
-FROM node:20-slim
-RUN apt-get update && apt-get install -y git
+# Keep in sync with .nvmrc. Node >= 24.22.1 is required for CVE-2026-111497 (Brotli decoder OOB write).
+ARG NODE_VERSION=24.22.2
+FROM node:${NODE_VERSION}-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /usr/src/app
 ENV NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production YARN_VERSION=4.6.0
 RUN corepack enable && corepack prepare yarn@${YARN_VERSION}

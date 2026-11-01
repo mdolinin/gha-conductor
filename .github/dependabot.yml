@@ -9,6 +9,10 @@ updates:
       interval: daily
       time: "02:00"
     open-pull-requests-limit: 5
+    ignore:
+      # @types/node major must track the runtime major in .nvmrc / Dockerfile
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -18,3 +22,11 @@ updates:
       interval: daily
       time: "02:00"
     open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: "/"
+    labels:
+      - dependencies
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
