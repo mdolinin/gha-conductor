@@ -54,7 +54,7 @@
     "@vitest/coverage-v8": "^4.0.17",
     "cross-var": "^1.1.0",
     "dotenv-cli": "^11.0.0",
-    "nock": "^14.0.10",
+    "nock": "^15.0.5",
     "semantic-release": "^25.0.2",
     "smee-client": "^5.0.0",
     "tsc-hooks": "^1.1.2",
