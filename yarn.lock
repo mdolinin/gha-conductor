@@ -1849,12 +1849,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@simple-git/argv-parser@npm:2.0.0":
-  version: 2.0.0
-  resolution: "@simple-git/argv-parser@npm:2.0.0"
+"@simple-git/argv-parser@npm:2.0.1":
+  version: 2.0.1
+  resolution: "@simple-git/argv-parser@npm:2.0.1"
   dependencies:
     "@simple-git/args-pathspec": "npm:^1.0.4"
-  checksum: 10c0/59965b0fcfd3d03df84bdb80bb22be18143b39c21e120178ab07121273c8910ce0e5abb464f59c3f9ce24689aceb3c2d5ff8fea492e2a86ac3075f3a82fa29c6
+  checksum: 10c0/7d2cd9852139ca3b524dcd91f6a887fa505cfb68c8813d7b849005566147365bb1e34f5450411c494fbd714a80c123058e65dc2ffc0b41d059e30bdc98e12223
   languageName: node
   linkType: hard
 
@@ -4772,7 +4772,7 @@ __metadata:
     pino-pretty: "npm:^13.0.0"
     probot: "npm:14.3.2"
     semantic-release: "npm:^25.0.2"
-    simple-git: "npm:^4.0.1"
+    simple-git: "npm:^4.0.2"
     smee-client: "npm:^5.0.0"
     tsc-hooks: "npm:^1.1.2"
     typescript: "npm:^5.9.3"
@@ -8581,16 +8581,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"simple-git@npm:^4.0.1":
-  version: 4.0.1
-  resolution: "simple-git@npm:4.0.1"
+"simple-git@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "simple-git@npm:4.0.2"
   dependencies:
     "@kwsites/file-exists": "npm:^1.1.1"
     "@kwsites/promise-deferred": "npm:^1.1.1"
     "@simple-git/args-pathspec": "npm:1.0.4"
-    "@simple-git/argv-parser": "npm:2.0.0"
+    "@simple-git/argv-parser": "npm:2.0.1"
     debug: "npm:^4.4.0"
-  checksum: 10c0/e0157d2598520e02386c879cb3f349e1072f05c5f2d6768e482bdfa95a029b829772617a83bfc86c319d041cde6f0ad3f4dfecccf853377850261beedb362283
+  checksum: 10c0/d028927258fa286d9d8e462f29ec6a37a32398acd7e53cef7fc81e70636c149d7359a542d1a4f8490b342d40d98e341c35c718734aec448fc24fdee88566e981
   languageName: node
   linkType: hard
 
