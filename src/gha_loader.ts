@@ -17,6 +17,19 @@ import schema from './schemas/gha_yaml_schema.json' with { type: "json" };
 
 type Commit = webhooks["schemas"]["webhook-push"]["commits"][number];
 
+/**
+ * `fileChangesMatchAny` patterns are relative to the repo root. A pattern starting with `./`
+ * is relative to the directory of the hooks file that declares it, e.g. `./settings.gradle` in
+ * `namespaces/platform/.gha-hooks.yaml` becomes `namespaces/platform/settings.gradle`.
+ */
+export function resolveFileChangesMatcher(pattern: string, ghaYamlFilePath: string): string {
+    if (!pattern.startsWith("./")) {
+        return pattern;
+    }
+    const dir = path.posix.dirname(ghaYamlFilePath.split(path.sep).join("/"));
+    return dir === "." ? pattern.slice(2) : `${dir}/${pattern.slice(2)}`;
+}
+
 export interface GhaHook {
     repo_full_name: string,
     branch: string,
@@ -382,6 +395,7 @@ export class GhaLoader {
 
     private getGhaHooks(ghaFileYaml: TheRootSchema, ghaYamlFilePath: string, repoFullName: string = "", branch: string = "", branchHeadSha: string | undefined = undefined): GhaHook[] {
         const hooks: GhaHook[] = [];
+        const toMatcher = (pattern: string) => resolveFileChangesMatcher(pattern, ghaYamlFilePath);
         if (ghaFileYaml.onPullRequest !== undefined) {
             for (const onPR of ghaFileYaml.onPullRequest) {
                 for (const fileChangesMatch of onPR.triggerConditions.fileChangesMatchAny) {
@@ -389,7 +403,7 @@ export class GhaLoader {
                         repo_full_name: repoFullName,
                         branch: branch,
                         branch_head_sha: branchHeadSha,
-                        file_changes_matcher: fileChangesMatch,
+                        file_changes_matcher: toMatcher(fileChangesMatch),
                         destination_branch_matcher: null,
                         hook: 'onPullRequest' as HookType,
                         hook_name: onPR.name,
@@ -413,7 +427,7 @@ export class GhaLoader {
                             repo_full_name: repoFullName,
                             branch: branch,
                             branch_head_sha: branchHeadSha,
-                            file_changes_matcher: fileChangesMatch,
+                            file_changes_matcher: toMatcher(fileChangesMatch),
                             destination_branch_matcher: destinationBranchMatch,
                             hook: 'onBranchMerge' as HookType,
                             hook_name: onBranchMerge.name,
@@ -437,7 +451,7 @@ export class GhaLoader {
                         repo_full_name: repoFullName,
                         branch: branch,
                         branch_head_sha: branchHeadSha,
-                        file_changes_matcher: fileChangesMatch,
+                        file_changes_matcher: toMatcher(fileChangesMatch),
                         destination_branch_matcher: null,
                         hook: 'onPullRequestClose' as HookType,
                         hook_name: onPRClose.name,
@@ -461,7 +475,7 @@ export class GhaLoader {
                             repo_full_name: repoFullName,
                             branch: branch,
                             branch_head_sha: branchHeadSha,
-                            file_changes_matcher: fileChangesMatch,
+                            file_changes_matcher: toMatcher(fileChangesMatch),
                             destination_branch_matcher: null,
                             hook: 'onSlashCommand' as HookType,
                             hook_name: onSlashCommand.name,

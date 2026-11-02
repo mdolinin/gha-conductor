@@ -131,8 +131,12 @@ Files can be places in any directory in the repository.
 App uses `worfklow_dispatch` event to trigger GitHub Actions workflows.
 
 `fileChangesMatchAny` uses [minimatch](https://github.com/isaacs/minimatch) to match file changes.
-Uses default configuration for minimatch.
-Ignores filenames starting with a period. (e.g. `.gha.yaml`)
+Patterns are matched against the changed file's path **relative to the repository root**, no matter where the hooks file lives
+(e.g. `settings.gradle` matches only the root `settings.gradle`, not `namespaces/platform/settings.gradle`).
+To match relative to the hooks file's own directory, start the pattern with `./`:
+in `namespaces/platform/.gha.yaml`, `./settings.gradle` matches `namespaces/platform/settings.gradle`
+and `./gradle/scripts/**` matches `namespaces/platform/gradle/scripts/**`.
+Files and directories starting with a period (e.g. `.gha.yaml`) are matched by `*` and `**` too (minimatch `dot: true`).
 If pattern starts with `!`, it will be ignored.
 
 GitHub Actions workflows should be defined in `.github/workflows` directory and should have `workflow_dispatch` trigger.
