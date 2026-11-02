@@ -1,3 +1,10 @@
+## [1.22.12](https://github.com/mdolinin/gha-conductor/compare/v1.22.11...v1.22.12) (2026-11-02)
+
+
+### Bug Fixes
+
+* **deps:** patch minimatch, vitest and undici security advisories ([#565](https://github.com/mdolinin/gha-conductor/issues/565)) ([d2a3ea1](https://github.com/mdolinin/gha-conductor/commit/d2a3ea1d7a55f1b89763eb48a18cf4dec7ec4122)), closes [#564](https://github.com/mdolinin/gha-conductor/issues/564)
+
 ## [1.22.11](https://github.com/mdolinin/gha-conductor/compare/v1.22.10...v1.22.11) (2026-11-02)
 
 
