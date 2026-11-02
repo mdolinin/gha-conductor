@@ -1,6 +1,6 @@
 import * as http from 'http';
 
-const options = {hostname: 'localhost', port: process.env.PORT || 3000, path: '/api/health', method: 'GET'};
+const options = {hostname: '127.0.0.1', port: process.env.PORT || 3000, path: '/api/health', method: 'GET'};
 
 http.request(options, (res) => {
     let body = '';

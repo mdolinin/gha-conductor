@@ -14,6 +14,7 @@ Probot 14 GitHub App (TypeScript ESM, Node 24 via `.nvmrc`, Postgres via `@datab
 - REST calls must go through `octokit.rest.<api>` (e.g. `octokit.rest.checks.create`); `octokit.checks` is undefined at runtime. Test mocks nest the same way: `{rest: {checks: {...}}, paginate}`.
 - HTTP routes use `addHandler((req, res) => boolean)` (no Express/getRouter); `addHandler` throws "No server instance" outside `Server`, so wrap it.
 - Webhook payload types come from `@octokit/openapi-webhooks-types` (`components["schemas"]["webhook-..."]`), and many fields are nullable or optional.
+- probot 14's `Server` defaults `host` to `localhost` (loopback only); `src/main.ts` defaults it to `0.0.0.0` so the ALB can reach the app. Verify reachability via a non-loopback IP, not just `lib/healthcheck.js`.
 - `import "dotenv/config"` must stay the first import in `src/main.ts`, because `db/database.ts` reads `DATABASE_URL` at import time.
 - Declare every package `src/` imports in `package.json`; don't rely on probot's transitive deps.
 
