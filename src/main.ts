@@ -26,7 +26,9 @@ function readEnvOptions(env = process.env) {
         privateKey,
         appId: Number(env.APP_ID),
         port: Number(env.PORT) || 3000,
-        host: env.HOST,
+        // probot >= 14's Server defaults host to "localhost" (loopback only), which makes the app
+        // unreachable from a load balancer/container network; probot 13 listened on all interfaces.
+        host: env.HOST || "0.0.0.0",
         secret: env.WEBHOOK_SECRET,
         webhookPath: env.WEBHOOK_PATH,
         webhookProxy: env.WEBHOOK_PROXY_URL,
