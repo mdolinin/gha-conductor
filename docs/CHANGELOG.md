@@ -1,3 +1,10 @@
+## [1.22.11](https://github.com/mdolinin/gha-conductor/compare/v1.22.10...v1.22.11) (2026-11-02)
+
+
+### Bug Fixes
+
+* bind workflow run id from workflow dispatch response ([#560](https://github.com/mdolinin/gha-conductor/issues/560)) ([38e6712](https://github.com/mdolinin/gha-conductor/commit/38e6712183d440d40092f7897fc010736b128d31))
+
 ## [1.22.10](https://github.com/mdolinin/gha-conductor/compare/v1.22.9...v1.22.10) (2026-11-01)
 
 
