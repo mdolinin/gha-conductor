@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/mdolinin/gha-conductor/compare/v1.22.12...v1.23.0) (2026-11-02)
+
+
+### Features
+
+* resolve ./ fileChangesMatchAny patterns against the hooks file directory ([#566](https://github.com/mdolinin/gha-conductor/issues/566)) ([3804371](https://github.com/mdolinin/gha-conductor/commit/38043718a81353f60f2b9fb9651ab87eb6266206)), closes [#534](https://github.com/mdolinin/gha-conductor/issues/534) [#536](https://github.com/mdolinin/gha-conductor/issues/536)
+
 ## [1.22.12](https://github.com/mdolinin/gha-conductor/compare/v1.22.11...v1.22.12) (2026-11-02)
 
 
