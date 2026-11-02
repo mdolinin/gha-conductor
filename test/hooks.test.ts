@@ -4,7 +4,8 @@ import {HookType} from "../src/__generated__/_enums.js";
 import {GhaHook} from "../src/gha_loader.js";
 import {Logger} from "probot";
 
-const insertMock = vi.fn();
+const insertMock = vi.fn().mockImplementation((record) => [{id: 42, ...record}]);
+const updateMock = vi.fn();
 const findAllMock = vi.fn().mockImplementation(() => {
     return [
         {
@@ -44,6 +45,7 @@ vi.mock('../src/db/database', async (importOriginal) => {
         gha_workflow_runs: vi.fn(() => {
             return {
                 insert: insertMock,
+                update: updateMock,
             };
         }),
     }
@@ -52,6 +54,7 @@ vi.mock('../src/db/database', async (importOriginal) => {
 const logMock = {
     info: vi.fn(),
     warn: vi.fn(),
+    debug: vi.fn(),
     error: vi.fn(),
 };
 
@@ -362,6 +365,7 @@ describe('gha hooks', () => {
             owner: "owner_login",
             ref: "feature/1",
             repo: "repo_name",
+            return_run_details: true,
             workflow_id: "pipeline_name_1.yaml"
         });
         expect(workflowDispatchMock).toHaveBeenCalledWith({
@@ -373,6 +377,7 @@ describe('gha hooks', () => {
             owner: "owner_login",
             ref: "main",
             repo: "repo_name",
+            return_run_details: true,
             workflow_id: "pipeline_name_2.yaml"
         });
         expect(insertMock).toHaveBeenCalledTimes(2);
@@ -490,6 +495,7 @@ describe('gha hooks', () => {
             owner: "owner_login",
             ref: "feature/1",
             repo: "repo_name",
+            return_run_details: true,
             workflow_id: "pipeline_name_1.yaml"
         });
         expect(workflowDispatchMock).toHaveBeenCalledTimes(1);
@@ -729,6 +735,91 @@ describe('gha hooks', () => {
             repo_full_name: repoFullName,
             status: 'completed',
             conclusion: 'failure',
+        });
+    });
+
+    describe('dispatch run details', () => {
+        const makeOctokit = (dispatch: any) => ({
+            rest: {
+                actions: {
+                    createWorkflowDispatch: dispatch,
+                    getWorkflow: vi.fn().mockResolvedValue({status: 200, data: {state: "active"}})
+                },
+                repos: {
+                    getContent: vi.fn().mockResolvedValue({
+                        status: 200,
+                        data: {content: Buffer.from(workflowYamlValid).toString('base64')}
+                    })
+                }
+            }
+        });
+        const pull_request = {
+            merged: false,
+            number: 1,
+            head: {ref: "head_ref", sha: "head_sha"},
+            base: {
+                ref: "base_ref", sha: "base_sha",
+                repo: {default_branch: "main", name: "repo_name", full_name: "repo_full_name", owner: {login: "owner_login"}}
+            }
+        };
+        const hook = {
+            branch: "main",
+            destination_branch_matcher: "main",
+            hook_name: "hook1",
+            pipeline_name: "pipeline_name_1",
+            pipeline_params: {COMMAND: "command1"},
+            pipeline_ref: "main",
+            repo_full_name: "repo_full_name",
+            shared_params: {ROOT_DIR: "root_dir1"},
+            path_to_gha_yaml: "namespace1/module1/.gha.yaml",
+            pipeline_unique_prefix: "namespace1-module1-hook1",
+            file_changes_matcher: "*.yaml",
+            slash_command: null,
+            hook: "onPullRequest" as HookType
+        };
+        const run = (dispatch: any) =>
+            // @ts-ignore
+            hooks.runWorkflow(makeOctokit(dispatch), pull_request, "opened", new Set<GhaHook>([hook]), "0123456789abcdef", 1, [], ".yaml");
+
+        it('inserts the record before dispatching and binds the returned run id and url by record id', async () => {
+            const dispatch = vi.fn().mockResolvedValue({
+                status: 200,
+                data: {workflow_run_id: 1234, run_url: "https://api.github.com/repos/o/r/actions/runs/1234", html_url: "https://github.com/o/r/actions/runs/1234"}
+            });
+            const triggered = await run(dispatch);
+            expect(triggered).toEqual([expect.objectContaining({name: "namespace1-module1-hook1-head_sha"})]);
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({return_run_details: true}));
+            expect(insertMock.mock.invocationCallOrder[0]).toBeLessThan(dispatch.mock.invocationCallOrder[0]);
+            expect(insertMock).toHaveBeenCalledWith(expect.not.objectContaining({status: expect.anything()}));
+            expect(updateMock).toHaveBeenCalledTimes(1);
+            expect(updateMock).toHaveBeenCalledWith({id: 42}, {
+                workflow_run_id: 1234,
+                workflow_run_url: "https://github.com/o/r/actions/runs/1234"
+            });
+        });
+
+        it('leaves the record unbound when dispatch returns 204 without run details', async () => {
+            const dispatch = vi.fn().mockResolvedValue({status: 204});
+            const triggered = await run(dispatch);
+            expect(triggered[0].error).toBeUndefined();
+            expect(insertMock).toHaveBeenCalledTimes(1);
+            expect(updateMock).not.toHaveBeenCalled();
+        });
+
+        it('marks the pre-inserted record as failed when dispatch throws', async () => {
+            const dispatch = vi.fn().mockRejectedValue(new Error("boom"));
+            const triggered = await run(dispatch);
+            expect(triggered[0].error).toContain("boom");
+            expect(insertMock).toHaveBeenCalledTimes(1);
+            expect(updateMock).toHaveBeenCalledWith({id: 42}, {status: "completed", conclusion: "failure"});
+        });
+
+        it('does not fail the trigger when storing the run id fails', async () => {
+            updateMock.mockRejectedValueOnce(new Error("db down"));
+            const dispatch = vi.fn().mockResolvedValue({status: 200, data: {workflow_run_id: 99, html_url: "u"}});
+            const triggered = await run(dispatch);
+            expect(triggered[0].error).toBeUndefined();
+            expect(logMock.warn).toHaveBeenCalled();
         });
     });
 
