@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/mdolinin/gha-conductor/compare/v1.23.0...v1.23.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* listen on all interfaces so the load balancer can reach the app ([#567](https://github.com/mdolinin/gha-conductor/issues/567)) ([40bfda3](https://github.com/mdolinin/gha-conductor/commit/40bfda3726e74a0f9049779478f17bfba859b5bf))
+
 # [1.23.0](https://github.com/mdolinin/gha-conductor/compare/v1.22.12...v1.23.0) (2026-11-02)
 
 
