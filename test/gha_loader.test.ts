@@ -1,5 +1,5 @@
 import {vi, describe, beforeEach, afterEach, expect, it} from "vitest";
-import {GhaLoader} from "../src/gha_loader.js";
+import {GhaLoader, resolveFileChangesMatcher} from "../src/gha_loader.js";
 import {Logger} from "probot";
 import * as fs from "fs";
 
@@ -946,4 +946,71 @@ describe('gha loader', () => {
         expect(new Set(rmSyncCalls)).toEqual(new Set(targets));
     });
 
+});
+
+describe('resolveFileChangesMatcher', () => {
+    it('should keep repo-root-relative patterns unchanged', () => {
+        expect(resolveFileChangesMatcher("namespaces/platform/**", "namespaces/platform/.gha-hooks.yaml")).toBe("namespaces/platform/**");
+        expect(resolveFileChangesMatcher("settings.gradle", "namespaces/platform/.gha-hooks.yaml")).toBe("settings.gradle");
+        expect(resolveFileChangesMatcher("!./ignored", "a/.gha-hooks.yaml")).toBe("!./ignored");
+    });
+
+    it('should resolve ./ patterns against the directory of the declaring hooks file', () => {
+        expect(resolveFileChangesMatcher("./settings.gradle", "namespaces/platform/.gha-hooks.yaml")).toBe("namespaces/platform/settings.gradle");
+        expect(resolveFileChangesMatcher("./gradle/scripts/**", "namespaces/platform/.gha-hooks.yaml")).toBe("namespaces/platform/gradle/scripts/**");
+        expect(resolveFileChangesMatcher("./**", "a/b/.gha-hooks.yaml")).toBe("a/b/**");
+    });
+
+    it('should strip ./ for a hooks file at the repo root', () => {
+        expect(resolveFileChangesMatcher("./settings.gradle", ".gha-hooks.yaml")).toBe("settings.gradle");
+    });
+});
+
+describe('gha loader with ./ matchers', () => {
+    it('should store resolved ./ matchers for every hook type, when hooks file is nested', async () => {
+        const ghaLoader = new GhaLoader(logMock as unknown as Logger);
+        const yaml = `
+moduleName: platform
+teamNamespace: core
+onPullRequest:
+  - name: build
+    pipelineRef: {name: common-job}
+    pipelineRunValues: {params: {}}
+    triggerConditions:
+      fileChangesMatchAny: ["./settings.gradle", "gradle/**"]
+onBranchMerge:
+  - name: release
+    pipelineRef: {name: common-job}
+    pipelineRunValues: {params: {}}
+    triggerConditions:
+      destinationBranchMatchesAny: ["main"]
+      fileChangesMatchAny: ["./src/**"]
+onPullRequestClose:
+  - name: cleanup
+    pipelineRef: {name: common-job}
+    pipelineRunValues: {params: {}}
+    triggerConditions:
+      fileChangesMatchAny: ["./src/**"]
+onSlashCommand:
+  - name: validate
+    pipelineRef: {name: common-job}
+    pipelineRunValues: {params: {}}
+    triggerConditions:
+      slashCommands: ["validate"]
+      fileChangesMatchAny: ["./src/**"]
+`;
+        const octokit = {
+            request: vi.fn().mockResolvedValue({data: {content: Buffer.from(yaml).toString('base64')}, status: 200})
+        };
+        const diffEntries = [{filename: "namespaces/platform/.gha-hooks.yaml", contents_url: "url", status: "modified"}];
+        // @ts-ignore
+        const {hooks} = await ghaLoader.loadGhaHooks(octokit, ".gha-hooks.yaml", diffEntries);
+        expect(hooks.map((h: any) => [h.hook, h.file_changes_matcher])).toEqual([
+            ["onPullRequest", "namespaces/platform/settings.gradle"],
+            ["onPullRequest", "gradle/**"],
+            ["onBranchMerge", "namespaces/platform/src/**"],
+            ["onPullRequestClose", "namespaces/platform/src/**"],
+            ["onSlashCommand", "namespaces/platform/src/**"],
+        ]);
+    });
 });
