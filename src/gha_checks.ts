@@ -58,8 +58,10 @@ export class GhaChecks {
      * pipeline_run_name (`<hook>-<head sha>`) is NOT unique: triggering the same hook again for the same head
      * sha (e.g. a repeated slash command) inserts another record with the same name. So records are resolved,
      * newest first, by:
-     *   1. the record already bound to this GitHub workflow run id (events of an already-known run),
-     *   2. the newest record not yet bound to any run (the `queued` event of a freshly triggered run),
+     *   1. the record already bound to this GitHub workflow run id (normally set right after dispatch from the
+     *      `return_run_details` response, or by an earlier event of the same run),
+     *   2. the newest record not yet bound to any run (dispatch returned 204, e.g. GHES, or the `queued` event
+     *      arrived before the dispatch response was stored),
      *   3. the newest record with that name (previous behaviour, e.g. run id never recorded).
      * Legacy records created before the repo_full_name column was added have NULL repo_full_name and are
      * only considered when nothing matches the repo exactly.

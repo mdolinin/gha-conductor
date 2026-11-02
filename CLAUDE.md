@@ -19,6 +19,7 @@ Probot 14 GitHub App (TypeScript ESM, Node 24 via `.nvmrc`, Postgres via `@datab
 
 ## Data model gotchas
 - `gha_workflow_runs.pipeline_run_name` (`<hook>-<head sha>`) is NOT unique (re-triggered hooks); look rows up by `workflow_run_id`/`id`, and update by `id`.
+- `runWorkflow` inserts the run row BEFORE dispatching, then binds `workflow_run_id` from the dispatch response (`return_run_details: true` -> 200); on a 204 (GHES) the `workflow_job.queued` handler binds it by name.
 - pg-typed `findOne` throws on >1 match; for non-unique keys use `find(q).orderByDesc("id").first()`.
 
 ## Releases & PRs

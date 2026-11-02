@@ -345,16 +345,21 @@ export class Hooks {
                 repo: repo,
                 workflow_id: workflow_id,
                 ref: pipeline_ref,
-                inputs: inputs
+                inputs: inputs,
+                return_run_details: true
             };
+            // Insert the record BEFORE dispatching: the workflow_job.queued webhook can be handled before the
+            // dispatch call returns, and it must find this (still unbound) record rather than an older one
+            // with the same pipeline_run_name.
+            const workflowRun = await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName);
             try {
-                await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
+                const resp = await octokit.rest.actions.createWorkflowDispatch(workflowDispatch);
                 this.log.info(`Workflow ${pipelineUniquePrefix} triggered successfully for PR#${prNumber}`);
-                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName);
+                await this.bindRunDetails(workflowRun.id, resp, pipelineUniquePrefix);
                 triggeredPipelines.push({name: pipeline_name, inputs: inputs});
             } catch (e) {
                 this.log.error(e, "Failed to trigger workflow " + pipelineUniquePrefix + " for PR#" + prNumber);
-                await this.createNewRun(pipelineUniquePrefix, headSha, merge_commit_sha, pipeline_name, inputs, prNumber, prCheckId, hook.hook, repoFullName, true);
+                await gha_workflow_runs(db).update({id: workflowRun.id}, {status: "completed", conclusion: "failure"});
                 triggeredPipelines.push({
                     name: pipeline_name,
                     inputs: inputs,
@@ -393,7 +398,30 @@ export class Hooks {
                 conclusion: "failure"
             });
         }
-        await gha_workflow_runs(db).insert(workflowRun);
+        const [inserted] = await gha_workflow_runs(db).insert(workflowRun);
+        return inserted;
+    }
+
+    /**
+     * Binds the GitHub workflow run created by a dispatch to its record, when the API returned run details
+     * (`return_run_details: true` -> 200). A 204 (e.g. GHES without this feature) leaves the record unbound;
+     * the workflow_job.queued handler then binds it by pipeline_run_name.
+     */
+    private async bindRunDetails(recordId: number, resp: { status: number, data?: unknown }, pipelineUniquePrefix: string) {
+        const details = resp.status === 200 ? resp.data as { workflow_run_id?: number, html_url?: string } | undefined : undefined;
+        if (!details?.workflow_run_id) {
+            this.log.debug(`Dispatch of ${pipelineUniquePrefix} returned no run details (status ${resp.status})`);
+            return;
+        }
+        try {
+            await gha_workflow_runs(db).update({id: recordId}, {
+                workflow_run_id: details.workflow_run_id,
+                ...(details.html_url ? {workflow_run_url: details.html_url} : {})
+            });
+        } catch (e) {
+            // not fatal: the queued webhook still binds the record by name
+            this.log.warn(e, `Failed to store run id ${details.workflow_run_id} for ${pipelineUniquePrefix}`);
+        }
     }
 
     static mapEventTypeToHook(
