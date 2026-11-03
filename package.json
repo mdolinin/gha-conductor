@@ -51,7 +51,7 @@
     "@types/node": "^24.10.0",
     "@types/pino-std-serializers": "^4.0.0",
     "@types/readable-stream": "^4.0.23",
-    "@vitest/coverage-v8": "^4.0.17",
+    "@vitest/coverage-v8": "^5.0.5",
     "cross-var": "^1.1.0",
     "dotenv-cli": "^11.0.0",
     "nock": "^15.0.5",
